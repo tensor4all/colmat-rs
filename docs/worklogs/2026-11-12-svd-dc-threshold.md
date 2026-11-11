@@ -17,6 +17,26 @@ edit after the recording is a comment or a `#[cfg(test)]` case - the branch is t
 `git diff 6e7e80f..HEAD -- faer/src` is empty, so no line compiled into the library changed after the
 numbers were taken.
 
+### Not in this repository, and not evidence here
+
+Three things the record leans on are defined outside it. They are named so nobody has to guess where
+a number came from, and they are harness conventions or published pages - not measurements committed
+with this PR, and not reproducible from it:
+
+- **The campaign guard's 5% floor** - `candidate.py:221` in the separate `campaign-toolkit`
+  repository. It accepts a candidate inside `[low * 0.95, high * 1.05]` of the baseline's three
+  starts. It is the *definition* of the check the control row is quoted against; the reproducible
+  side of that comparison (0 of 720 under the floor, 296 of 720 against the raw range) is computed
+  from the committed tarball by the script below. The toolkit is not vendored in faer.
+- **The "+10% p95 for a shared host" acceptance convention** - the campaign's rule for reading a
+  single regressed cell on a host it does not own, used for the four `f32` cells. A convention, not a
+  measurement; the reproducible half of that argument is the cell values (0.500 -> 0.533 ms), which
+  are in table B.
+- **The `71b25ffb` ranking medians (1.27 MKL, 1.28 OpenBLAS)** - read from the published
+  `faer-benchmark` pages for that revision and their raw CSVs, which live in the harness repository,
+  not in faer. They chose the target. They are not evidence for any number this PR reports, and this
+  PR's own pair covers `linalg-small` and `linalg-mid` only.
+
 An earlier round of this record also compared `objcopy` hashes of `.text` + `.rodata` between the
 measured build and the head. That claim is dropped: the measured tree is on no published ref, so
 neither half of the comparison can be reproduced from this repository, and a claim a reader cannot
@@ -36,8 +56,13 @@ owned family excluded:
 | `solve` f64 mid | 1.13 | `512` 8T 2.88 | #123 |
 | `qr_factor` f64 tall | 1.10 | `64x1024` 8T 2.18 | #178 |
 
+This table is read from the harness's published pages, not measured here: none of it is
+reproducible from this repository or from the tarball (see "Not in this repository, and not evidence
+here"). It chose the target; the numbers this PR reports come from its own pair.
+
 `svd_thin` f64 is the only family where **both** vendors beat faer and nothing claims it (1.27
-against MKL, 1.28 against OpenBLAS), and it is also the largest absolute loss of the unowned ones
+against MKL, 1.28 against OpenBLAS - published harness pages, not this PR's evidence; see "Not in
+this repository" above), and it is also the largest absolute loss of the unowned ones
 (0.72 ms of a 2.01 ms call at `96x96` 8T). It is confined to `n = 64` and `n = 96`, which is what
 located the cause.
 
@@ -64,9 +89,10 @@ values-only route returns through `dqds` before the gate below is read, and both
   1.58 to 1.28. The qualifier is not decoration: n = 32 keeps QR at either value (0.159 at 128
   against 0.160 at 40 in table C, and the recursion there is 11% worse), and n = 1024 at 8T is
   167.043 against 167.040 ms, so "every size" would have been a claim the probe does not make.
-- **40.** The leaf value is flat between 33 and 44 at n = 96 (0.2% at 1T, 0.8% at 8T) and 48 is already
-  4.6% (1T) and 9.9% (8T) worse. 40 sits inside that flat band rather than at either end of it - 0.8%
-  from 33 and 0.7% from 44, the band's midpoint being about 38 - and it is a multiple of 8. It also
+- **40.** At n = 96 the four sampled thresholds 33, 36, 40 and 44 all land within 0.19% at 1T
+  (1.552-1.555 ms) and 0.75% at 8T (1.195-1.204 ms), while 48 is already 4.6% (1T) and 9.9% (8T)
+  worse. 40 is interior to that band rather than at either end - 0.0% from 33 at 1T and 0.2% at 8T,
+  0.2% and 0.7% from 44, with the band's midpoint near 38 - and it is a multiple of 8. It also
   leaves n = 32 - the campaign's guard cell - on QR, where the route does not change.
 - **A base case far under 128 is not a choice unique to this decision.** Two supports, one
   checkable here and one not. Checkable: faer's own LAPACK-derived SVD cases already run the
@@ -93,7 +119,8 @@ values-only route returns through `dqds` before the gate below is read, and both
   rows: 720 cells, median candidate/baseline ratio **0.999972**.
   Its "0 outside" needs the definition that produced it, because the raw range says something else.
   `candidate_compare.py` asks `low * 0.95 <= candidate <= high * 1.05` of the baseline's three
-  starts (`campaign-toolkit/campaign_toolkit/candidate.py:221`), and under that floored band 0 of
+  starts (`candidate.py:221` in the separate campaign toolkit - harness-only, not vendored here),
+  and under that floored band 0 of
   720 cells are outside. Against the **unfloored** min/max range, **296** of 720 are, i.e. session
   drift on this host is larger than the within-session spread of three starts. That is the reason
   the campaign's band has the floor, and it is quoted here instead of the bare "0 outside", which
@@ -111,7 +138,8 @@ values-only route returns through `dqds` before the gate below is read, and both
   is not paid back until n is above 64, so its crossover is higher than `f64`'s - which is what a
   per-scalar-type gate would exploit. They are accepted rather than fixed because the family they
   belong to is a net win (median 0.925), the loss is one size at one thread count and not a band, the
-  worst one (+6.6%) is inside the +10% p95 that the campaign sets for a shared host, and the
+  worst one (+6.6%) is inside the campaign's +10% p95 convention for a shared host (harness-only,
+  see "Not in this repository"), and the
   alternative - a value per scalar type - is unmeasured at 256 and 512, where the same field is also
   the leaf. A reviewer looking for a criterion should read it as: a size/thread-count corner inside a
   winning family is tolerated when the fix for it would change an unmeasured leaf, and is written
@@ -169,12 +197,21 @@ values-only route returns through `dqds` before the gate below is read, and both
   (`evd/mod.rs:91`, `:494`, `:507`, floor `tridiag_evd.rs:389`), now scoped to
   `SvdParams::recursion_threshold` in the claim and recorded as a follow-up for `#391`.
   (2) "40 is the middle of the flat region" overstated the committed sweep, whose midpoint is about
-  38; the text now says 40 is interior to the band (0.8% from 33, 0.7% from 44), and the perf
+  38; the text now says 40 is interior to the band and gives the distances it can support (0.0% from
+  33 at 1T, 0.2% at 8T; 0.2% and 0.7% from 44), and the perf
   commit's message is noted as carrying the looser wording. (3) The `objcopy` `.text`/`.rodata`
   comparison is withdrawn outright - neither half is reproducible from this repository - leaving
   `git diff 6e7e80f..HEAD -- faer/src` empty as the only claim tying the numbers to the tree.
   (4) The comparator's "189 faster / 5 slower" came from a tool that is not in the evidence; only
   the per-cell statistic the committed script prints (188 / 4 / 528) is quoted now.
+- **Fifth round (2 `UNVERIFIED`, both closed).** (1) "0.8% from 33" was the width of the 40..44 gap at
+  8T, not the distance from 33, whose committed value is 0.0% (1T) and 0.2% (8T); the sentence now
+  gives the four sampled thresholds' spread (0.19% at 1T, 0.75% at 8T) and the distances it can
+  support, and the round-4 entry that repeated the wrong figure is corrected too. (2) The campaign
+  toolkit's 5% floor, the +10% p95 convention and the `71b25ffb` ranking medians are defined outside
+  this repository; a "Not in this repository, and not evidence here" section now names each of them
+  with what they are used for and what the reproducible half is, the ranking table carries its own
+  pointer, and the script's label no longer cites a file that is not here.
 - **One attempt was discarded, not used.** The first baseline recording
   (`20261111T122715Z-acc404-base`) ran the full four-regime grid and hit the two-hour cap with two of
   its three process sets complete (44 CSVs, no `report.md`); the guard log shows one attempt and no
@@ -290,8 +327,8 @@ the earlier ones, so a cell can have up to three invocations. Raw values are in 
 At n = 96, 128 -> 40 is 0.76x at 1T and 0.57x at 8T, and the sweep around the chosen value reads
 (threshold: ms, n = 96): 33: 1.552, 36: 1.554, 40: 1.552, 44: 1.555, 48: 1.624, 56: 1.777,
 128: 2.042 at 1T and 33: 1.198, 36: 1.197, 40: 1.195, 44: 1.204, 48: 1.313, 56: 1.433, 128: 2.080
-at 8T - within 0.2% (1T) and 0.8% (8T) from 33 to 44, then +4.6% and +9.9% at 48 and +14.5% and +19.9% at
-56. At n = 32 the recursion costs 11% at 1T (0.177 at 32 against 0.159 at 33-128), which is why the
+at 8T - the four sampled thresholds 33-44 span 0.19% at 1T and 0.75% at 8T, then 48 is +4.6% (1T)
+and +9.9% (8T) and 56 is +14.5% and +19.9%. At n = 32 the recursion costs 11% at 1T (0.177 at 32 against 0.159 at 33-128), which is why the
 value stays above the guard cell; at n = 1024 8T the two are equal to 0.002%. The value sits inside the flat
 region rather than at its edge.
 
@@ -420,7 +457,7 @@ for c in CACHE[RUNS['before']]['run0']:
         if not (min(base) <= st.median(cand) <= max(base)):
             raw_outside += 1
 print(f'CONTROL n={len(ratios)} median {st.median(ratios):.6f} '
-      f'outside unfloored range {raw_outside} (the campaign floors it at 5%, candidate.py:221)')
+      f'outside unfloored range {raw_outside} (the harness guard floors the band at 5%)')
 
 # PROBE: table C, from the committed probe CSVs (min over every row of a cell)
 import csv as _csv, glob as _glob
