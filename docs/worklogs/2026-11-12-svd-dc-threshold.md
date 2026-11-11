@@ -15,9 +15,10 @@ commit is **not** retained on any published ref, so nothing below can be re-deri
 what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
 edit after the recording is a doc comment inside a `#[cfg(test)]` module - the branch is those
 commits, and
-`git diff 6e7e80f..HEAD -- faer/src` touches only doc-comment lines inside `#[cfg(test)]` modules
-(the DCHKBD case's comment; the gate test itself arrived in the recorded perf commit), so no line
-compiled into the library changed after the numbers were taken. The command prints that diff; it is the check, not an assertion.
+`git diff 6e7e80f..HEAD -- faer/src` touches only comment lines inside `#[cfg(test)]` modules (the
+DCHKBD case's doc comment, plus two `//` lines above its case list that a later round deleted; the
+gate test itself arrived in the recorded perf commit), so no line compiled into the library changed
+after the numbers were taken. The command prints that diff; it is the check, not an assertion.
 
 ### Not in this repository, and not evidence here
 
