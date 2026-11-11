@@ -815,7 +815,7 @@ mod tests {
 	/// inputs are multiplied by the power of two `scale`, and multiplying
 	/// subnormals by a power of two is exact. The identities
 	/// `c f + s g = r` and `c g - conj(s) f = 0` are therefore checked in the
-	/// scaled domain with a relative bound, plus at most one subnormal unit
+	/// scaled domain with a relative bound, plus at most 0.75 subnormal units
 	/// for the rounding of `r` itself. This detects a lost or wrongly
 	/// rounded subnormal `r`, which an absolute `O(eps)` bound cannot.
 	fn check_subnormal_givens<T: ComplexField>(
@@ -847,7 +847,10 @@ mod tests {
 		let scale = from_f64::<T::Real>(scale);
 		let eps = eps::<T::Real>();
 		let bound_eps = from_f64::<T::Real>(8.0) * &eps;
-		let ulp = from_f64::<T::Real>(0.75 * tiny) * &scale;
+		// Scale first and only then take the fraction: `0.75 * tiny` rounds
+		// back up to a full subnormal unit before scaling.
+		let ulp =
+			(from_f64::<T::Real>(tiny) * &scale) * from_f64::<T::Real>(0.75);
 		let min_normal = from_f64::<T::Real>(min_normal);
 		for (f, g, expected) in cases {
 			for x in [&f, &g] {

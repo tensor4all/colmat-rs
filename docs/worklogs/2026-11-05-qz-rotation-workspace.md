@@ -200,3 +200,75 @@ rustc 1.96.0); the commit after it changes only this record and PATCHSET.
 
 The mutation check and the clippy comparison above were not repeated on
 `d800f78`.
+
+## After merging main `c820e447` and tightening the subnormal allowance
+
+Main `c820e447` was merged into `fix/qz-safe-rotations` as merge commit
+`8d88e34e`. The single conflict was again the focused-test line in `ci.yml`:
+main had meanwhile added `--test gevd_no_alloc` to it, `--test evd_perf_warn` to
+the `perf-warn` line and a `schur_eigenvectors_team_no_alloc` step. The
+resolution keeps all of main's additions and appends this PR's two
+registrations, so the focused step is main's line plus
+`--test generalized_hessenberg_rotations --test qz_scratch`. `git diff
+origin/main -- .github/workflows/ci.yml` shows exactly those two added names,
+and the recursive-workspace steps in `lapack-validation{,-aarch64}.yml` are
+retained.
+
+The earlier review's NEEDS_CHANGES finding is corrected in the same commit as
+this record: the subnormal allowance in `check_subnormal_givens` was
+`from_f64::<T::Real>(0.75 * tiny) * &scale`, which rounds `0.75 * tiny` back up
+to a full subnormal unit before the exact power-of-two scaling, so the check
+admitted one unit rather than the documented 0.75. It is now formed after
+scaling, `(from_f64::<T::Real>(tiny) * &scale) * from_f64::<T::Real>(0.75)`,
+where every step is exact (f32: 2^-149 * 2^120 = 2^-29, * 0.75 = 3*2^-31; f64:
+2^-1074 * 2^1000 = 2^-74, * 0.75 = 3*2^-76). The bound is genuinely tighter: the
+f64 image bound in the mutation below drops from 5.29e-23 to 3.97e-23. The doc
+comment above the helper now says 0.75 units instead of one.
+
+### Validation at this record's tree (Linux x86_64, rustc 1.96.0, `-j 4`)
+
+`target` was warm from the merged tree; every command below ran on the tree of
+`8d88e34e` plus this commit's allowance change.
+
+- Focused command from the PR body (the eight `--test` targets, `--no-default-features
+  --features "std,linalg"`): 50 passed, 0 failed, 2 ignored, 2m50s wall.
+  `generalized_hessenberg_rotations` 4, `generalized_schur_reorder` 31,
+  `generalized_schur_reorder_no_alloc` 1, `lsmr_initial_residual` 4,
+  `public_householder_upgrade` 6, `public_qz_aed` 1, `public_qz_scratch` 1,
+  `qz_scratch` 2 passed / 2 ignored.
+- The same command with `--test gevd_no_alloc` added, i.e. the resolved
+  `ci.yml` focused line: the same counts plus `gevd_no_alloc` 1, so 51 passed,
+  0 failed, 2 ignored.
+- `cargo test -p t4a-faer --test qz_scratch recursive -- --ignored`: **2 passed,
+  0 failed, 174.01 s** in-test (4m20s including the one-off test-profile build).
+  This is the recursive n=258 AED workspace suite for f32 and f64, which the
+  earlier reviews recorded as registered but never executed at this head. It
+  passes here.
+- `cargo test -p t4a-faer --test qz_scratch dedicated_team`: 1 passed, 23.01 s.
+  That test needs `threadteam`, so the `--no-default-features` focused line does
+  not compile it and the `recursive` filter above does not select it; it was run
+  separately here so every test in the added file has current-head evidence.
+- `cargo test -p t4a-faer --lib givens`: 5 passed. `cargo test -p t4a-faer --lib
+  qz`: 13 passed, 0 failed, 16 ignored. `cargo build -p t4a-faer`: success
+  (1m09s). `rustfmt --check` on the changed file reports no diff in the lines
+  this change touches (one pre-existing diff at line 174, from main).
+
+### Mutation check at this record's tree
+
+`make_givens` was changed to return `r = 0` whenever both inputs are nonzero and
+below 1e-30, leaving `c` and `s` as computed, then reverted.
+
+- `cargo test -p t4a-faer --lib givens`: all four `test_givens_subnormal_*`
+  tests fail, `test_givens` passes. f64: `image_error = 7.486784261149287e-23`
+  against `image_bound = 3.9704669402545464e-23` at `f = g = 5e-324`. f32:
+  `2.634178e-9` against `1.3969864e-9` at `f = g = 1e-45`. Both complex variants
+  fail the same way.
+- `cargo test -p t4a-faer --no-default-features --features "std,linalg" --test
+  generalized_hessenberg_rotations`: 4 passed under the same mutation, which is
+  why the direct helper regression exists.
+- With the mutation reverted, `--lib givens` is 5 passed again.
+
+Not re-measured, still historical: the residual ratios (436.6, 178.6, 61.65,
+0.7724) and the workspace byte counts (2,112/2,304 and 40,448/40,960). The
+clippy comparison from the earlier section was not repeated here; this change
+adds no new code path, and hosted CI owns its own matrix.
