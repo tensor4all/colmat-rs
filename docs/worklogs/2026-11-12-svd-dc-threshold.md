@@ -12,17 +12,15 @@ against main at all.
 
 The candidate run built the branch at `a50d929`, a state that the review round then rewrote; that
 commit is **not** retained on any published ref, so nothing below can be re-derived by checking out
-what was measured. Two statements replace it, of different strength.
+what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
+edit after the recording is a comment or a `#[cfg(test)]` case - the branch is those commits, and
+`git diff 6e7e80f..HEAD -- faer/src` is empty, so no line compiled into the library changed after the
+numbers were taken.
 
-*Reproducible from this repository:* every edit after the recording is a comment or a `#[cfg(test)]`
-case - the two commits are the whole branch, and `git diff` between them and the recorded behaviour
-touches no line that is compiled into the library.
-
-*Not reproducible here, and only a local observation:* `objcopy` of `.text` + `.rodata` from the
-binary built out of this branch is `d614e836c749…`, which is the same hash the recorder's own build
-of `a50d929` produced, while origin/main's is `cab1bb640d84…`. The first half of that sentence a
-reader can confirm by rebuilding; the second half cannot be checked without the measured tree, which
-is why it is reported as an observation rather than as evidence.
+An earlier round of this record also compared `objcopy` hashes of `.text` + `.rodata` between the
+measured build and the head. That claim is dropped: the measured tree is on no published ref, so
+neither half of the comparison can be reproduced from this repository, and a claim a reader cannot
+check does not belong in the evidence.
 
 ## The loss, and why this one
 
@@ -67,9 +65,9 @@ values-only route returns through `dqds` before the gate below is read, and both
   against 0.160 at 40 in table C, and the recursion there is 11% worse), and n = 1024 at 8T is
   167.043 against 167.040 ms, so "every size" would have been a claim the probe does not make.
 - **40.** The leaf value is flat between 33 and 44 at n = 96 (0.2% at 1T, 0.8% at 8T) and 48 is already
-  4.6% (1T) and 9.9% (8T) worse; 40 is the
-  middle of that flat region rather than an edge of it, and it is a multiple of 8. It also leaves
-  n = 32 - the campaign's guard cell - on QR, where the route does not change.
+  4.6% (1T) and 9.9% (8T) worse. 40 sits inside that flat band rather than at either end of it - 0.8%
+  from 33 and 0.7% from 44, the band's midpoint being about 38 - and it is a multiple of 8. It also
+  leaves n = 32 - the campaign's guard cell - on QR, where the route does not change.
 - **A base case far under 128 is not a choice unique to this decision.** Two supports, one
   checkable here and one not. Checkable: faer's own LAPACK-derived SVD cases already run the
   recursion at thresholds 8 and 128 (`faer/src/linalg/svd/tests/lapack.rs`, its `threshold`
@@ -101,9 +99,9 @@ values-only route returns through `dqds` before the gate below is read, and both
   the campaign's band has the floor, and it is quoted here instead of the bare "0 outside", which
   does not reproduce without it.
 - **The target improves and nothing near it moves.** Of 720 `faer-fork` cells, 188 are faster than
-  5%, 4 are slower, and 528 are inside the band, counting the per-cell median ratio (the campaign's
-  own comparator, which averages over the start rotation instead, reports 189 and 5 on the same two
-  runs). `svd_values` (288 cells, all dtypes) spans 0.979 to 1.028 and `qr_factor` (144 cells) 0.986
+  5%, 4 are slower, and 528 are inside the band, counting the per-cell median ratio - the statistic
+  printed by the script below, and the only one quoted here. `svd_values` (288 cells, all dtypes)
+  spans 0.979 to 1.028 and `qr_factor` (144 cells) 0.986
   to 1.016, so both are inside 5% **everywhere** - they are the guards, and the change does not
   reach them.
 - **Four cells regress, all the same shape, and are accepted on that basis:** `svd_thin f32`, n = 64, **1T only**, 0.500 to 0.533 ms
@@ -125,8 +123,9 @@ values-only route returns through `dqds` before the gate below is read, and both
 - **Independent review: `ollama-cloud/glm-5.3-flash:high` (GLM-5.3-flash), pass with four findings,
   all fixed.** Run against the whole branch diff (`origin/main...HEAD`, both commits) in a separate
   process with read-only tools and none of this session's context, which is the gate the owner moved
-  to that model. It confirmed the two roles of the field, the floor being leaf-only, that nothing
-  else in the tree assumes 128, and that the new 19..39 leaf band runs leaf code already exercised at
+  to that model. It confirmed the two roles of the field, the floor being leaf-only, that no other
+  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 19..39 leaf band
+  runs leaf code already exercised at
   leaves 3..7 and 63..127 - no correctness defect at a leaf of 40. Its findings, all applied: the
   gate test ran only at `f64` although the band is new for every precision (now instantiated at all
   four, as `tests/lapack.rs` does); the values-only fallthrough was only exercised at n = 127, not at
@@ -165,6 +164,17 @@ values-only route returns through `dqds` before the gate below is read, and both
   actually says (`continue-on-error: true`, so it cannot distinguish clean from tolerated) and the
   claim that the crate fails clippy on `main` is dropped rather than re-asserted. (6) Hosted CI is
   reported as it stood (four green, three pending) instead of as green.
+- **Fourth round (4 `UNVERIFIED`, all four closed).** (1) "Nothing else in the tree assumes 128" was
+  false as written: `SelfAdjointEvdParams::auto()` has the identical gate-equals-leaf pair at 128
+  (`evd/mod.rs:91`, `:494`, `:507`, floor `tridiag_evd.rs:389`), now scoped to
+  `SvdParams::recursion_threshold` in the claim and recorded as a follow-up for `#391`.
+  (2) "40 is the middle of the flat region" overstated the committed sweep, whose midpoint is about
+  38; the text now says 40 is interior to the band (0.8% from 33, 0.7% from 44), and the perf
+  commit's message is noted as carrying the looser wording. (3) The `objcopy` `.text`/`.rodata`
+  comparison is withdrawn outright - neither half is reproducible from this repository - leaving
+  `git diff 6e7e80f..HEAD -- faer/src` empty as the only claim tying the numbers to the tree.
+  (4) The comparator's "189 faster / 5 slower" came from a tool that is not in the evidence; only
+  the per-cell statistic the committed script prints (188 / 4 / 528) is quoted now.
 - **One attempt was discarded, not used.** The first baseline recording
   (`20261111T122715Z-acc404-base`) ran the full four-regime grid and hit the two-hour cap with two of
   its three process sets complete (44 CSVs, no `report.md`); the guard log shows one attempt and no
@@ -285,10 +295,11 @@ at 8T - within 0.2% (1T) and 0.8% (8T) from 33 to 44, then +4.6% and +9.9% at 48
 value stays above the guard cell; at n = 1024 8T the two are equal to 0.002%. The value sits inside the flat
 region rather than at its edge.
 
-The commit message for the perf commit quotes an earlier probe pass (0.689, 0.612, 2.107, 1.554,
-1.198, ...). Those older numbers differ from the committed CSVs by up to 3% because the pass ran
-fewer invocations; this table and its reproduction block below are the committed data and supersede
-them.
+The perf commit's message quotes an earlier probe pass (0.689, 0.612, 2.107, 1.554, 1.198, ...).
+Those differ from the committed CSVs by up to 3% because the pass ran fewer invocations, and the
+message also calls 40 "the middle of the flat region" when the committed sweep puts that middle at
+38. This table and its reproduction block below are the committed data and supersede both: what the
+data supports is that 40 is interior to the flat band, not that it is its centre.
 
 ## Follow-ups, recorded not done
 
@@ -301,6 +312,14 @@ them.
 - **Tall and wide SVD cells** are unmeasured in this pair (see the coverage gap).
 - **`lu`/`solve` at 2.8x** remain the largest losses overall and are owned by `#123`; `eigh` is
   `#391`'s.
+- **The same gate-equals-leaf shape in `evd`, found by review and not touched here.**
+  `SelfAdjointEvdParams::auto()` sets `recursion_threshold: 128` (`evd/mod.rs:91`), reads it as the
+  QR entry gate (`evd/mod.rs:494`, `n < params.recursion_threshold` -> `tridiag_evd::qr_algorithm`)
+  and passes the same value as the recursion's leaf (`evd/mod.rs:507`, floored at 4 in
+  `evd/tridiag_evd.rs:389`). So below 128 nothing reaches `tridiag_evd`'s divide-and-conquer either,
+  and `qr_algorithm` takes no `Par` (`tridiag_evd.rs:386` onward), i.e. the same defect with the same
+  consequence for the threaded route. Unmeasured here and out of scope: `eigh` is `#391`'s lane. It
+  is written down because the defect is mechanical and will otherwise be rediscovered.
 
 ## Reproduction
 
