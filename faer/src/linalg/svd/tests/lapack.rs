@@ -458,14 +458,25 @@ fn logarithmic_bidiagonal_seeded(n: usize, seed: u64) -> Mat<Scalar> {
 /// #110: since the values-only route went to dqds (#52), DCHKBD type 16 (entries `eps^U(-2, 2)`)
 /// returned `NoConvergence`: its singular values span more than the range of their squares, so the
 /// zero-shift dqds sweep underflows. The rotation path now finishes it, as LAPACK's `DBDSQR`
-/// finishes when `DLASQ1` fails. Two cases of the opt-in `dchkbd_15_to_19`, all four `U`/`V`
+/// finishes when `DLASQ1` fails. Four cases of the opt-in `dchkbd_15_to_19`, all four `U`/`V`
 /// modes each, run with the regular tests: n = 128 at threshold 8 falls back to divide and conquer,
-/// n = 127 at threshold 128 to the QR iteration directly.
+/// n = 127 at threshold 128 to the QR iteration directly, and n = 127 and n = 40 at the default to
+/// divide and conquer - the two sizes the default's value decides, since the values-only call
+/// reaches the rotation path only when `dqds` gives up and then meets the same gate as any other
+/// call.
 #[test]
 fn dchkbd_type_16_values_only_finishes() {
 	let mut failures = Vec::new();
 	let mut attempted = 0;
-	for (n, threshold) in [(128, 8), (127, 128)] {
+	let default_threshold = <SvdParams as Auto<Scalar>>::auto().recursion_threshold;
+	// n = 40 with the default is the shallowest recursion the values-only
+	// fallthrough can reach, i.e. the first size at which it stops running QR.
+	for (n, threshold) in [
+		(128, 8),
+		(127, 128),
+		(127, default_threshold),
+		(40, default_threshold),
+	] {
 		let b = logarithmic_bidiagonal(n);
 		run_bidiagonal_case(
 			&mut failures,
@@ -476,7 +487,7 @@ fn dchkbd_type_16_values_only_finishes() {
 			threshold,
 		);
 	}
-	assert_eq!(attempted, 8);
+	assert_eq!(attempted, 16);
 	assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
