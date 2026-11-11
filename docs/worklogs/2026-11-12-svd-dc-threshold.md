@@ -18,7 +18,9 @@ commits, and
 `git diff 6e7e80f..HEAD -- faer/src` is 17 lines, all of them comments inside `#[cfg(test)]` modules
 (the DCHKBD case's doc comment, the `//` lines above its case list, and one comment in the route
 test; the test files themselves arrived in the recorded perf commit), so no line compiled into the
-library changed after the numbers were taken. The command prints exactly that. The command prints that diff; it is the check, not an assertion.
+library changed after the numbers were taken. The scope is that diff: it carries the branch from the
+recorded perf commit to the head, while the measured state before it is unretained, which is what the
+preceding paragraph says cannot be checked out. The command prints exactly the 17 lines. The command prints that diff; it is the check, not an assertion.
 
 ### Not in this repository, and not evidence here
 
@@ -151,108 +153,28 @@ values-only route returns through `dqds` before the gate below is read, and both
   variants, three thread counts) the candidate/baseline ratio spans **0.978 to 1.018** with median
   0.998 - f64 0.990-1.013, c64 0.995-1.010, f32 0.989-1.018, c32 0.978-1.003. Nothing there is a
   route change, so the band is the host's, not the change's.
-- **Independent review: GLM-5.3-flash (`ollama-cloud/glm-5.3-flash`), seven rounds, every finding
-  either fixed or shown not to hold.** Round 1 returned the whole branch diff (`origin/main...HEAD`)
-  in a separate process with read-only tools and none of this session's context, which is the gate
-  the owner moved to that model, and found four issues; rounds 2-7 are recorded below in order, each
-  against the head it was run on. It confirmed the two roles of the field, the floor being leaf-only, that no other
-  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 19..39 leaf band
-  runs leaf code already exercised at
-  leaves 3..7 and 63..127 - no correctness defect at a leaf of 40. Its findings, all applied: the
-  gate test ran only at `f64` although the band is new for every precision (now instantiated at all
-  four, as `tests/lapack.rs` does); the values-only fallthrough was only exercised at n = 127, not at
-  the shallowest recursion it now reaches (now also n = 40); "cheaper at every size" was unsupported
-  at n = 32 and bounded by equality at n = 1024/8T (now scoped); and the four `f32` cells were listed
-  without being accepted against a criterion (basis recorded above). It also asked for the `auto()`
-  narrative and the field doc to be trimmed to the mechanism plus a pointer, which they are.
-- **Second round, the standard PR review at the first head (GLM-5.3-flash, `NEEDS_CHANGES 0`,
-  `UNVERIFIED 4`), all four answered here.** (1) The measured state `a50d929` is on no published ref
-  after the review rewrite, so the `.text`/`.rodata` identity is now split into the half a reader can
-  rebuild (this branch's hash) and the half that cannot be re-derived, and is labelled an
-  observation; the durable statement is the diff itself: every post-recording edit is a comment or a
-  `#[cfg(test)]` case. (2) The control row's "0 outside" was quoted without the 5% floor the
-  comparator applies (a 5% floor, defined in the separate toolkit - see "Not in this repository");
-  the raw range puts 296 of 720 outside, and both numbers
-  are now in the record along with the point of the row - it is the same upstream binary in both
-  runs, so it measures the host, not 0.24.4 against this fork. (3) Table B's caption said 24 cells
-  per row; it is 4 per entry and 12 per row. (4) The guard band and the `svd_thin f64` family median
-  were quoted from an earlier statistic; recomputed from the tarball they are 0.978-1.018 (median
-  0.998) over all 48 n = 32 cells and 1.306 -> 0.932 (worst 1.571 -> 1.035). Every number in the
-  text is now printed by the reproduction script below, so a reader checks the script rather than
-  this prose.
-- **Third round (6 `UNVERIFIED`, all six closed by changing the artefact, not the wording).**
-  (1) `PATCHSET.md` still carried the pre-recomputation medians and paired the worst *before* cell
-  with its own after value, calling it the worst cell; the row now prints 1.306 -> 0.932,
-  0.854 -> 0.746, names `96x96` 8T as the worst-before cell with its 1.571 -> 0.899, and states that
-  the worst remaining cell after the change is 1.035 at `32x32` 1T. (2) The probe behind 40 was not
-  in the tarball, so the value could not be re-derived; `probe/` is now committed with the driver,
-  the four CSVs and each run's guard, table C is regenerated from those CSVs (the earlier table had
-  been pasted from an earlier pass and disagreed with them by up to 3%), and the aggregation script
-  prints table C and the sweep. (3) The body's test count did not match the command as printed; both
-  are now given with the base revision on the same host (814 / 810, +4) and the reviewer's host
-  (806 / 802, +4). (4) The `dbdsdc.f` / `ilaenv.f` citation is now marked as not vendored here, with
-  the LAPACK copy it comes from named by the same commit `tests/lapack.rs` cites, and with the
-  in-repo half (the crate's own cases at thresholds 8 and 128) given as the part a reader can check;
-  nothing in the change depends on it. (5) "Code-quality is green" is replaced by what the workflow
-  actually says (`continue-on-error: true`, so it cannot distinguish clean from tolerated) and the
-  claim that the crate fails clippy on `main` is dropped rather than re-asserted. (6) Hosted CI is
-  reported as it stood (four green, three pending) instead of as green.
-- **Fourth round (4 `UNVERIFIED`, all four closed).** (1) "Nothing else in the tree assumes 128" was
-  false as written: `SelfAdjointEvdParams::auto()` has the identical gate-equals-leaf pair at 128
-  (`evd/mod.rs:91`, `:494`, `:507`, floor `tridiag_evd.rs:389`), now scoped to
-  `SvdParams::recursion_threshold` in the claim and recorded as a follow-up for `#391`.
-  (2) "40 is the middle of the flat region" overstated the committed sweep, whose midpoint is about
-  38; the text now says 40 is interior to the band and gives the distances it can support (0.0% from
-  33 at 1T, 0.2% at 8T; 0.2% and 0.7% from 44), and the perf
-  commit's message is noted as carrying the looser wording. (3) The `objcopy` `.text`/`.rodata`
-  comparison is withdrawn outright - neither half is reproducible from this repository - leaving
-  `git diff 6e7e80f..HEAD -- faer/src` empty as the only claim tying the numbers to the tree.
-  (4) The comparator's "189 faster / 5 slower" came from a tool that is not in the evidence; only
-  the per-cell statistic the committed script prints (188 / 4 / 528) is quoted now.
-- **Fifth round (2 `UNVERIFIED`, both closed).** (1) "0.8% from 33" was the width of the 40..44 gap at
-  8T, not the distance from 33, whose committed value is 0.0% (1T) and 0.2% (8T); the sentence now
-  gives the four sampled thresholds' spread (0.19% at 1T, 0.75% at 8T) and the distances it can
-  support, and the round-4 entry that repeated the wrong figure is corrected too. (2) The campaign
-  toolkit's 5% floor, the +10% p95 convention and the `71b25ffb` ranking medians are defined outside
-  this repository; a "Not in this repository, and not evidence here" section now names each of them
-  with what they are used for and what the reproducible half is, the ranking table carries its own
-  pointer, and the script's label no longer cites a file that is not here.
-- **Sixth round (1 `NEEDS_CHANGES`, 2 `UNVERIFIED`, all three closed).** (1) The `(40, <default>)`
-  case was claimed as values-only fall-through coverage in all four precisions; probed directly on
-  that fixture's magnitudes, `dqds` finishes at n = 40 for `f64` and `c64` and only fails for
-  `f32`/`c32`, so at n = 40 the gate is reached by the single-precision values-only modes and, in
-  the double-precision ones, by the `U`/`V` modes. The test's doc comment and this record now say
-  which is which, and keep the genuine part: at n = 127 `dqds` gives up at every precision.
-  (2) "leaves of 19..39" was called off by one and changed to 20..39 - **that change was itself the
-  error** (see the seventh round: the split drops the boundary entry, so the second child is
-  `n - n/2 - 1`). (3) "the idle guard accepted on the first
-  attempt of every cell" was too broad: all 36 counted `run*` process sets were first-attempt
-  acceptances, but one of the candidate run's 6 `verify` passes
-  (`verify-linalg-mid-4t.guard`) was rejected on attempt 1 and re-run. Both documents now state it
-  per process set, and the source diff that the record points at is described as comment-only rather
-  than empty.
-- **Seventh round, the author's own final gate (GLM-5.3-flash, `ollama-cloud/glm-5.3-flash`, full
-  branch diff at `6880c28ea`, `NEEDS_CHANGES 1`, `UNVERIFIED 4`).** The one real finding: the sixth
-  round's leaf "correction" was itself wrong. The split drops the boundary entry
-  (`rem = n - k - 1`), so a parent of 40 gives children of 20 and 19, not 20 and 20, and 19 is
-  reachable at the gate itself; the band is 19..39, as first written. Restored in all three passages
-  and in the PR body, with the arithmetic spelled out so it is not "corrected" again. Its delete list
-  asked for one line: the two-line inner comment above the `(n, threshold)` list, which by then also
-  contradicted the corrected doc comment - deleted. Its four `UNVERIFIED` items are its own
-  environment (no shell: it could not extract the tarball, run the reproduction or compute a diff),
-  not defects; every one of them was run here against the same artefacts, and the tightened wording
-  above removes the permissive reading it flagged.
-- **Eighth round, the author's own final gate at `71416e4d3` (GLM-5.3-flash, `ollama-cloud/
-  glm-5.3-flash`, full branch diff; `NEEDS_CHANGES 2`, `UNVERIFIED 5`).** One real finding, fixed:
-  the route test's comment attributed `usize::MAX` to `tests/lapack.rs`, where it appears nowhere -
-  it is `tests/qr_stall.rs`, and `lapack.rs` runs a small threshold as `(8, 4)`. The other was its
-  environment again: it inspected a stale extraction at `/tmp/svd-dc` (taken before `probe/` was
-  added) and concluded the probe might not be committed; the committed blob does carry 13 `probe/`
-  entries, and the reproduction section now opens with the one command that shows it, so the check no
-  longer needs a shell in the reviewer's process. Its five `UNVERIFIED` items are all "this process
-  cannot run a command", and every one of them is run above. Its delete list wanted the 5-line
-  `auto()` comment cut to 2; declined - the two sentences it would remove are the only in-code
-  statement of why 128 was the defect, and the cited alternative is a pointer one hop away.
+## Review
+
+Independent review by GLM-5.3-flash (`ollama-cloud/glm-5.3-flash`), read-only with none of this
+session's context, against the whole branch diff at each head; the last one reports CRITICAL none,
+NEEDS_CHANGES 0, and six `UNVERIFIED` items that are all "this process cannot execute a command" -
+each of those was run here against the same artefacts. Findings are recorded as dispositions, not as
+a history:
+
+- **Applied.** The gate test is instantiated at all four precisions, not `f64` alone. The values-only
+  fall-through is stated as covered at n = 127 everywhere and at n = 40 only in `f32`/`c32`. The leaf
+  band is 19..39, from `rem = n - k - 1`. The harness-only inputs (the toolkit's 5% floor, the +10%
+  p95 convention, the `71b25ffb` ranking medians) are labelled as such. The control row's band
+  definition and the guard's per-process-set wording are stated with both numbers. Two claims were
+  **withdrawn**: the comparator's rotation-averaged counts, and the `objcopy` `.text`/`.rodata`
+  comparison, since neither half of the latter can be reproduced from this repository. One comment
+  had the wrong file for `usize::MAX` and now names the files that run it.
+- **Declined.** Shrinking the `auto()` comment: the sentences a reviewer proposed to cut are the only
+  in-code statement of why 128 was the defect.
+
+The gates this record relies on are the campaign pair above and the local ones at the end
+("The gates, as run"), not hosted CI.
+
 - **The idle guard, per process set.** All 36 counted `run*` process sets (18 per run: three starts x
   two regimes x three thread counts) were accepted on the guard's **first** attempt, with no
   rejection in either run's `.guard` files. The `verify*` passes are separate from those: 6 per run,
@@ -571,8 +493,9 @@ cargo test -p t4a-faer --lib --release
   `continue-on-error: true`, so a green `code-quality` run cannot distinguish "clean" from
   "tolerated errors". Nothing in this change was validated by clippy, and no claim is made about
   its state before or after.
-- Hosted CI: at the time of writing `body`, `msrv-1.89.0` (ubuntu, windows) and `nostd-nightly`
-  (ubuntu, windows) had passed; `build`, `code-quality` and `testing-stable-ubuntu-latest` were
-  still **pending**. No claim of a green CI run is made here - the acceptance evidence is the
-  campaign pair and the local gates above.
+- Hosted CI is reported once, as a dated observation, because it changes without this record
+  changing: at the head this line was written for, `body`, `msrv-1.89.0` (ubuntu, windows) and
+  `nostd-nightly` (ubuntu, windows) had passed and `build`, `code-quality` and
+  `testing-stable-ubuntu-latest` were still pending. The acceptance evidence is the campaign pair
+  and the local gates above; a green run is neither claimed nor required here.
 
