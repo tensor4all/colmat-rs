@@ -14,8 +14,9 @@ The candidate run built the branch at `a50d929`, a state that the review round t
 commit is **not** retained on any published ref, so nothing below can be re-derived by checking out
 what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
 edit after the recording is a comment or a `#[cfg(test)]` case - the branch is those commits, and
-`git diff 6e7e80f..HEAD -- faer/src` is empty, so no line compiled into the library changed after the
-numbers were taken.
+`git diff 6e7e80f..HEAD -- faer/src` touches only doc-comment lines inside `#[cfg(test)]` modules
+(the DCHKBD case's comment; the gate test itself arrived in the recorded perf commit), so no line
+compiled into the library changed after the numbers were taken. The command prints that diff; it is the check, not an assertion.
 
 ### Not in this repository, and not evidence here
 
@@ -152,7 +153,7 @@ values-only route returns through `dqds` before the gate below is read, and both
   all fixed.** Run against the whole branch diff (`origin/main...HEAD`, both commits) in a separate
   process with read-only tools and none of this session's context, which is the gate the owner moved
   to that model. It confirmed the two roles of the field, the floor being leaf-only, that no other
-  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 19..39 leaf band
+  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 20..39 leaf band
   runs leaf code already exercised at
   leaves 3..7 and 63..127 - no correctness defect at a leaf of 40. Its findings, all applied: the
   gate test ran only at `f64` although the band is new for every precision (now instantiated at all
@@ -213,6 +214,25 @@ values-only route returns through `dqds` before the gate below is read, and both
   this repository; a "Not in this repository, and not evidence here" section now names each of them
   with what they are used for and what the reproducible half is, the ranking table carries its own
   pointer, and the script's label no longer cites a file that is not here.
+- **Sixth round (1 `NEEDS_CHANGES`, 2 `UNVERIFIED`, all three closed).** (1) The `(40, <default>)`
+  case was claimed as values-only fall-through coverage in all four precisions; probed directly on
+  that fixture's magnitudes, `dqds` finishes at n = 40 for `f64` and `c64` and only fails for
+  `f32`/`c32`, so at n = 40 the gate is reached by the single-precision values-only modes and, in
+  the double-precision ones, by the `U`/`V` modes. The test's doc comment and this record now say
+  which is which, and keep the genuine part: at n = 127 `dqds` gives up at every precision.
+  (2) "leaves of 19..39" was off by one: with `k = n / 2` a parent of 40-79 splits into 20-39 (19
+  would need a parent of 38 or 39, below the gate). (3) "the idle guard accepted on the first
+  attempt of every cell" was too broad: all 36 counted `run*` process sets were first-attempt
+  acceptances, but one of the candidate run's 6 `verify` passes
+  (`verify-linalg-mid-4t.guard`) was rejected on attempt 1 and re-run. Both documents now state it
+  per process set, and the source diff that the record points at is described as comment-only rather
+  than empty.
+- **The idle guard, per process set.** All 36 counted `run*` process sets (18 per run: three starts x
+  two regimes x three thread counts) were accepted on the guard's **first** attempt, with no
+  rejection in either run's `.guard` files. The `verify*` passes are separate from those: 6 per run,
+  and one of them - `verify-linalg-mid-4t.guard` in the candidate run - was rejected on attempt 1
+  ("busy after run") and accepted on attempt 2. So the protocol held for every counted cell, and the
+  candidate run was re-run once on a check whose output is not part of any table.
 - **One attempt was discarded, not used.** The first baseline recording
   (`20261111T122715Z-acc404-base`) ran the full four-regime grid and hit the two-hour cap with two of
   its three process sets complete (44 CSVs, no `report.md`); the guard log shows one attempt and no
@@ -235,14 +255,21 @@ values-only route returns through `dqds` before the gate below is read, and both
   the recursion at the band immediately below the gate, and the fact that the scratch reservation
   and the route choice are the same comparison (`bidiag_real_svd_scratch` and
   `compute_bidiag_real_svd`), so a `<=` that moves in only one of them is caught at `gate - 1`,
-  `gate`, `gate + 1`. The subproblems it newly exercises are the leaves of parents of 40 to 79, i.e.
-  19 to 39 - a band no existing case reaches, since the LAPACK-derived cases run at threshold 8
-  (leaves 3 to 7) or 128 (leaves 63 to 127).
-- **The values-only fallthrough got its own case.** `svd_values` returns through `dqds` before the
-  gate, so the campaign cannot see this path; but when `dqds` gives up (DCHKBD type 16, #110) the
-  call falls through to the rotation path and now meets a gate of 40 instead of 128. `tests/lapack.rs
-  ::dchkbd_type_16_values_only_finishes` gains `(127, <default>)` next to its `(128, 8)` and
-  `(127, 128)`, which is exactly that route at the new value.
+  `gate`, `gate + 1`. The subproblems it newly exercises are the leaves of parents of 40 to 79: with
+  `k = n / 2` those halves are 20 to 39 - a band no existing case reaches, since the LAPACK-derived
+  cases run at threshold 8 (leaves 3 to 7) or 128 (leaves 63 to 127). A leaf of 19 would need a
+  parent of 38 or 39, which sits below the gate.
+- **The values-only fallthrough got its own case, and what it covers is narrower than it looks.**
+  `svd_values` returns through `dqds` before the gate, so the campaign cannot see this path; but when
+  `dqds` gives up (DCHKBD type 16, #110) the call falls through to the rotation path and now meets a
+  gate of 40 instead of 128. `tests/lapack.rs::dchkbd_type_16_values_only_finishes` gains
+  `(127, <default>)` next to its `(128, 8)` and `(127, 128)`. At n = 127 `dqds` gives up at every
+  precision, so that case is values-only coverage of the gate at the new value. The `(40, <default>)`
+  case is not the same evidence: probed directly on the magnitudes of that fixture, `dqds` finishes
+  at n = 40 for `f64` and `c64` and fails for `f32`/`c32`, so only the two single-precision
+  values-only modes fall through to the gate there - for `f64`/`c64` the n = 40 case covers the split
+  through the `U`/`V` modes instead. Written down because it is the kind of gap that reads as
+  covered.
 
 ## Evidence
 

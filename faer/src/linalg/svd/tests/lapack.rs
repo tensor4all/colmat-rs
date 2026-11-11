@@ -460,10 +460,13 @@ fn logarithmic_bidiagonal_seeded(n: usize, seed: u64) -> Mat<Scalar> {
 /// zero-shift dqds sweep underflows. The rotation path now finishes it, as LAPACK's `DBDSQR`
 /// finishes when `DLASQ1` fails. Four cases of the opt-in `dchkbd_15_to_19`, all four `U`/`V`
 /// modes each, run with the regular tests: n = 128 at threshold 8 falls back to divide and conquer,
-/// n = 127 at threshold 128 to the QR iteration directly, and n = 127 and n = 40 at the default to
-/// divide and conquer - the two sizes the default's value decides, since the values-only call
-/// reaches the rotation path only when `dqds` gives up and then meets the same gate as any other
-/// call.
+/// n = 127 at threshold 128 to the QR iteration directly, and two sizes at the default -
+/// n = 127, where `dqds` gives up at every precision, so the fall-through meets the gate and enters
+/// divide and conquer; and n = 40, the shallowest split. At n = 40 the fall-through is reached only
+/// by `f32`/`c32`: probed on this fixture's magnitudes, `dqds` finishes the call at that size for
+/// `f64` and `c64`, so their values-only modes return before the gate is read, and it is the `U`/`V`
+/// modes that cover the split there. Recorded because the case otherwise reads as values-only
+/// coverage of the gate at n = 40 in all four precisions, which it is not.
 #[test]
 fn dchkbd_type_16_values_only_finishes() {
 	let mut failures = Vec::new();
