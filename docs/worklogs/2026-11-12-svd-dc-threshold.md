@@ -15,10 +15,10 @@ commit is **not** retained on any published ref, so nothing below can be re-deri
 what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
 edit after the recording is a doc comment inside a `#[cfg(test)]` module - the branch is those
 commits, and
-`git diff 6e7e80f..HEAD -- faer/src` touches only comment lines inside `#[cfg(test)]` modules (the
-DCHKBD case's doc comment, plus two `//` lines above its case list that a later round deleted; the
-gate test itself arrived in the recorded perf commit), so no line compiled into the library changed
-after the numbers were taken. The command prints that diff; it is the check, not an assertion.
+`git diff 6e7e80f..HEAD -- faer/src` is 17 lines, all of them comments inside `#[cfg(test)]` modules
+(the DCHKBD case's doc comment, the `//` lines above its case list, and one comment in the route
+test; the test files themselves arrived in the recorded perf commit), so no line compiled into the
+library changed after the numbers were taken. The command prints exactly that. The command prints that diff; it is the check, not an assertion.
 
 ### Not in this repository, and not evidence here
 
@@ -242,6 +242,17 @@ values-only route returns through `dqds` before the gate below is read, and both
   environment (no shell: it could not extract the tarball, run the reproduction or compute a diff),
   not defects; every one of them was run here against the same artefacts, and the tightened wording
   above removes the permissive reading it flagged.
+- **Eighth round, the author's own final gate at `71416e4d3` (GLM-5.3-flash, `ollama-cloud/
+  glm-5.3-flash`, full branch diff; `NEEDS_CHANGES 2`, `UNVERIFIED 5`).** One real finding, fixed:
+  the route test's comment attributed `usize::MAX` to `tests/lapack.rs`, where it appears nowhere -
+  it is `tests/qr_stall.rs`, and `lapack.rs` runs a small threshold as `(8, 4)`. The other was its
+  environment again: it inspected a stale extraction at `/tmp/svd-dc` (taken before `probe/` was
+  added) and concluded the probe might not be committed; the committed blob does carry 13 `probe/`
+  entries, and the reproduction section now opens with the one command that shows it, so the check no
+  longer needs a shell in the reviewer's process. Its five `UNVERIFIED` items are all "this process
+  cannot run a command", and every one of them is run above. Its delete list wanted the 5-line
+  `auto()` comment cut to 2; declined - the two sentences it would remove are the only in-code
+  statement of why 128 was the defect, and the cited alternative is a pointer one hop away.
 - **The idle guard, per process set.** All 36 counted `run*` process sets (18 per run: three starts x
   two regimes x three thread counts) were accepted on the guard's **first** attempt, with no
   rejection in either run's `.guard` files. The `verify*` passes are separate from those: 6 per run,
@@ -407,6 +418,17 @@ data supports is that 40 is interior to the flat band, not that it is its centre
 
 From the repository root. The evidence tarball holds both runs exactly as the recorder wrote them
 (one CSV per process set, its `.guard`, and the `run.yaml` with the flags):
+
+Before extracting, one command says what the tarball carries - in particular that the probe that
+chose 40 is in it, since a table C that rests on nothing committed would be the whole
+justification for the value gone:
+
+```sh
+git cat-file -p HEAD:docs/worklogs/evidence/2026-11-12-svd-dc-threshold.tar.gz | tar tzf - | grep probe/
+```
+
+That prints 13 entries: `probe/README.md`, `probe/Cargo.toml`, `probe/src/main.rs`, `probe1..4.csv`
+and their four `.guard` files. Then:
 
 ```sh
 mkdir -p /tmp/svd-dc && cd /tmp/svd-dc
