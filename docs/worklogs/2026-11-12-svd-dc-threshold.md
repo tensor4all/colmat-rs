@@ -13,7 +13,8 @@ against main at all.
 The candidate run built the branch at `a50d929`, a state that the review round then rewrote; that
 commit is **not** retained on any published ref, so nothing below can be re-derived by checking out
 what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
-edit after the recording is a comment or a `#[cfg(test)]` case - the branch is those commits, and
+edit after the recording is a doc comment inside a `#[cfg(test)]` module - the branch is those
+commits, and
 `git diff 6e7e80f..HEAD -- faer/src` touches only doc-comment lines inside `#[cfg(test)]` modules
 (the DCHKBD case's comment; the gate test itself arrived in the recorded perf commit), so no line
 compiled into the library changed after the numbers were taken. The command prints that diff; it is the check, not an assertion.
@@ -149,11 +150,12 @@ values-only route returns through `dqds` before the gate below is read, and both
   variants, three thread counts) the candidate/baseline ratio spans **0.978 to 1.018** with median
   0.998 - f64 0.990-1.013, c64 0.995-1.010, f32 0.989-1.018, c32 0.978-1.003. Nothing there is a
   route change, so the band is the host's, not the change's.
-- **Independent review: `ollama-cloud/glm-5.3-flash:high` (GLM-5.3-flash), pass with four findings,
-  all fixed.** Run against the whole branch diff (`origin/main...HEAD`, both commits) in a separate
-  process with read-only tools and none of this session's context, which is the gate the owner moved
-  to that model. It confirmed the two roles of the field, the floor being leaf-only, that no other
-  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 20..39 leaf band
+- **Independent review: GLM-5.3-flash (`ollama-cloud/glm-5.3-flash`), seven rounds, every finding
+  either fixed or shown not to hold.** Round 1 returned the whole branch diff (`origin/main...HEAD`)
+  in a separate process with read-only tools and none of this session's context, which is the gate
+  the owner moved to that model, and found four issues; rounds 2-7 are recorded below in order, each
+  against the head it was run on. It confirmed the two roles of the field, the floor being leaf-only, that no other
+  place in `faer/src` keys off `SvdParams::recursion_threshold`, and that the new 19..39 leaf band
   runs leaf code already exercised at
   leaves 3..7 and 63..127 - no correctness defect at a leaf of 40. Its findings, all applied: the
   gate test ran only at `f64` although the band is new for every precision (now instantiated at all
@@ -220,13 +222,25 @@ values-only route returns through `dqds` before the gate below is read, and both
   `f32`/`c32`, so at n = 40 the gate is reached by the single-precision values-only modes and, in
   the double-precision ones, by the `U`/`V` modes. The test's doc comment and this record now say
   which is which, and keep the genuine part: at n = 127 `dqds` gives up at every precision.
-  (2) "leaves of 19..39" was off by one: with `k = n / 2` a parent of 40-79 splits into 20-39 (19
-  would need a parent of 38 or 39, below the gate). (3) "the idle guard accepted on the first
+  (2) "leaves of 19..39" was called off by one and changed to 20..39 - **that change was itself the
+  error** (see the seventh round: the split drops the boundary entry, so the second child is
+  `n - n/2 - 1`). (3) "the idle guard accepted on the first
   attempt of every cell" was too broad: all 36 counted `run*` process sets were first-attempt
   acceptances, but one of the candidate run's 6 `verify` passes
   (`verify-linalg-mid-4t.guard`) was rejected on attempt 1 and re-run. Both documents now state it
   per process set, and the source diff that the record points at is described as comment-only rather
   than empty.
+- **Seventh round, the author's own final gate (GLM-5.3-flash, `ollama-cloud/glm-5.3-flash`, full
+  branch diff at `6880c28ea`, `NEEDS_CHANGES 1`, `UNVERIFIED 4`).** The one real finding: the sixth
+  round's leaf "correction" was itself wrong. The split drops the boundary entry
+  (`rem = n - k - 1`), so a parent of 40 gives children of 20 and 19, not 20 and 20, and 19 is
+  reachable at the gate itself; the band is 19..39, as first written. Restored in all three passages
+  and in the PR body, with the arithmetic spelled out so it is not "corrected" again. Its delete list
+  asked for one line: the two-line inner comment above the `(n, threshold)` list, which by then also
+  contradicted the corrected doc comment - deleted. Its four `UNVERIFIED` items are its own
+  environment (no shell: it could not extract the tarball, run the reproduction or compute a diff),
+  not defects; every one of them was run here against the same artefacts, and the tightened wording
+  above removes the permissive reading it flagged.
 - **The idle guard, per process set.** All 36 counted `run*` process sets (18 per run: three starts x
   two regimes x three thread counts) were accepted on the guard's **first** attempt, with no
   rejection in either run's `.guard` files. The `verify*` passes are separate from those: 6 per run,
@@ -255,10 +269,12 @@ values-only route returns through `dqds` before the gate below is read, and both
   the recursion at the band immediately below the gate, and the fact that the scratch reservation
   and the route choice are the same comparison (`bidiag_real_svd_scratch` and
   `compute_bidiag_real_svd`), so a `<=` that moves in only one of them is caught at `gate - 1`,
-  `gate`, `gate + 1`. The subproblems it newly exercises are the leaves of parents of 40 to 79: with
-  `k = n / 2` those halves are 20 to 39 - a band no existing case reaches, since the LAPACK-derived
-  cases run at threshold 8 (leaves 3 to 7) or 128 (leaves 63 to 127). A leaf of 19 would need a
-  parent of 38 or 39, which sits below the gate.
+  `gate`, `gate + 1`. The subproblems it newly exercises are the leaves of parents of 40 to 79. The
+  split is `k = n / 2` and `rem = n - k - 1` (`bidiag_svd.rs:1227-1228`): the boundary entry
+  `subdiag[k]` becomes the merge's coupling `alpha`, so the two children are of sizes `n/2` and
+  `n - n/2 - 1`, and a parent of 40 gives 20 and 19. The band is therefore 19..39 - leaf 19 coming
+  from the gate itself - and no existing case reaches it, since the LAPACK-derived cases run at
+  threshold 8 (leaves 3..7) or 128 (leaves 63..127).
 - **The values-only fallthrough got its own case, and what it covers is narrower than it looks.**
   `svd_values` returns through `dqds` before the gate, so the campaign cannot see this path; but when
   `dqds` gives up (DCHKBD type 16, #110) the call falls through to the rotation path and now meets a

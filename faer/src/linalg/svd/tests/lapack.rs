@@ -472,8 +472,6 @@ fn dchkbd_type_16_values_only_finishes() {
 	let mut failures = Vec::new();
 	let mut attempted = 0;
 	let default_threshold = <SvdParams as Auto<Scalar>>::auto().recursion_threshold;
-	// n = 40 with the default is the shallowest recursion the values-only
-	// fallthrough can reach, i.e. the first size at which it stops running QR.
 	for (n, threshold) in [
 		(128, 8),
 		(127, 128),
