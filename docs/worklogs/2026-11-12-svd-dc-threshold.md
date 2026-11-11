@@ -118,7 +118,8 @@ values-only route returns through `dqds` before the gate below is read, and both
 
 - **The pair is valid.** Both runs carry identical measured paths (`4d140a9` vs `a50d929` differ only
   in `faer/src`), the machine, the declaration, the harness build inputs and the toolkit identity.
-  The control row is `faer-upstream`, the untouched upstream crate - the *same* binary in both runs,
+  The control row is `faer-upstream`, the untouched upstream crate - rebuilt by each run from the
+  identical committed source (commit `0539947ffb75`, 0.24.4, `dirty: false` in both `run.yaml`s),
   which is what makes it a control: it measures how much the host moved between the two sessions,
   not how faer 0.24.4 compares to this fork. Recomputed from the evidence tarball's `faer-upstream`
   rows: 720 cells, median candidate/baseline ratio **0.999972**.
@@ -204,9 +205,10 @@ The gates this record relies on are the campaign pair above and the local ones a
   and the route choice are the same comparison (`bidiag_real_svd_scratch` and
   `compute_bidiag_real_svd`), so a `<=` that moves in only one of them is caught at `gate - 1`,
   `gate`, `gate + 1`. The subproblems it newly exercises are the leaves of parents of 40 to 79. The
-  split is `k = n / 2` and `rem = n - k - 1` (`bidiag_svd.rs:1227-1228`): the boundary entry
-  `subdiag[k]` becomes the merge's coupling `alpha`, so the two children are of sizes `n/2` and
-  `n - n/2 - 1`, and a parent of 40 gives 20 and 19. The band is therefore 19..39 - leaf 19 coming
+  split is `k = n / 2` and `rem = n - k - 1` (`bidiag_svd.rs:1227-1228`): it peels the boundary pair
+  off - `alpha = diag[k]` and `beta = subdiag[k]` are the merge's coupling, and `d2`/`subd2` start at
+  `k + 1` (`:1229-1235`) - so the two children are of sizes `n/2` and `n - n/2 - 1`, and a parent of 40
+  gives 20 and 19. The band is therefore 19..39 - leaf 19 coming
   from the gate itself - and no existing case reaches it, since the LAPACK-derived cases run at
   threshold 8 (leaves 3..7) or 128 (leaves 63..127).
 - **The values-only fallthrough got its own case, and what it covers is narrower than it looks.**
@@ -215,11 +217,11 @@ The gates this record relies on are the campaign pair above and the local ones a
   gate of 40 instead of 128. `tests/lapack.rs::dchkbd_type_16_values_only_finishes` gains
   `(127, <default>)` next to its `(128, 8)` and `(127, 128)`. At n = 127 `dqds` gives up at every
   precision, so that case is values-only coverage of the gate at the new value. The `(40, <default>)`
-  case is not the same evidence: probed directly on the magnitudes of that fixture, `dqds` finishes
-  at n = 40 for `f64` and `c64` and fails for `f32`/`c32`, so only the two single-precision
-  values-only modes fall through to the gate there - for `f64`/`c64` the n = 40 case covers the split
-  through the `U`/`V` modes instead. Written down because it is the kind of gap that reads as
-  covered.
+  case is not the same evidence: `dqds` finishes at n = 40 for `f64` and `c64` and fails for
+  `f32`/`c32` - probe output committed as `probe/dqds-at-40.txt`, with the test and the command that
+  produce it - so only the two single-precision values-only modes fall through to the gate there, and
+  for `f64`/`c64` the n = 40 case covers the split through the `U`/`V` modes instead. Written down
+  because it is the kind of gap that reads as covered.
 
 ## Evidence
 
@@ -349,8 +351,8 @@ justification for the value gone:
 git cat-file -p HEAD:docs/worklogs/evidence/2026-11-12-svd-dc-threshold.tar.gz | tar tzf - | grep probe/
 ```
 
-That prints 13 entries: `probe/README.md`, `probe/Cargo.toml`, `probe/src/main.rs`, `probe1..4.csv`
-and their four `.guard` files. Then:
+That prints 14 entries: `probe/README.md`, `probe/Cargo.toml`, `probe/src/main.rs`, `probe1..4.csv`
+with their four `.guard` files, and `probe/dqds-at-40.txt`. Then:
 
 ```sh
 mkdir -p /tmp/svd-dc && cd /tmp/svd-dc
