@@ -167,7 +167,8 @@ values-only route returns through `dqds` before the gate below is read, and both
   rebuild (this branch's hash) and the half that cannot be re-derived, and is labelled an
   observation; the durable statement is the diff itself: every post-recording edit is a comment or a
   `#[cfg(test)]` case. (2) The control row's "0 outside" was quoted without the 5% floor the
-  comparator applies (`candidate.py:221`); the raw range puts 296 of 720 outside, and both numbers
+  comparator applies (a 5% floor, defined in the separate toolkit - see "Not in this repository");
+  the raw range puts 296 of 720 outside, and both numbers
   are now in the record along with the point of the row - it is the same upstream binary in both
   runs, so it measures the host, not 0.24.4 against this fork. (3) Table B's caption said 24 cells
   per row; it is 4 per entry and 12 per row. (4) The guard band and the `svd_thin f64` family median
