@@ -9,8 +9,8 @@
 // only one of them is visible, then the round sizes further from it.
 //
 // The default is read from `Auto`, so the test does not move when the value
-// does; `usize::MAX` forces the QR route at every size and `4` the recursive
-// one, the pair `tests/lapack.rs` uses.
+// does; `usize::MAX` forces the QR route at every size, as `tests/qr_stall.rs`
+// runs it, and `4` forces the recursion, as `tests/lapack.rs`'s `(8, 4)` does.
 use super::super::super::*;
 use super::{Real, Scalar};
 use crate::assert;
