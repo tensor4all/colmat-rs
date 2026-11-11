@@ -10,11 +10,19 @@ process-set group of three, and published nowhere (`--no-publish`); the harness 
 commit that re-resolved `Cargo.lock` from `t4a-faer` 0.28.0 to 0.32.0 so the pair could be built
 against main at all.
 
-The candidate run built the branch at `a50d929`; edits after the recording are comments and
-`#[cfg(test)]` cases only. That is checked, not asserted: `objcopy` of `.text` and `.rodata` from the
-binary the recorder measured and from the binary this commit builds are the same bytes
-(`d614e836c749…`), while origin/main's differ (`cab1bb640d84…`), so the numbers below are the
-numbers for this tree.
+The candidate run built the branch at `a50d929`, a state that the review round then rewrote; that
+commit is **not** retained on any published ref, so nothing below can be re-derived by checking out
+what was measured. Two statements replace it, of different strength.
+
+*Reproducible from this repository:* every edit after the recording is a comment or a `#[cfg(test)]`
+case - the two commits are the whole branch, and `git diff` between them and the recorded behaviour
+touches no line that is compiled into the library.
+
+*Not reproducible here, and only a local observation:* `objcopy` of `.text` + `.rodata` from the
+binary built out of this branch is `d614e836c749…`, which is the same hash the recorder's own build
+of `a50d929` produced, while origin/main's is `cab1bb640d84…`. The first half of that sentence a
+reader can confirm by rebuilding; the second half cannot be checked without the measured tree, which
+is why it is reported as an observation rather than as evidence.
 
 ## The loss, and why this one
 
@@ -74,13 +82,24 @@ values-only route returns through `dqds` before the gate below is read, and both
 ## Verification conclusions and constraints
 
 - **The pair is valid.** Both runs carry identical measured paths (`4d140a9` vs `a50d929` differ only
-  in `faer/src`), the machine, the declaration, the harness build inputs and the toolkit identity;
-  the in-run control row (`faer-upstream`, the unchanged crate) reproduces the baseline over all 720
-  cells at median ratio 0.99997 with **0** cells outside the baseline's own between-start range.
+  in `faer/src`), the machine, the declaration, the harness build inputs and the toolkit identity.
+  The control row is `faer-upstream`, the untouched upstream crate - the *same* binary in both runs,
+  which is what makes it a control: it measures how much the host moved between the two sessions,
+  not how faer 0.24.4 compares to this fork. Recomputed from the evidence tarball's `faer-upstream`
+  rows: 720 cells, median candidate/baseline ratio **0.999972**.
+  Its "0 outside" needs the definition that produced it, because the raw range says something else.
+  `candidate_compare.py` asks `low * 0.95 <= candidate <= high * 1.05` of the baseline's three
+  starts (`campaign-toolkit/campaign_toolkit/candidate.py:221`), and under that floored band 0 of
+  720 cells are outside. Against the **unfloored** min/max range, **296** of 720 are, i.e. session
+  drift on this host is larger than the within-session spread of three starts. That is the reason
+  the campaign's band has the floor, and it is quoted here instead of the bare "0 outside", which
+  does not reproduce without it.
 - **The target improves and nothing near it moves.** Of 720 `faer-fork` cells, 188 are faster than
-  5%, 4 are slower than 5%, and the rest are inside the 5% band the campaign sets for a shared host.
-  `svd_values` (288 cells, all dtypes) and `qr_factor` (144 cells) are inside 5% **everywhere** -
-  they are the guards, and the change does not reach them.
+  5%, 4 are slower, and 528 are inside the band, counting the per-cell median ratio (the campaign's
+  own comparator, which averages over the start rotation instead, reports 189 and 5 on the same two
+  runs). `svd_values` (288 cells, all dtypes) spans 0.979 to 1.028 and `qr_factor` (144 cells) 0.986
+  to 1.016, so both are inside 5% **everywhere** - they are the guards, and the change does not
+  reach them.
 - **Four cells regress, all the same shape, and are accepted on that basis:** `svd_thin f32`, n = 64, **1T only**, 0.500 to 0.533 ms
   (+5.1% to +6.6% per cell, +5.7% as the median of its four); `c32` at the same size and thread
   count is +3.4%. The same cells at 4T and 8T gain 9-10%, and the `f32` family median over all its
@@ -93,8 +112,10 @@ values-only route returns through `dqds` before the gate below is read, and both
   the leaf. A reviewer looking for a criterion should read it as: a size/thread-count corner inside a
   winning family is tolerated when the fix for it would change an unmeasured leaf, and is written
   down here so it is not rediscovered as a surprise.
-- **No `n = 32` movement.** The guard cell reads 0.994, 0.999, 1.001, 1.005, 1.008 against its own
-  baseline across dtypes, orders and thread counts.
+- **No `n = 32` movement.** Over all 48 `svd_thin` cells at n = 32 (four dtypes, both orders, both
+  variants, three thread counts) the candidate/baseline ratio spans **0.978 to 1.018** with median
+  0.998 - f64 0.990-1.013, c64 0.995-1.010, f32 0.989-1.018, c32 0.978-1.003. Nothing there is a
+  route change, so the band is the host's, not the change's.
 - **Independent review: `ollama-cloud/glm-5.3-flash:high` (GLM-5.3-flash), pass with four findings,
   all fixed.** Run against the whole branch diff (`origin/main...HEAD`, both commits) in a separate
   process with read-only tools and none of this session's context, which is the gate the owner moved
@@ -107,6 +128,20 @@ values-only route returns through `dqds` before the gate below is read, and both
   at n = 32 and bounded by equality at n = 1024/8T (now scoped); and the four `f32` cells were listed
   without being accepted against a criterion (basis recorded above). It also asked for the `auto()`
   narrative and the field doc to be trimmed to the mechanism plus a pointer, which they are.
+- **Second round, the standard PR review at the first head (GLM-5.3-flash, `NEEDS_CHANGES 0`,
+  `UNVERIFIED 4`), all four answered here.** (1) The measured state `a50d929` is on no published ref
+  after the review rewrite, so the `.text`/`.rodata` identity is now split into the half a reader can
+  rebuild (this branch's hash) and the half that cannot be re-derived, and is labelled an
+  observation; the durable statement is the diff itself: every post-recording edit is a comment or a
+  `#[cfg(test)]` case. (2) The control row's "0 outside" was quoted without the 5% floor the
+  comparator applies (`candidate.py:221`); the raw range puts 296 of 720 outside, and both numbers
+  are now in the record along with the point of the row - it is the same upstream binary in both
+  runs, so it measures the host, not 0.24.4 against this fork. (3) Table B's caption said 24 cells
+  per row; it is 4 per entry and 12 per row. (4) The guard band and the `svd_thin f64` family median
+  were quoted from an earlier statistic; recomputed from the tarball they are 0.978-1.018 (median
+  0.998) over all 48 n = 32 cells and 1.306 -> 0.932 (worst 1.571 -> 1.035). Every number in the
+  text is now printed by the reproduction script below, so a reader checks the script rather than
+  this prose.
 - **One attempt was discarded, not used.** The first baseline recording
   (`20261111T122715Z-acc404-base`) ran the full four-regime grid and hit the two-hour cap with two of
   its three process sets complete (44 CSVs, no `report.md`); the guard log shows one attempt and no
@@ -165,12 +200,15 @@ Table A - `svd_thin` f64 and c64 against MKL, ms:
 | c64 | 128 | 8 | 2.975 | 3.436 | 0.866 | 2.511 | 0.726 | 1.18x |
 | c64 | 512 | 8 | 53.714 | 82.904 | 0.648 | 51.072 | 0.617 | 1.05x |
 
-The family medians against MKL, `linalg-small`: `svd_thin` f64 **1.309 to 0.932** (worst cell
-1.57 to 1.04), `svd_thin` c64 0.897 to 0.735; `linalg-mid`: f64 0.853 to 0.747, c64 0.716 to 0.652.
+The family medians against MKL are the median of the 18 per-cell median ratios of a family - the
+cells that carry a vendor row, since the `in_place` variants are faer-only (the same statistic as the
+table, not a ratio of pooled times, which would read 1.370): `linalg-small`
+`svd_thin` f64 **1.306 to 0.932**, worst cell 1.571 to 1.035; c64 0.896 to 0.736; `linalg-mid` f64
+0.854 to 0.746, c64 0.715 to 0.651.
 `svd_thin` f64 `linalg-small` was the worst row of the ranking and is now below parity.
 
 Table B - the same change read against itself, `after/before` per dtype, size and thread count,
-median over both orders and both the plain and `in_place` variants (24 cells per row):
+median over both orders and both the plain and `in_place` variants (4 cells per entry, 12 per row):
 
 | dtype | n | 1T | 4T | 8T |
 |---|---|---|---|---|
@@ -279,13 +317,55 @@ for dtype, n, t in rows:
                med('after', 'faer-fork', c))
     print(f'A {dtype} {n} {t} {b:.3f} {m:.3f} {b / m:.3f} {a:.3f} {a / med("after", "lapack-mkl", c):.3f} {b / a:.2f}x')
 
-# B: the same run read against itself, median over both orders and both variants
+# B: the same run read against itself, 4 cells per entry (2 orders x 2 variants), 12 per row
 for dtype in ('f64', 'c64', 'f32', 'c32'):
     for n in (32, 64, 96, 128, 256, 512):
         cols = [st.median([med('after', 'faer-fork', cell(dtype, n, t, v, o))
                            / med('before', 'faer-fork', cell(dtype, n, t, v, o))
                            for v in ('', 'in_place') for o in ('f', 'c')]) for t in (1, 4, 8)]
         print(f'B {dtype} {n} ' + ' '.join(f'{x:.3f}' for x in cols))
+
+def per_cell(label, engine, c):
+    base = 'before' if label == 'after' else 'after'
+    return med(label, engine, c) / med(base, engine, c)
+
+# FAM: family medians against MKL and their worst cell, before -> after. Only the
+# 18 cells that carry a vendor row count: the `in_place` variants are faer-only, so
+# they cannot enter a ratio against MKL.
+def fam_ratios(label, regime, dtype):
+    return [med(label, 'faer-fork', c) / med(label, 'lapack-mkl', c)
+            for c in CACHE[RUNS[label]]['run0']
+            if c[0] == regime and c[1] == 'svd_thin' and c[2] == dtype
+            and 'lapack-mkl' in CACHE[RUNS[label]]['run0'][c]]
+for regime, dtype in (('linalg-small', 'f64'), ('linalg-small', 'c64'),
+                      ('linalg-mid', 'f64'), ('linalg-mid', 'c64')):
+    b, a = fam_ratios('before', regime, dtype), fam_ratios('after', regime, dtype)
+    print(f'FAM {regime} {dtype} n={len(b)} median {st.median(b):.3f} -> {st.median(a):.3f} '
+          f'worst {max(b):.3f} -> {max(a):.3f}')
+
+# GUARD: n = 32, all dtypes, orders, variants and thread counts
+g = [per_cell('after', 'faer-fork', c) for c in CACHE[RUNS['before']]['run0']
+     if c[1] == 'svd_thin' and c[4] == '32']
+print(f'GUARD n=32 {len(g)} cells range {min(g):.3f}..{max(g):.3f} median {st.median(g):.3f}')
+
+# COUNTS: the 5% band, and the guards' span
+for fam in ('svd_thin', 'svd_values', 'qr_factor'):
+    r = [per_cell('after', 'faer-fork', c) for c in CACHE[RUNS['before']]['run0'] if c[1] == fam]
+    print(f'COUNTS {fam} n={len(r)} faster {sum(1 for x in r if x < 0.95)} '
+          f'slower {sum(1 for x in r if x > 1.05)} inside {sum(1 for x in r if 0.95 <= x <= 1.05)} '
+          f'range {min(r):.3f}..{max(r):.3f}')
+
+# CONTROL: the untouched upstream crate in both runs, and the band the campaign checks against
+ratios, raw_outside = [], 0
+for c in CACHE[RUNS['before']]['run0']:
+    base = [s[c]['faer-upstream'] for s in CACHE[RUNS['before']].values() if 'faer-upstream' in s.get(c, {})]
+    cand = [s[c]['faer-upstream'] for s in CACHE[RUNS['after']].values() if 'faer-upstream' in s.get(c, {})]
+    if len(base) == 3 and len(cand) == 3:
+        ratios.append(st.median(cand) / st.median(base))
+        if not (min(base) <= st.median(cand) <= max(base)):
+            raw_outside += 1
+print(f'CONTROL n={len(ratios)} median {st.median(ratios):.6f} '
+      f'outside unfloored range {raw_outside} (the campaign floors it at 5%, candidate.py:221)')
 PY
 ```
 
