@@ -36,6 +36,13 @@ pub use linalg::qr::no_pivoting::factor::QrParams as LqParams;
 ///
 /// `Q_coeff` holds the block coefficients, one block per `Q_coeff.nrows()` steps,
 /// as in [`qr::no_pivoting::factor::qr_in_place`](crate::linalg::qr::no_pivoting::factor::qr_in_place).
+///
+/// The panel of each block, `Q_coeff.nrows()` rows of `A`, is copied into a
+/// buffer from `stack` that holds the rows contiguous, factored there, and copied
+/// back; the update of the rows below it is a pair of matrix products on `A` in
+/// place, reading the basis from the buffer. The buffers are part of
+/// [`lq_in_place_scratch`]; with a smaller `stack` the panels are factored on
+/// `A`'s own strides. Either way the packed form is the same up to rounding.
 #[track_caller]
 pub fn lq_in_place<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -50,6 +57,7 @@ pub fn lq_in_place<T: ComplexField>(
 		par,
 		stack,
 		params,
+		true,
 	);
 	LqInfo { rank: info.rank }
 }
@@ -63,6 +71,7 @@ pub fn lq_in_place_scratch<T: ComplexField>(
 	par: ParShape,
 	params: Spec<LqParams, T>,
 ) -> StackReq {
+	// the QR query of the transposed view, which includes the staged panels
 	linalg::qr::no_pivoting::factor::qr_in_place_scratch::<T>(
 		ncols,
 		nrows,
@@ -119,6 +128,194 @@ mod tests {
 	use crate::{Mat, c64};
 	use core::sync::atomic::Ordering::Relaxed;
 	use dyn_stack::MemBuffer;
+	/// [`copy_l`] hands `MatMut::copy_from_triangular_lower` a row-major packed
+	/// matrix and a column-major destination, which is the tiled gate of
+	/// `copy_lower_across_layouts`, with the working set of the `m x k` factor.
+	/// The route is pinned on both sides of the threshold, square, tall and
+	/// wide: the per-thread tiled-copy counter moves by exactly one where the
+	/// gate should tile and stays put where it should fall back, which equal
+	/// values alone cannot tell apart.
+	///
+	/// The destination here is the column-major `m x k` allocation, so its column
+	/// stride is `m`: the `m = 2048` and `k = 256` cells tile on
+	/// `tensor4all/faer#352`'s power-of-two stride although their working set is
+	/// below the byte threshold.
+	#[test]
+	fn copy_l_reaches_the_tiled_copy_gate() {
+		use crate::linalg::{tile_copy_pays, tiled_copies};
+		for (m, n, tiled) in [
+			(512, 512, true),
+			// square, 2048 bytes of stride: #352's measured cell
+			(256, 256, true),
+			// tall: `k = 256`, a `2048 x 256` factor is 8 MiB over both buffers
+			(2048, 256, true),
+			// tall: 2 MiB, tiled only because the stride is 16 KiB, a power of two
+			(2048, 64, true),
+			// wide: the factor is only `m x k = 256 x 256`, and its stride is 2 KiB
+			(256, 2048, true),
+		] {
+			let k = Ord::min(m, n);
+			// `packed` as a row-major view of a column-major `n x m` allocation
+			let packed_col = Mat::<f64>::from_fn(n, m, |j, i| (i + 2 * j) as f64);
+			let packed = packed_col.as_ref().transpose();
+			assert!(tile_copy_pays::<f64>(m, k, m as isize) == tiled);
+			let mut out = Mat::<f64>::from_fn(m, k, |_, _| -1.0);
+			let before = tiled_copies();
+			copy_l(out.as_mut(), packed, false);
+			assert!(
+				tiled_copies() - before == tiled as usize,
+				"{m}x{n}: copy_l took the {} path",
+				if tiled { "elementwise" } else { "tiled" }
+			);
+			for j in 0..k {
+				for i in 0..m {
+					let want = if i >= j { packed[(i, j)] } else { 0.0 };
+					assert!(out[(i, j)] == want, "{m}x{n}: entry ({i}, {j})");
+				}
+			}
+		}
+	}
+
+	/// `lq_in_place` factors each panel (a block of rows of `A`) in a
+	/// column-major buffer and takes the trailing apply's basis from there
+	/// (`qr::no_pivoting::factor::factor_panel_staged`). The packed form must be
+	/// the one the kernel writes on the transposed view without staging
+	/// (`qr_in_place_packed(.., false)`, the route before tensor4all/faer#314
+	/// slice 3), so `unitary`, `reconstruct` and `copy_l` read the same thing:
+	/// the same rank; the zeros and the `infinity` markers of the coefficient
+	/// blocks, and the zeros the rank-deficient path writes into `A`, at the same
+	/// positions; every other entry equal up to rounding. The cases cover the
+	/// unblocked size, square, wide and tall, a block size that does not divide
+	/// the factorization, zero rows at the start, inside a panel and from a block
+	/// boundary on (the out-of-place reflectors), and a padded leading dimension.
+	#[test]
+	fn staged_panels_write_the_unstaged_packed_form() {
+		use crate::linalg::qr::no_pivoting::factor::qr_in_place_packed;
+		fn check<T: ComplexField<Real = f64>>(
+			a: MatRef<'_, T>,
+			bs: usize,
+			threads: usize,
+			tag: &str,
+		) {
+			let (m, n) = a.shape();
+			let k = Ord::min(m, n);
+			let mut mem = MemBuffer::new(lq_in_place_scratch::<T>(
+				m,
+				n,
+				bs,
+				crate::ParShape::team(threads),
+				default(),
+			));
+			let mut run = |staged: bool| {
+				// the input in a padded column-major allocation (leading dimension
+				// `m + 3`)
+				let mut storage = Mat::<T>::zeros(m + 3, n);
+				let mut packed = storage.as_mut().subrows_mut(0, m);
+				packed.copy_from(a);
+				// entries neither route writes stay infinite in both
+				let mut coeff = Mat::<T>::full(bs, k, infinity());
+				let mut go = |par: Par| {
+					if staged {
+						lq_in_place(
+							packed.rb_mut(),
+							coeff.as_mut(),
+							par,
+							MemStack::new(&mut mem),
+							default(),
+						)
+						.rank
+					} else {
+						qr_in_place_packed(
+							packed.rb_mut().transpose_mut(),
+							coeff.as_mut(),
+							par,
+							MemStack::new(&mut mem),
+							default(),
+							false,
+						)
+						.rank
+					}
+				};
+				let rank = if threads == 1 {
+					go(Par::Seq)
+				} else {
+					crate::team::with_team(threads, go)
+				};
+				(packed.to_owned(), coeff, rank)
+			};
+			let (p1, c1, r1) = run(true);
+			let (p0, c0, r0) = run(false);
+			assert_eq!(r1, r0, "{tag}: rank");
+			let tol = f64::EPSILON * (Ord::max(m, n) as f64) * 64.0;
+			let same = |x: &T, y: &T, what: &str, i: usize, j: usize| {
+				assert_eq!(
+					abs(x) == 0.0,
+					abs(y) == 0.0,
+					"{tag}: {what} ({i}, {j}) zero in one route only"
+				);
+				assert_eq!(
+					is_finite(x),
+					is_finite(y),
+					"{tag}: {what} ({i}, {j}) infinite in one route only"
+				);
+				if is_finite(y) {
+					assert!(
+						abs(&(x.clone() - y.clone())) <= tol * (1.0 + abs(y)),
+						"{tag}: {what} ({i}, {j})"
+					);
+				}
+			};
+			for j in 0..n {
+				for i in 0..m {
+					same(&p1[(i, j)], &p0[(i, j)], "packed", i, j);
+				}
+			}
+			for j in 0..k {
+				for i in 0..bs {
+					same(&c1[(i, j)], &c0[(i, j)], "coefficients", i, j);
+				}
+			}
+		}
+		let rng = &mut StdRng::seed_from_u64(314);
+		let mut cases = 0usize;
+		for (m, n, bs) in [
+			(7, 9, 4),
+			(40, 60, 8),
+			(64, 200, 16),
+			(200, 64, 16),
+			(130, 300, 48),
+			(256, 256, 32),
+		] {
+			for zero_rows in [0..0, 0..1, 5..9, 32..m] {
+				let mut a = CwiseMatDistribution {
+					nrows: m,
+					ncols: n,
+					dist: StandardNormal,
+				}
+				.rand::<Mat<f64>>(rng);
+				let mut z = CwiseMatDistribution {
+					nrows: m,
+					ncols: n,
+					dist: ComplexDistribution::new(StandardNormal, StandardNormal),
+				}
+				.rand::<Mat<c64>>(rng);
+				for i in zero_rows.clone().filter(|&i| i < m) {
+					for j in 0..n {
+						a[(i, j)] = 0.0;
+						z[(i, j)] = c64::new(0.0, 0.0);
+					}
+				}
+				for threads in [1, 4] {
+					let tag = format!("{m}x{n} block {bs} zero rows {zero_rows:?} threads {threads}");
+					check(a.as_ref(), bs, threads, &format!("f64 {tag}"));
+					check(z.as_ref(), bs, threads, &format!("c64 {tag}"));
+					cases += 1;
+				}
+			}
+		}
+		assert!(cases == 48);
+	}
+
 	/// the look-ahead overlaps the next panel's factorization with the trailing
 	/// apply. For LQ the panel is the block of *rows* of `A`, which the transposed
 	/// view presents with a stride of `A.col_stride()`, so the transposed path and

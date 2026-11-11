@@ -14,9 +14,18 @@ you are changing, at 1T and 8T, before choosing where to work; remove them befor
 
 ## Rows of a column-major matrix are strided operands
 
-A row of `A` has stride `m`. `matmul`'s vector paths fall to the general kernel when the destination
-or the vector is strided, and a reflector's norm becomes a strided reduction. Gather the row into a
-contiguous buffer once, update it, reflect it and use it as the products' vector there, scatter once
+A row of `A` has stride `m`. `matmul` reaches a `matvec` kernel only for a one-column or one-row
+destination (`faer/src/linalg/matmul/mod.rs:1236`), and the two kernels accept different layouts:
+`matvec_colmajor` takes a contiguous destination (`ColMut<'_, T, Dim<'M>, ContiguousFwd>`, `:891-899`)
+and a `rhs` of any stride, while `matvec_rowmajor` takes a contiguous `rhs` and accepts a strided
+destination (`:762-770`). Which one a call reaches depends on the leading transposition in
+`matmul_imp` (`:1226-1310`), so the layout that costs a gather is the *rhs* in one kernel and the
+*destination* in the other; nothing here says a strided operand alone reaches the general kernel.
+The matrix has its own requirement: the column-major kernel needs a column-major `lhs`
+(`:1238-1239`) and the row-major one a row-major `lhs` (`:1253-1254`), so an `lhs` strided in both
+directions runs neither, and gathering a vector does not change that. A reflector's norm becomes a
+strided reduction in any case. Gather the row into a contiguous buffer
+once, update it, reflect it and use it as the products' vector there, scatter once
 (`bidiag_blocked_panel`'s `w`). The row-side steps of the panel went from 15 ms to 6 ms at n = 512.
 
 ## A leading dimension that is a multiple of 1 KiB aliases L1 sets
@@ -31,13 +40,22 @@ so this is where it shows; a vendor's `?gebrd` at 512 matches our 500.
 ## The team is the caller's, and it is held across the work
 
 `Par::Team` is the exclusive authority over the reserved members of a `threadteam` team. A reserved
-member spins for a bounded budget and then parks; on x86-64 the budget is 300,000 polls (about 3-7 ms
-depending on the core's `PAUSE`), so a sequence of regions closer together than that pays no wake and
-a longer gap parks the members once. Each keeps the range it had in the previous region, so a core's
-L2 keeps its slice of the trailing block across them: the blocked bidiagonalisation's two products
-per step went 10.3 and 10.6 ms to 2.7 and 3.7 ms at 512, 8T, with nothing but the reservation
-(`docs/worklogs/2026-10-23-blocked-bidiag.md`; the reservation was a spindle group there, the
-mechanism threadteam kept when it replaced it).
+member spins for a bounded budget of polls and then parks. The budget is the pool's, not faer's
+(threadteam 0.5.1 as locked in `Cargo.lock`; `faer/Cargo.toml` requires `^0.5.1`):
+
+* by default 300,000 polls on x86-64 (about 3-7 ms depending on the core's `PAUSE`) and 2^21 on
+  aarch64 (`SPIN_POLLS_DEFAULT`, threadteam `src/pool.rs`), unless the caller sets
+  `PoolBuilder::spin_polls`;
+* at most 100 polls when the scope is oversubscribed, that is when it has more participants than
+  CPUs in the caller's set (`THROTTLED_POLLS`, threadteam `src/park.rs`), whatever the pool's setting.
+
+With the default budget on a scope that is not oversubscribed, a sequence of regions closer together
+than the budget pays no wake and a longer gap parks the members once. On an oversubscribed scope the
+window is 100 polls, so only regions issued almost back to back avoid a wake. Each member keeps the
+range it had in the previous region, so a core's L2 keeps its slice of the trailing block across
+them: the blocked bidiagonalisation's two products per step went 10.3 and 10.6 ms to 2.7 and 3.7 ms
+at 512, 8T, with nothing but the reservation (`docs/worklogs/2026-10-23-blocked-bidiag.md`; the
+reservation was a spindle group there, the mechanism threadteam kept when it replaced it).
 
 The library never builds a team; the width, the lifetime and the thread count are the caller's
 (`faer::team` is the route, not the policy). A caller that runs parallel work repeatedly owns the
@@ -77,10 +95,11 @@ Measured with `probes/gemv-threads` (faer-benchmark, diagnostic): one 8-job regi
 costs 1.75 us, and `threadteam`'s `aarch64-apple` row puts a section at 1.4 us at width 6 and 3.0 us
 at width 2. The matvec path is taken only for a one-row or one-column destination (`m == 1` or
 `n == 1`; the one-column case is direct, the one-row case transposes), and its width is
-`cost::par_width` over `m*n` elements at `rate::matvec` with one section, not a fixed element count:
-below the width that pays it runs sequentially. A step that issues
-two regions pays about 3-4 us of synchronisation; 384 steps are 1.5 ms. Design the loop so that the
-regions are the big products, not the short ones.
+`cost::par_width` over the left operand's element count — `lhs.nrows() * lhs.ncols()`, so `m*k`, or
+`n*k` after the one-row transpose (`faer/src/linalg/matmul/mod.rs:775`, `:904`) — at `rate::matvec`
+with one section, not a fixed element count: below the width that pays it runs sequentially. A step
+that issues two regions pays about 3-4 us of synchronisation; 384 steps are 1.5 ms. Design the loop
+so that the regions are the big products, not the short ones.
 
 ## Short products are bandwidth-bound in L2, not call-bound
 
@@ -112,11 +131,16 @@ changed it by 1 ms; overlapping it with the previous block's trailing apply on a
 (look-ahead) is the lever (`docs/worklogs/2026-10-30-qr-lookahead.md`, faer#160). Before threading a
 stage further, time it at block widths that differ by 4x: if it does not follow the arithmetic, hide it.
 
-## An overwrite-only entry inherits the replace entry's dispatch
+## An overwrite-only entry does not keep the replace entry's dispatch for free
 
-`matmul_with_conj_uninit` writes a fresh destination and so skipped the replace entry's one-row
-(`m == 1`) `matvec` branch, landing on the full GEMM kernel: 2.2x slower and different last bits on
-x86 AVX2, while aarch64's fallback to `matmul_with_conj` was unaffected. When an entry promises only that it
-does not read the destination, keep the dispatch shared and pay the O(m*n) initialization instead of
-giving the kernel a second selection path (tensor4all/faer#200,
-`docs/worklogs/2026-11-03-matmul-uninit-thin.md`).
+`matmul_with_conj_uninit` writes a fresh destination, and the routes it takes are not the replace
+entry's: it fills and returns for an empty `k` (`:1675-1679`), fills and re-enters for a one-row
+product (`:1680-1691`), takes `t4a-private-gemm-x86` with `Accum::Replace` for a native scalar above
+one row when AVX-512F, or AVX2 plus FMA, is detected (`:1692-1709`); a native scalar without that
+kernel — another target, a missing instruction set, or `std` off — fills and re-enters
+(`:1786-1793`); and other scalars compute each element in place (`:1795-1810`). The original claim — that the replace entry's dispatch is kept — was wrong in both
+directions, so an overwrite-only entry has to restore the dispatch by hand, and only where the fill
+it was avoiding is smaller than the kernel it lands on (tensor4all/faer#200). That last condition is
+guidance, not a rule the dispatch applies: the worklog measured it for `m = 1` on a few shapes and
+found `m = 2/8/16` unchanged (`docs/worklogs/2026-11-03-matmul-uninit-thin.md`), so measure before
+relying on it elsewhere.

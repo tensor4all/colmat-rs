@@ -1,0 +1,20 @@
+[package]
+name = "u391"
+version = "0.1.0"
+edition = "2021"
+# Standalone: the probe sits inside the measured checkout's tree, and must not join its workspace.
+[workspace]
+# The measured checkout is patched in by `run.py` (it rewrites the path below), so that the
+# same binary is built once against the pristine tree and once against the instrumented copy.
+[features]
+# per-phase instrumentation lives in the checkout (`faer/src/dc_probe.rs`, applied by
+# `instrumentation.patch`); the probe only reads it when this feature is on
+instr = []
+# the secular-equation work counters; also pass `--features faer/dc-count` (the instrumented
+# copy's counting build, which is not the timing build)
+count = []
+default = []
+[dependencies]
+faer = { package = "t4a-faer", path = "../../../../../faer", default-features = false, features = ["std", "rayon", "threadteam"] }
+[profile.release]
+debug = 1

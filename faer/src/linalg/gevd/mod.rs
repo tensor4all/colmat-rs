@@ -35,7 +35,9 @@ pub use schur_eigenvalues::{SchurEigenvalueError,schur_eigenvalues_real};
 /// eigendecomposition error
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum GevdError {
-	/// reached max iterations
+	/// reached max iterations, the input was not finite, or the requested
+	/// eigenvectors came out non-finite (see [`gevd_real`] for the range of
+	/// scales)
 	NoConvergence,
 }
 /// eigendecomposition error
@@ -138,6 +140,97 @@ pub mod gen_hessenberg;
 pub mod qz_cplx;
 /// $QZ$ decomposition for real matrices
 pub mod qz_real;
+/// `2^32` and `2^-32`, the step of [`exponent_of`] and [`mul_pow2`]
+fn pow2_32<T: RealField>() -> (T, T) {
+	let mut p = one::<T>() + one::<T>();
+	for _ in 0..5 {
+		p = &p * &p;
+	}
+	let q = p.recip();
+	(p, q)
+}
+
+/// `floor(log2(x))` for a finite `x > 0`, computed by exact power-of-two
+/// steps (`T` has no `frexp`)
+fn exponent_of<T: RealField>(x: &T) -> isize {
+	let two = one::<T>() + one::<T>();
+	let half = two.recip();
+	let (p32, q32) = pow2_32::<T>();
+	let mut m = x.copy();
+	let mut e = 0isize;
+	while m >= p32 {
+		m = &m * &q32;
+		e += 32;
+	}
+	while m >= two {
+		m = &m * &half;
+		e += 1;
+	}
+	while m < q32 {
+		m = &m * &p32;
+		e -= 32;
+	}
+	while m < one::<T>() {
+		m = &m * &two;
+		e -= 1;
+	}
+	e
+}
+
+/// `x * 2^e`, applied in steps that are each a representable power of two, so
+/// no out-of-range factor is ever formed, and rounded once. upwards every step
+/// is exact until the result overflows. downwards the steps are taken while
+/// the value stays normal (exact), and what is left is one multiplication by
+/// `2^e'`, a normal number, so a result in the subnormal range is rounded once
+/// rather than once per step (repeated halving of a subnormal can round a
+/// nonzero result to zero)
+fn mul_pow2<T: ComplexField>(x: &T, e: isize) -> T {
+	let two = one::<T::Real>() + one::<T::Real>();
+	let half = two.recip();
+	let (p32, q32) = pow2_32::<T::Real>();
+	let safmin = min_positive::<T::Real>();
+	let emin = exponent_of(&safmin);
+	let mut x = x.copy();
+	let mut e = e;
+	while e >= 32 {
+		x = x.mul_real(&p32);
+		e -= 32;
+	}
+	while e > 0 {
+		x = x.mul_real(&two);
+		e -= 1;
+	}
+	if e == 0 {
+		return x;
+	}
+	// `|re| + |im|`: a complex value's parts are moved together, so only its
+	// larger part is guaranteed one rounding
+	let m = |x: &T| x.abs1();
+	if m(&x) == zero::<T::Real>() {
+		return x;
+	}
+	while e <= -32 && m(&x) * &q32 >= safmin {
+		x = x.mul_real(&q32);
+		e += 32;
+	}
+	while e < 0 && m(&x) * &half >= safmin {
+		x = x.mul_real(&half);
+		e += 1;
+	}
+	if e == 0 {
+		return x;
+	}
+	// `|x|` is now below `2 safmin`, so the rest takes it to the subnormal range
+	// or to zero; `2^e` is normal for `e >= emin`, and below that the result is
+	// zero whichever way it is formed
+	let e = e.max(emin);
+	let mut f = one::<T::Real>();
+	for _ in 0..(-e) {
+		f = &f * &half;
+	}
+	x.mul_real(&f)
+}
+
 #[track_caller]
 fn compute_gevd_generic<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -248,6 +341,49 @@ fn compute_gevd_generic<T: ComplexField>(
 	let need_qz = u_left.is_some() || u_right.is_some();
 	let mut A = A;
 	let mut B = B;
+	// tensor4all/faer#375: like LAPACK `dggev`, scale `A` and `B` separately
+	// before the reduction and the QZ, which otherwise underflow for tiny pencils
+	// and return `alpha = beta = 0`. a matrix whose largest entry is below
+	// `smlnum = sqrt(safmin) / eps` is scaled to a largest entry in
+	// `[smlnum, 2 smlnum)`, one above `bignum = 1 / smlnum` to `(bignum / 2,
+	// bignum]`. unlike `dggev` (`dlascl` by `smlnum / norm`) the factor is a power
+	// of two, so the scaling and the scaling back are exact (except where an
+	// entry is or becomes subnormal) and `(2^k A, 2^k B)` gets exactly `2^k`
+	// times the `alpha` and `beta` of `(A, B)` when both are scaled. in `f32`
+	// and `f64` the factor and its inverse are normal numbers.
+	//
+	// `alpha` is scaled back by `A`'s factor and `beta` by `B`'s after the QZ.
+	// The eigenvectors are not scaled back: `(a A, b B)` has the eigenvalues
+	// `(a alpha, b beta)` and the same eigenvectors, the orthogonal `Q`, `Z` do
+	// not depend on `a`, `b`, and the eigenvector stage normalizes its output.
+	let smlnum = sqrt_min_positive::<T::Real>() / eps::<T::Real>();
+	let bignum = smlnum.recip();
+	// the inverse `2^e` of the factor `2^-e` applied to `M`, as `(2^e, e)`, if
+	// `M` was scaled
+	let prescale = |M: MatMut<'_, T>| -> Option<(T::Real, isize)> {
+		let norm = M.rb().norm_max();
+		let two = one::<T::Real>() + one::<T::Real>();
+		let half = two.recip();
+		let mut factor = one::<T::Real>();
+		let mut e = 0isize;
+		if norm > zero::<T::Real>() && norm < smlnum {
+			while &norm * &factor < smlnum {
+				factor = &factor * &two;
+				e -= 1;
+			}
+		} else if norm > bignum {
+			while &norm * &factor > bignum {
+				factor = &factor * &half;
+				e += 1;
+			}
+		} else {
+			return None;
+		}
+		zip!(M).for_each(|unzip!(x)| *x = x.mul_real(&factor));
+		Some((factor.recip(), e))
+	};
+	let a_unscale = prescale(A.rb_mut());
+	let b_unscale = prescale(B.rb_mut());
 	let mut u_left = u_left;
 	let mut u_right = u_right;
 	let mut alpha_re = alpha_re;
@@ -324,6 +460,81 @@ fn compute_gevd_generic<T: ComplexField>(
 		params.schur,
 		stack,
 	);
+	// undo the prescaling of `A` and `B` on `alpha` and `beta`. the pair of an
+	// eigenvalue is `(alpha 2^ea, beta 2^eb)`, `2^ea` and `2^eb` being `A`'s and
+	// `B`'s inverse factors, and any common power of two `2^d` times it is the
+	// same eigenvalue. `d = 0` (the input's scale) is kept when both components
+	// come out finite and, if nonzero, normal. otherwise `d` is chosen from the
+	// components' binary exponents, as integers, so no factor outside the range
+	// (such as `2^(ea - eb)` for a pencil prescaled in opposite directions) is
+	// formed (review of #378):
+	// - `d` is at most `hi`, the largest `d` that keeps the larger component
+	//   finite,
+	// - within that, the `d` nearest zero that makes both normal,
+	// - else the `d` nearest zero that keeps it nonzero (subnormal),
+	// - else the largest `d`, where the smaller one is below the smallest
+	//   subnormal even next to a larger one at the top of the range (the
+	//   eigenvalue itself is beyond the range: `0` or infinite).
+	// a pair the QZ returned as `0 / 0` is left so
+	if a_unscale.is_some() || b_unscale.is_some() {
+		let (fa, ea) = a_unscale.unwrap_or((one::<T::Real>(), 0));
+		let (fb, eb) = b_unscale.unwrap_or((one::<T::Real>(), 0));
+		let safmin = min_positive::<T::Real>();
+		let emax = exponent_of(&max_positive::<T::Real>());
+		let emin = exponent_of(&safmin);
+		// `p - 1`, `p` the number of significand bits
+		let digits = -exponent_of(&eps::<T::Real>());
+		// `|x| * f` is finite, and zero or normal
+		let representable = |m: &T::Real, f: &T::Real| {
+			let x = m * f;
+			x.is_finite() && (*m == zero::<T::Real>() || x >= safmin)
+		};
+		for j in 0..n {
+			let amag = if const { T::IS_REAL } {
+				alpha_re[j].abs1().fmax(alpha_im[j].abs1())
+			} else {
+				alpha_re[j].abs1()
+			};
+			let bmag = beta[j].abs1();
+			if representable(&amag, &fa) && representable(&bmag, &fb) {
+				alpha_re[j] = alpha_re[j].mul_real(&fa);
+				if const { T::IS_REAL } {
+					alpha_im[j] = alpha_im[j].mul_real(&fa);
+				}
+				beta[j] = beta[j].mul_real(&fb);
+				continue;
+			}
+			// binary exponents of the nonzero components at the input's scale
+			let mut exps = [None, None];
+			if amag != zero::<T::Real>() {
+				exps[0] = Some(exponent_of(&amag) + ea);
+			}
+			if bmag != zero::<T::Real>() {
+				exps[1] = Some(exponent_of(&bmag) + eb);
+			}
+			let (large, small) = match exps {
+				[Some(x), Some(y)] => (x.max(y), x.min(y)),
+				[Some(x), None] | [None, Some(x)] => (x, x),
+				// `0 / 0` from the QZ
+				[None, None] => continue,
+			};
+			let hi = emax - large;
+			let lo = emin - small;
+			let lo_nonzero = lo - digits;
+			let d = if lo <= hi {
+				0isize.clamp(lo, hi)
+			} else if lo_nonzero <= hi {
+				0isize.clamp(lo_nonzero, hi)
+			} else {
+				hi
+			};
+			alpha_re[j] = mul_pow2(&alpha_re[j], ea + d);
+			if const { T::IS_REAL } {
+				alpha_im[j] = mul_pow2(&alpha_im[j], ea + d);
+			}
+			beta[j] = mul_pow2(&beta[j], eb + d);
+		}
+	}
 	qz_to_gevd(
 		A.rb(),
 		B.rb(),
@@ -332,6 +543,17 @@ fn compute_gevd_generic<T: ComplexField>(
 		par,
 		stack,
 	);
+	// non-finite eigenvectors are reported rather than returned with `Ok`
+	// (tensor4all/faer#370). before the prescaling of tensor4all/faer#375 this
+	// is how a QZ that underflowed to `alpha = beta = 0` for a pencil below
+	// about `1e-280` (f64) showed up; it is kept as a safety net
+	for u in [u_left.rb(), u_right.rb()] {
+		if let Some(u) = u {
+			if !u.is_all_finite() {
+				return Err(GevdError::NoConvergence);
+			}
+		}
+	}
 	Ok(())
 }
 fn solve_shifted_1x1<T: ComplexField>(
@@ -393,19 +615,126 @@ fn solve_complex_shifted_1x1<T: RealField>(
 }
 // Reserve room for the two elimination/substitution steps, including complex
 // products. The caller protects both pivots before using this bound.
+//
+// What it guarantees: with `limit = min(pivot_min, 1) / (16 * min_positive)`
+// and the right hand side scaled to `|b|_max <= limit`, no intermediate of
+// `solve_scaled_2x2` overflows. Complete pivoting gives `|L10| <= 1` and
+// `|U01 / U00| <= 1`, so `|b1 - L10 b0| <= 2 |b|_max`, `|x1| <= 2 |b|_max /
+// pivot_min` and `|x0| <= 3 |b|_max / pivot_min`, all below `3 / (16 *
+// min_positive)`; the factor 16 covers this and the growth of complex
+// products. `pivot_min` is capped at 1 because only a pivot below 1 can
+// enlarge the solution (`dlaln2` likewise scales only when `|U11| < 1`).
+//
+// How it differs from `dlaln2`: Reference LAPACK bounds the eliminated
+// right hand side, `BBND = max(|b0 U11 / U00|, |b1 - L10 b0|)`, against
+// `BIGNUM * |U11|` with `BIGNUM = 1 / (2 * min_positive)`, after the `SMIN`
+// clamp, and rescales a second time when `|x| > BIGNUM / max|C|` so that the
+// caller's next update `C x` cannot overflow. Here the bound is taken on the
+// unreduced `b` against the smaller pivot, which is sufficient but can scale
+// where `dlaln2` would not; the second rescale is left to the caller, which
+// normalizes the whole working vector after every block
+// (`rescale_gevd_rhs`). A different scale only changes the working vector by
+// a positive factor, which the final normalization removes; the vector is
+// not bit-identical to `dtgevc`'s.
+//
+// Out of scope: this is an overflow guard for the 2x2 solve, nothing more.
+// - Underflow: scaling down may flush small components to subnormals or zero
+//   earlier than `dlaln2` would.
+// - The complex divisions in `solve_scaled_2x2` (and the complex reciprocal
+//   in `solve_complex_shifted_1x1`) form `|d|^2` without scaling, unlike
+//   `dlaln2`'s `DLADIV`, so they lose the result for `|d|` outside about
+//   `[sqrt(min_positive), sqrt(max_positive)]` (`1e-154 .. 1e154` in f64,
+//   `1e-19 .. 1e19` in f32), whatever this scale is. A complex pair's
+//   vectors are therefore only finite for pencils within that range: in f64,
+//   `(s A, s B)` for the faer#220 pencils gives non-finite vectors for `s`
+//   outside `[1e-146, 1e154]`, measured at powers of ten (faer#234). Reference LAPACK's `dggev` avoids this
+//   range by scaling the pencil into `[sqrt(min_positive) / eps, eps /
+//   sqrt(min_positive)]` before the QZ; `gevd_real` does not.
+// - With `dtgevc`'s coefficient normalization the right hand side is about
+//   `|coef| |(A, B)| xmax` and `smin >= eps |coef| |(A, B)|`, so `|b|_max /
+//   pivot_min` stays below about `2 / eps`: this scale can only engage when
+//   `pivot_min > 1` and `|b|_max > 1 / (16 min_positive)`, that is for
+//   `|(A, B)|` near `max_positive`, beyond the range where the complex
+//   divisions above already fail. No GEVD test, reference fixture or graded
+//   random pencil (entries up to `1e+-300`) reaches it (faer#234).
 fn shifted_2x2_scale<T: RealField>(bnorm: T, pivot_min: T) -> T {
 	let limit = (min_positive::<T>() * from_f64::<T>(16.0)).recip()
 		* pivot_min.fmin(one::<T>());
 	if bnorm > limit { limit / bnorm } else { one() }
 }
 
+// `(a + i b) / (c + i d)` without forming `c^2 + d^2` (LAPACK `dladiv`,
+// Baudin and Smith's robust complex division). The quotient by `num_complex`'s
+// `Div` squares the denominator, which underflows to zero for `|c + i d|`
+// below about `sqrt(min_positive)` and overflows above `sqrt(max_positive)`, so
+// a finite quotient came out as `0/0 = NaN` or `inf` (tensor4all/faer#370).
+fn ladiv<T: RealField>(a: &T, b: &T, c: &T, d: &T) -> (T, T) {
+	fn ladiv2<T: RealField>(a: &T, b: &T, c: &T, d: &T, r: &T, t: &T) -> T {
+		if *r != zero() {
+			let br = b * r;
+			if br != zero() {
+				(a + br) * t
+			} else {
+				a * t + (b * t) * r
+			}
+		} else {
+			(a + d * (b / c)) * t
+		}
+	}
+	fn ladiv1<T: RealField>(a: &T, b: &T, c: &T, d: &T) -> (T, T) {
+		let ref r = d / c;
+		let ref t = (c + d * r).recip();
+		let p = ladiv2(a, b, c, d, r, t);
+		let q = ladiv2(b, &-a, c, d, r, t);
+		(p, q)
+	}
+	let ref half = from_f64::<T>(0.5);
+	let ref two = from_f64::<T>(2.0);
+	let (mut a, mut b, mut c, mut d) = (a.copy(), b.copy(), c.copy(), d.copy());
+	let ab = a.abs().fmax(b.abs());
+	let cd = c.abs().fmax(d.abs());
+	let mut s = one::<T>();
+	let ov = max_positive::<T>();
+	let un = min_positive::<T>();
+	let eps = eps::<T>();
+	let be = two / (&eps * &eps);
+	let tiny = un * two / eps;
+	if ab >= half * &ov {
+		(a, b, s) = (half * a, half * b, two * s);
+	}
+	if cd >= half * &ov {
+		(c, d, s) = (half * c, half * d, half * s);
+	}
+	if ab <= tiny {
+		(a, b, s) = (&be * a, &be * b, s / &be);
+	}
+	if cd <= tiny {
+		(c, d, s) = (&be * c, &be * d, s * &be);
+	}
+	let (p, q) = if d.abs() <= c.abs() {
+		ladiv1(&a, &b, &c, &d)
+	} else {
+		let (p, q) = ladiv1(&b, &a, &d, &c);
+		(p, -q)
+	};
+	(p * &s, q * &s)
+}
+
+fn ladiv_complex<T: RealField>(x: &Complex<T>, y: &Complex<T>) -> Complex<T> {
+	let (re, im) = ladiv(&x.re, &x.im, &y.re, &y.im);
+	Complex { re, im }
+}
+
 // Solve the pivoted 2x2 system with a scaled RHS. Form U01/U00 before
-// multiplying by x1: U01*x1 itself can overflow even when x0 is finite.
+// multiplying by x1: U01*x1 itself can overflow even when x0 is finite. `div`
+// is the scalar quotient: `/` for a real system, `ladiv_complex` for a complex
+// one.
 fn solve_scaled_2x2<T: ComplexField>(
 	LU: MatRef<'_, T>,
 	row_perm: crate::perm::PermRef<'_, usize>,
 	col_perm: crate::perm::PermRef<'_, usize>,
 	mut b: ColMut<'_, T>,
+	div: impl Fn(&T, &T) -> T,
 ) -> T::Real {
 	let bnorm = b[0]
 		.real()
@@ -419,8 +748,8 @@ fn solve_scaled_2x2<T: ComplexField>(
 	let cols = col_perm.arrays().0;
 	let b0 = b[rows[0]].mul_real(&scale);
 	let b1 = b[rows[1]].mul_real(&scale) - &LU[(1, 0)] * &b0;
-	let x1 = b1 / &LU[(1, 1)];
-	let x0 = b0 / &LU[(0, 0)] - (&LU[(0, 1)] / &LU[(0, 0)]) * &x1;
+	let x1 = div(&b1, &LU[(1, 1)]);
+	let x0 = div(&b0, &LU[(0, 0)]) - div(&LU[(0, 1)], &LU[(0, 0)]) * &x1;
 	b[cols[0]] = x0;
 	b[cols[1]] = x1;
 	scale
@@ -480,10 +809,31 @@ fn solve_complex_shifted_2x2<T: RealField>(
 		// `C` is exactly singular when the block holds a copy of the
 		// eigenvalue being computed, and the zero pivot would divide the right
 		// hand side into `inf`/`NaN` (faer#220)
+		//
+		// The clamp is applied to the factorized `U11`, after `lu_in_place`
+		// has formed `L10 = C10 / U00`, and `L10` is not recomputed. For a 2x2
+		// this is the same perturbation as `dlaln2`'s, not an approximation of
+		// it: `dlaln2` also forms `LR21 = CR21 / UR11` and `UR22 = CR22 - UR12 *
+		// LR21` first and then clamps `UR22` (v3.12.1, SRC/dlaln2.f, real 2x2
+		// and complex 2x2 branches). The multiplier depends only on the first
+		// pivot, which complete pivoting makes the largest entry, `>= cmax >=
+		// smin`, so it never needs protection; the clamp replaces the solved
+		// system by `L (U + (smin - U11) e1 e1^T)`, which perturbs only the
+		// pivoted (1, 1) entry of `C`, by less than `2 smin`. What can differ
+		// from `dlaln2` is the first pivot itself: faer's LU may rank complex
+		// entries by another magnitude than `dlaln2`'s `|re| + |im|` and break
+		// ties differently. Any largest entry gives `|L10| <= 1` and the same
+		// argument.
 		if C[(1, 1)].abs() < *smin {
 			C[(1, 1)] = smin.copy();
 		}
-		solve_scaled_2x2(C.rb(), row_perm, col_perm, B.rb_mut().col_mut(0))
+		solve_scaled_2x2(
+			C.rb(),
+			row_perm,
+			col_perm,
+			B.rb_mut().col_mut(0),
+			|x: &T, y: &T| x / y,
+		)
 	} else {
 		let (mut C, stack) =
 			unsafe { linalg::temp_mat_uninit::<Complex<T>, _, _>(2, 2, stack) };
@@ -530,7 +880,9 @@ fn solve_complex_shifted_2x2<T: RealField>(
 				Default::default(),
 			);
 		// the second pivot is protected as in the real branch, measured by
-		// `|re| + |im|` (LAPACK `dlaln2`)
+		// `|re| + |im|` (LAPACK `dlaln2`), and for the same reason it is
+		// equivalent to `dlaln2`'s clamp after elimination (see the real
+		// branch above)
 		if C[(1, 1)].re.abs() + C[(1, 1)].im.abs() < *smin {
 			C[(1, 1)] = Complex {
 				re: smin.copy(),
@@ -548,7 +900,13 @@ fn solve_complex_shifted_2x2<T: RealField>(
 				im: im.copy(),
 			}
 		});
-		let scale = solve_scaled_2x2(C.rb(), row_perm, col_perm, B.rb_mut());
+		let scale = solve_scaled_2x2(
+			C.rb(),
+			row_perm,
+			col_perm,
+			B.rb_mut(),
+			ladiv_complex::<T>,
+		);
 		zip!(Br, Bi, &B).for_each(|unzip!(re, im, z)| {
 			(*re, *im) = (z.re.copy(), z.im.copy())
 		});
@@ -851,6 +1209,12 @@ fn qz_to_gevd_real<T: RealField>(
 					);
 					one()
 				};
+				// the left vector is zero above `je`, so this window (from `je`,
+				// offset `j - je`) and the right vectors' form (from row 0, offset
+				// `j`) give the same result; the offset only matters when the 2x2
+				// solve returned `scale != 1`, which `shifted_2x2_scale` explains
+				// is out of reach today.
+				// `left_vectors_of_schur_pencil_*` pins this path
 				xmax = rescale_gevd_rhs(
 					rhs.rb_mut().get_mut(je..j + na, ..),
 					j - je,
@@ -1434,6 +1798,62 @@ pub fn gevd_scratch<T: ComplexField>(
 /// right eigenvectors in $U_R$
 ///
 /// the values in $A$ and $B$ after this function is called are unspecified.
+///
+/// # range of scales
+///
+/// the eigenvalues $\alpha / \beta$ and the eigenvector directions of
+/// $(sA, sB)$ are those of $(A, B)$. like LAPACK's `dggev`, $A$ and $B$ are
+/// each scaled by a power of two before the reduction when their largest entry
+/// is below $\sqrt{\text{safmin}} / \varepsilon$ or above its inverse, and
+/// $\alpha$, $\beta$ are scaled back afterwards (tensor4all/faer#375; before
+/// that the QZ underflowed and returned $\alpha = \beta = 0$ for every
+/// eigenvalue of a tiny pencil). in `f64`, for the well-conditioned pencils of
+/// `tests/gevd_scaled_pencil.rs`, the eigenvalues and eigenvectors were
+/// measured within $3 \cdot 10^{-15}$ of $s = 1$ for every $s = 10^k$ at which
+/// all entries of $(sA, sB)$ are normal and finite ($10^{-305}$ to $10^{307}$
+/// for the widest-ranged pencil). when entries are subnormal, the input itself
+/// has lost precision, and the results are correspondingly less accurate
+/// (measured: within $10^{-13}$ of $s = 1$ down to $s \approx 2.0 \cdot
+/// 10^{-311}$ to $2.4 \cdot 10^{-311}$, depending on the pencil).
+///
+/// $\alpha$ and $\beta$ are returned at the scale of the input where both are
+/// finite and, if nonzero, normal there. otherwise (in `f64` this needs entries
+/// near `f64::MAX` or subnormal ones) that eigenvalue's pair is multiplied by
+/// a common power of two $2^d$, which leaves $\alpha / \beta$ unchanged: $d$
+/// is the one nearest zero that keeps both finite and normal, else the one
+/// nearest zero that keeps both finite and nonzero, and only when the
+/// eigenvalue's magnitude is beyond what any pair can hold is the smaller one
+/// zero (an eigenvalue $0$ or infinite). the factors are applied by exact
+/// power-of-two steps, never formed as one out-of-range number. $\alpha =
+/// \beta = 0$ is returned with `Ok` only when the QZ itself finds it, i.e. for
+/// a pencil that is singular within the QZ's backward error. Whether such a
+/// `0 / 0` depends on the input's scale is not established: on the three pencils
+/// of `tests/gevd_scaled_pencil.rs` under a common scale $s$, the only ones
+/// measured systematically, no $\alpha = \beta = 0$ was observed at any
+/// sampled scale (every $s = 10^{k/10}$ over the range, and the transitions
+/// bisected by `scan_zero_eigenvalue_boundary`); the samples do not prove
+/// absence between them. the scaling back never turns a nonzero pair into one.
+///
+/// in short, for `f64`:
+///
+/// - **guaranteed range** (for a well-conditioned pencil): every entry of
+///   $(sA, sB)$ normal and finite. for the pencils of `tests/gevd_scaled_pencil.rs` (entries of order $s$) that
+///   is $10^{-305} \le s \le 10^{307}$; the ends are asserted
+///   (`documented_range_ends_f64`, eigenvalues and eigenvectors within
+///   $10^{-13}$ of $s = 1$), and a scan over every $s = 10^k$ in between
+///   measured at most $3 \cdot 10^{-15}$.
+///   this includes the scales of tensor4all/faer#370
+///   ($10^{-150}, 10^{-146}, 10^{154}, 10^{160}$, asserted by
+///   `issue_scales_f64`), where a complex pair's eigenvectors came out NaN
+///   before tensor4all/faer#374.
+/// - **subnormal entries**: `Ok` with finite results whose accuracy follows
+///   the precision the input has lost (measured against $s = 1$: $3.7 \cdot
+///   10^{-13}$ at $s = 10^{-311}$, $3.3 \cdot 10^{-7}$ at $10^{-317}$, and
+///   eigenvalues off by up to $5 \cdot 10^{-4}$ relative at $10^{-320}$).
+/// - **non-finite entries** (for example $s \ge 10^{308}$, where $sA$
+///   overflows): [`GevdError::NoConvergence`]. NaN eigenvectors are never
+///   returned with `Ok`: requested eigenvectors that come out non-finite also
+///   give [`GevdError::NoConvergence`].
 #[track_caller]
 pub fn gevd_real<T: RealField>(
 	A: MatMut<'_, T>,
@@ -1468,6 +1888,28 @@ pub fn gevd_real<T: RealField>(
 /// right eigenvectors in $U_R$
 ///
 /// the values in $A$ and $B$ after this function is called are unspecified.
+///
+/// # range of scales
+///
+/// $A$ and $B$ are prescaled, and $\alpha$, $\beta$ scaled back, as in
+/// [`gevd_real`], and the eigenvector back substitution divides with a scaled
+/// complex reciprocal, so the range is that of [`gevd_real`]. for `c64`,
+/// measured on the same three real pencils of `tests/gevd_scaled_pencil.rs`
+/// taken as complex:
+///
+/// - **guaranteed range** (for a well-conditioned pencil): every entry of
+///   $(sA, sB)$ normal and finite, which
+///   for these pencils is $10^{-305} \le s \le 10^{307}$. the ends
+///   (`documented_range_ends_c64`) and the tensor4all/faer#370 scales
+///   $10^{-150}, 10^{-146}, 1, 10^{154}, 10^{160}$ (`issue_scales_c64`) are
+///   asserted within $10^{-13}$ of $s = 1$; a scan over every $s = 10^k$ in
+///   between measured at most $3 \cdot 10^{-15}$.
+/// - **subnormal entries**: `Ok` with finite results whose accuracy follows
+///   the precision the input has lost (measured: $3.7 \cdot 10^{-13}$ at
+///   $s = 10^{-311}$, $3.3 \cdot 10^{-7}$ at $10^{-317}$).
+/// - **non-finite entries** (for example $s \ge 10^{308}$):
+///   [`GevdError::NoConvergence`]; requested eigenvectors that come out
+///   non-finite also give [`GevdError::NoConvergence`] rather than `Ok`.
 #[track_caller]
 pub fn gevd_cplx<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -1772,6 +2214,34 @@ mod tests {
 	fn complex_shifted_2x2_large_rhs_f64() {
 		check_complex_shifted_2x2_large_rhs::<f64>();
 	}
+
+	/// tensor4all/faer#370: quotients whose denominator squares out of range.
+	/// `num_complex`'s `Div` returns NaN or `0` for each of these; `ladiv`
+	/// matches the exact quotient to a few ulps.
+	#[test]
+	fn ladiv_does_not_square_the_denominator() {
+		// (a, b, c, d, exact (a + ib) / (c + id))
+		let cases: [(f64, f64, f64, f64, (f64, f64)); 5] = [
+			// the clamped pivot of the faer#220 pencil at `s = 1e-200`
+			(1e-200, 0.0, 4e-216, 0.0, (2.5e15, 0.0)),
+			(1e-170, 1e-170, 1e-170, -1e-170, (0.0, 1.0)),
+			(1e300, 1e300, 1e300, -1e300, (0.0, 1.0)),
+			(3e-170, 4e-170, 1e-170, 0.0, (3.0, 4.0)),
+			(1.0, 0.0, 1e200, 1e200, (5e-201, -5e-201)),
+		];
+		for (a, b, c, d, (re, im)) in cases {
+			let naive = c64::new(a, b) / c64::new(c, d);
+			let (p, q) = ladiv(&a, &b, &c, &d);
+			let err = ((p - re).abs() + (q - im).abs())
+				/ (re.abs() + im.abs());
+			assert!(
+				err <= 4.0 * f64::EPSILON,
+				"({a:e} + {b:e}i) / ({c:e} + {d:e}i) = ({p:e}, {q:e}), exact \
+				 ({re:e}, {im:e}), naive {naive}"
+			);
+			assert!(!(naive.re == re && naive.im == im));
+		}
+	}
 	#[test]
 	fn test_lishen_() {
 		let approx_eq = utils::approx::CwiseMat(
@@ -1978,6 +2448,164 @@ mod tests {
 				}
 			}
 		}
+	}
+	/// faer#234: the left-vector substitution of `qz_to_gevd_real`, checked
+	/// directly on a pencil already in generalized Schur form (so `Q = I` and
+	/// no QZ runs) against a plain complex forward substitution, rather than
+	/// through a residual. The pencil has a real eigenvalue first, so the
+	/// complex pairs start at `je > 0` and their substitution runs on the
+	/// `rhs` window that begins at `je` (offset `j - je`; the right vectors use
+	/// a window from row 0, offset `j`). Its three pairs `2 + 0.05 k +- i` are
+	/// coupled, so the working vector grows between blocks.
+	///
+	/// The window/offset pair itself is not observable here or anywhere else:
+	/// it is read only when the 2x2 solve returns `scale != 1`, which
+	/// `shifted_2x2_scale` explains is out of reach today.
+	/// Replacing it by the right vectors' form, or changing only the offset or
+	/// only the window, leaves every GEVD test green (faer#234). This test pins
+	/// the values the path produces, so a refactor that changes them fails.
+	///
+	/// Each column pair must equal, up to one complex factor, the vector `y`
+	/// with `y^T A = lambda y^T B` for the eigenvalue with positive imaginary
+	/// part (the convention `gevd_real` documents).
+	fn check_left_vectors_of_schur_pencil<T: RealField + Copy + Into<f64>>(
+		tol: f64,
+	) {
+		use crate::mat::Mat;
+		use num_complex::Complex as C;
+		let n = 9;
+		let delta = 0.05;
+		// blocks: [0], [1, 2], [3, 4], [5, 6], [7], [8]
+		let starts = [0usize, 1, 3, 5, 7, 8];
+		let mut a = Mat::<f64>::zeros(n, n);
+		let mut b = Mat::<f64>::zeros(n, n);
+		a[(0, 0)] = 0.5;
+		for (k, &o) in [1usize, 3, 5].iter().enumerate() {
+			let x = 2.0 + k as f64 * delta;
+			a[(o, o)] = x;
+			a[(o, o + 1)] = 1.0;
+			a[(o + 1, o)] = -1.0;
+			a[(o + 1, o + 1)] = x;
+			if o + 2 < 7 {
+				a[(o + 1, o + 3)] = 0.75;
+			}
+		}
+		a[(7, 7)] = 3.0;
+		a[(8, 8)] = -1.0;
+		// the 2x2 blocks of B are multiples of I (diagonal, as the Schur form
+		// requires, and equal so that the block's eigenvalue is `(x +- i) / b`)
+		for (bi, &i) in starts.iter().enumerate() {
+			let ie = starts.get(bi + 1).copied().unwrap_or(n);
+			for r in i..ie {
+				b[(r, r)] = 1.0 + 0.125 * bi as f64;
+			}
+			for j in ie..n {
+				for r in i..ie {
+					if a[(r, j)] == 0.0 {
+						a[(r, j)] = 0.1 * ((r + 2 * j) % 5) as f64 - 0.2;
+					}
+					b[(r, j)] = 0.05 * ((3 * r + j) % 7) as f64 - 0.15;
+				}
+			}
+		}
+		let a_t = Mat::<T>::from_fn(n, n, |i, j| from_f64::<T>(a[(i, j)]));
+		let b_t = Mat::<T>::from_fn(n, n, |i, j| from_f64::<T>(b[(i, j)]));
+		let mut u = Mat::<T>::identity(n, n);
+		let mut mem =
+			MemBuffer::new(qz_to_gevd_real_scratch::<T>(n, ParShape::Seq));
+		qz_to_gevd_real(
+			a_t.as_ref(),
+			b_t.as_ref(),
+			Some(u.as_mut()),
+			None,
+			Par::Seq,
+			MemStack::new(&mut mem),
+		);
+		let u = Mat::<f64>::from_fn(n, n, |i, j| u[(i, j)].into());
+		assert!(u.is_all_finite());
+
+		let block = |i: usize| {
+			let bi = starts.iter().rposition(|&s| s <= i).unwrap();
+			let ie = starts.get(bi + 1).copied().unwrap_or(n);
+			(starts[bi], ie - starts[bi])
+		};
+		let mut je = 0;
+		while je < n {
+			let (_, nw) = block(je);
+			// the eigenvalue with positive imaginary part, from the block
+			let lambda = if nw == 1 {
+				C::new(a[(je, je)] / b[(je, je)], 0.0)
+			} else {
+				C::new(a[(je, je)], a[(je, je + 1)].abs()) / b[(je, je)]
+			};
+			let m = |i: usize, j: usize| {
+				C::new(a[(i, j)], 0.0) - lambda * b[(i, j)]
+			};
+			// y^T M = 0, y zero above the block
+			let mut y = vec![C::new(0.0, 0.0); n];
+			if nw == 1 {
+				y[je] = C::new(1.0, 0.0);
+			} else {
+				// left null vector of the singular 2x2 block
+				y[je] = C::new(1.0, 0.0);
+				y[je + 1] = -m(je, je) / m(je + 1, je);
+			}
+			let mut j = je + nw;
+			while j < n {
+				let (_, na) = block(j);
+				// y_blk^T M_blk = -sum_{i < j} y_i M_{i, blk}
+				let rhs: Vec<C<f64>> = (0..na)
+					.map(|c| {
+						-(0..j).map(|i| y[i] * m(i, j + c)).sum::<C<f64>>()
+					})
+					.collect();
+				if na == 1 {
+					y[j] = rhs[0] / m(j, j);
+				} else {
+					// solve [y0 y1] [[m00 m01] [m10 m11]] = [r0 r1]
+					let (m00, m01, m10, m11) =
+						(m(j, j), m(j, j + 1), m(j + 1, j), m(j + 1, j + 1));
+					let det = m00 * m11 - m01 * m10;
+					y[j] = (rhs[0] * m11 - rhs[1] * m10) / det;
+					y[j + 1] = (rhs[1] * m00 - rhs[0] * m01) / det;
+				}
+				j += na;
+			}
+			let got: Vec<C<f64>> = (0..n)
+				.map(|i| {
+					C::new(
+						u[(i, je)],
+						if nw == 2 { u[(i, je + 1)] } else { 0.0 },
+					)
+				})
+				.collect();
+			// sine of the complex angle between `got` and `y`, from the part of
+			// `got` orthogonal to `y` (not `1 - cos^2`, which cancels below
+			// `sqrt(eps)`)
+			let ny: f64 = y.iter().map(|z| z.norm_sqr()).sum::<f64>();
+			let ng: f64 = got.iter().map(|z| z.norm_sqr()).sum::<f64>();
+			let c = (0..n).map(|i| y[i].conj() * got[i]).sum::<C<f64>>() / ny;
+			let sin =
+				((0..n).map(|i| (got[i] - y[i] * c).norm_sqr()).sum::<f64>()
+					/ ng)
+					.sqrt();
+			assert!(sin < tol, "left vector at {je}: sin = {sin:e}");
+			// zero above the block
+			for (i, z) in got.iter().enumerate().take(je) {
+				assert!(*z == C::new(0.0, 0.0), "left vector at {je}: row {i}");
+			}
+			je += nw;
+		}
+	}
+
+	#[test]
+	fn left_vectors_of_schur_pencil_f32() {
+		check_left_vectors_of_schur_pencil::<f32>(1e-5);
+	}
+
+	#[test]
+	fn left_vectors_of_schur_pencil_f64() {
+		check_left_vectors_of_schur_pencil::<f64>(1e-13);
 	}
 }
 

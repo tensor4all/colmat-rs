@@ -1,0 +1,11 @@
+# The vendor arm links the installed Intel oneAPI MKL (2026.2) by its versioned path, with the
+# Intel OpenMP runtime its default threading layer needs, and an rpath so the binary runs without
+# a loader variable. (`mkl_rt` alone selects `libmkl_intel_thread`, which calls `libiomp5`
+# symbols: without them the load fails with `undefined symbol: omp_get_num_procs`.)
+[build]
+rustflags = [
+  "-L", "native=/opt/intel/oneapi/mkl/2026.2/lib",
+  "-L", "native=/opt/intel/oneapi/compiler/2026.2/lib",
+  "-C", "link-arg=-Wl,-rpath,/opt/intel/oneapi/mkl/2026.2/lib",
+  "-C", "link-arg=-Wl,-rpath,/opt/intel/oneapi/compiler/2026.2/lib",
+]

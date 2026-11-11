@@ -134,6 +134,7 @@ fn qr_in_place_blocked<T: ComplexField>(
 	stack: &mut MemStack,
 	params: Spec<QrParams, T>,
 	lookahead: bool,
+	stage: bool,
 ) -> usize {
 	let params = params.config;
 	let (m, n) = A.shape();
@@ -148,6 +149,25 @@ fn qr_in_place_blocked<T: ComplexField>(
 	} else {
 		block_size / 2
 	};
+	// Staged panels (`stage`, the top level of a matrix whose columns are not contiguous): two
+	// column-major panel buffers of `m x block_size`. A block that starts on the diagonal is
+	// factored in `cur` (`factor_panel_staged`), and its trailing apply takes its basis from there,
+	// contiguous, while the look-ahead stages the next panel in `next`; the two then swap.
+	// Staging needs the two buffers on top of what a staged block takes (its panel's own applies,
+	// and a trailing apply with either temporary), which is what `lq_in_place_scratch` reserves; a
+	// smaller stack keeps the panels in place.
+	let panel_cols = Ord::min(block_size, size);
+	let stage = stage
+		&& A.row_stride().unsigned_abs() != 1
+		&& stack.can_hold(StackReq::all_of(&[
+			temp_mat_scratch::<T>(m, 2 * panel_cols),
+			temp_mat_scratch::<T>(panel_cols, panel_cols),
+			temp_mat_scratch::<T>(panel_cols, n).or(temp_mat_scratch::<T>(n, panel_cols)),
+		]));
+	let (mut panels, stack) = unsafe { temp_mat_uninit::<T, usize, usize>(if stage { m } else { 0 }, if stage { 2 * panel_cols } else { 0 }, stack) };
+	// `next` serves the look-ahead only, which needs `rayon`
+	#[cfg_attr(not(feature = "rayon"), allow(unused_mut, unused_variables))]
+	let (mut cur, mut next) = panels.as_mat_mut().split_at_col_mut(if stage { panel_cols } else { 0 });
 	let mut A = A;
 	let mut H = H;
 	let mut col = col_start;
@@ -167,8 +187,23 @@ fn qr_in_place_blocked<T: ComplexField>(
 			let block_size = Ord::min(n - col, block_size - offset);
 			let sub_block_size = Ord::min(block_size, sub_block_size);
 			let prefactored_rank = prefactored.take();
+			// a block that starts on the diagonal (`row == col`, so its reflectors are stored in its
+			// own columns) is a panel in its own coordinates, which `factor_panel_staged` factors in
+			// `cur` and completes the factor of
+			let staged = stage && prefactored_rank.is_none() && offset == 0 && row == col;
 			let new_row = match prefactored_rank {
 				Some(local) => row + local,
+				None if staged => {
+					row + factor_panel_staged(
+						A.rb_mut().get_mut(row.., col..col + block_size),
+						cur.rb_mut().get_mut(row.., ..block_size),
+						H.rb_mut().subcols_mut(row, block_size),
+						sub_block_size,
+						par.reborrow(),
+						stack,
+						params.into(),
+					)
+				},
 				None => qr_in_place_blocked(
 					A.rb_mut().subcols_mut(0, col + block_size),
 					H.rb_mut().subrows_mut(offset, sub_block_size),
@@ -178,10 +213,13 @@ fn qr_in_place_blocked<T: ComplexField>(
 					stack,
 					params.into(),
 					false,
+					false,
 				),
 			};
+			// `cur` holds this chunk's reflectors, staged above or by the previous chunk's look-ahead
+			let in_cur = staged || (stage && prefactored_rank.is_some());
 			let local = new_row - row;
-			if local > 0 && prefactored_rank.is_none() {
+			if local > 0 && prefactored_rank.is_none() && !staged {
 				complete_factor(
 					H.rb_mut().get_mut(offset.., row..row + local),
 					A.rb().get(row.., row..row + local),
@@ -236,6 +274,7 @@ fn qr_in_place_blocked<T: ComplexField>(
 			let far = n.saturating_sub(next_col + bs2);
 			let sub2 = Ord::min(bs2, sub_block_size);
 			let panel_req = || temp_mat_scratch::<T>(bs2, bs2);
+			let far_req = if in_cur { temp_mat_scratch::<T>(far, local) } else { temp_mat_scratch::<T>(local, far) };
 			let ahead = if lookahead
 				&& offset == 0
 				&& local == block_size
@@ -244,7 +283,7 @@ fn qr_in_place_blocked<T: ComplexField>(
 				&& far > 0
 				&& sub2 > 1
 				&& (m - row2) * bs2 >= params.blocking_threshold
-				&& stack.can_hold(StackReq::all_of(&[panel_req(), temp_mat_scratch::<T>(local, far)]))
+				&& stack.can_hold(StackReq::all_of(&[panel_req(), far_req]))
 			{
 				lookahead_width::<T>(&par, m - row, local, bs2, far)
 			} else {
@@ -254,14 +293,28 @@ fn qr_in_place_blocked<T: ComplexField>(
 				#[cfg(feature = "rayon")]
 				Some(width) => {
 					let (Q0, A1) = A.rb_mut().get_mut(row.., ..).split_at_col_mut(next_col);
-					let Q0 = Q0.rb().get(.., row..row + local);
+					let Q0 = Q0.into_const();
+					let Q0 = if in_cur { cur.rb().get(row.., ..local) } else { Q0.get(.., row..row + local) };
 					let (H_done, H_next) = H.rb_mut().split_at_col_mut(row2);
 					let H_j = H_done.rb().get(offset..offset + local, row..row + local);
 					let (mut A_next, A_far) = A1.split_at_col_mut(bs2);
-					householder::apply_block_householder_transpose_on_the_left_in_place_with_conj(Q0, H_j, Conj::Yes, A_next.rb_mut(), par.reborrow(), stack);
+					// staged, the next block's columns are copied into `next` first, on the whole team,
+					// so the first apply and the panel run on a column-major target and the copies do not
+					// share the panel group's time with the far apply
+					let mut next_block = if stage { Some(next.rb_mut().get_mut(row.., ..bs2)) } else { None };
+					match next_block.as_mut() {
+						Some(work) => {
+							linalg::copy_across_layouts(work.rb_mut(), A_next.rb(), par.reborrow());
+							apply_trailing(false, Q0, H_j, work.rb_mut(), par.reborrow(), stack);
+						},
+						None => apply_trailing(in_cur, Q0, H_j, A_next.rb_mut(), par.reborrow(), stack),
+					}
 					// the next panel in its own coordinates: rows from its diagonal down, its columns,
 					// its factor columns; disjoint from what the trailing apply reads and writes
-					let A_panel = A_next.get_mut(local.., ..);
+					let A_panel = match next_block.as_mut() {
+						Some(work) => work.rb_mut().get_mut(local.., ..),
+						None => A_next.rb_mut().get_mut(local.., ..),
+					};
 					let H_panel = H_next.subcols_mut(0, bs2);
 					let panel_req = panel_req();
 					let (panel_mem, far_stack) = stack.make_aligned_uninit::<u8>(panel_req.size_bytes(), panel_req.align_bytes());
@@ -273,9 +326,13 @@ fn qr_in_place_blocked<T: ComplexField>(
 							rank2 = factor_panel(A_panel, H_panel, sub2, par, MemStack::new(panel_mem), params.into());
 						},
 						|par| {
-							householder::apply_block_householder_transpose_on_the_left_in_place_with_conj(Q0, H_j, Conj::Yes, A_far, par, far_stack);
+							apply_trailing(in_cur, Q0, H_j, A_far, par, far_stack);
 						},
 					);
+					if let Some(work) = next_block {
+						linalg::copy_across_layouts(A_next, work.rb(), par.reborrow());
+						core::mem::swap(&mut cur, &mut next);
+					}
 					prefactored = Some(rank2);
 					#[cfg(test)]
 					LOOKAHEAD_STEPS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
@@ -285,10 +342,11 @@ fn qr_in_place_blocked<T: ComplexField>(
 						.rb_mut()
 						.get_mut(row.., ..)
 						.split_at_col_mut(col + block_size);
-					let Q0 = Q0.rb().get(.., row..row + local);
+					let Q0 = Q0.into_const();
+					let Q0 = if in_cur { cur.rb().get(row.., ..local) } else { Q0.get(.., row..row + local) };
 					let H = H.rb().get(offset..offset + local, row..row + local);
 					if A1.ncols() > 0 {
-						householder::apply_block_householder_transpose_on_the_left_in_place_with_conj(Q0.rb(), H.rb(), Conj::Yes, A1, par.reborrow(), stack);
+						apply_trailing(in_cur, Q0, H, A1, par.reborrow(), stack);
 					}
 				},
 			}
@@ -302,7 +360,6 @@ fn qr_in_place_blocked<T: ComplexField>(
 /// Factors one panel in its own coordinates (`A`: its rows from its diagonal down and its
 /// columns; `H`: its block's factor rows and its columns) and completes its block's factor: what
 /// the blocked loop does for a block at `offset == 0`. Returns the panel's rank.
-#[cfg(feature = "rayon")]
 fn factor_panel<T: ComplexField>(
 	A: MatMut<'_, T>,
 	H: MatMut<'_, T>,
@@ -313,11 +370,56 @@ fn factor_panel<T: ComplexField>(
 ) -> usize {
 	let mut A = A;
 	let mut H = H;
-	let local = qr_in_place_blocked(A.rb_mut(), H.rb_mut().subrows_mut(0, sub_block_size), 0, 0, par.reborrow(), stack, params, false);
+	let local = qr_in_place_blocked(A.rb_mut(), H.rb_mut().subrows_mut(0, sub_block_size), 0, 0, par.reborrow(), stack, params, false, false);
 	if local > 0 {
 		complete_factor(H.subcols_mut(0, local), A.rb().subcols(0, local), sub_block_size, par);
 	}
 	local
+}
+/// [`factor_panel`] through `work`, a column-major buffer of the panel's shape: copies the panel
+/// in, factors the copy, and copies the result back, so the reflectors are made and applied along
+/// contiguous columns and `work` is left holding the panel's factored form (the contiguous basis
+/// of its trailing apply). The values written to `A` and `H` are `factor_panel`'s on a
+/// column-major panel.
+///
+/// This is the panel of the LQ factorization of a column-major matrix: `lq_in_place` factors the
+/// transposed view, whose columns are the rows of its input, `A.col_stride()` apart, so the panel
+/// is `gelqf`'s block of `block_size` rows, staged so that each of them is contiguous. Only the
+/// panel is copied, twice per block; the trailing update stays a matrix product on the caller's
+/// matrix, in place.
+fn factor_panel_staged<T: ComplexField>(
+	A: MatMut<'_, T>,
+	work: MatMut<'_, T>,
+	H: MatMut<'_, T>,
+	sub_block_size: usize,
+	mut par: Par,
+	stack: &mut MemStack,
+	params: Spec<QrParams, T>,
+) -> usize {
+	let mut A = A;
+	let mut work = work;
+	linalg::copy_across_layouts(work.rb_mut(), A.rb(), par.reborrow());
+	let local = factor_panel(work.rb_mut(), H, sub_block_size, par.reborrow(), stack, params);
+	linalg::copy_across_layouts(A.rb_mut(), work.rb(), par);
+	local
+}
+/// The trailing apply of a block, `matrix <- (I - V T^-1 V^H)^H matrix`. When the basis is a staged
+/// panel (`in_cur`) the matrix is not column-major either, and the apply keeps its `V^H matrix`
+/// temporary row-major so that each of its products reads the matrix along its contiguous
+/// direction (`householder::apply_block_householder_transpose_on_the_left_in_place_with_conj_row_major_tmp`).
+fn apply_trailing<T: ComplexField>(
+	in_cur: bool,
+	basis: MatRef<'_, T>,
+	factor: MatRef<'_, T>,
+	matrix: MatMut<'_, T>,
+	par: Par,
+	stack: &mut MemStack,
+) {
+	if in_cur {
+		householder::apply_block_householder_transpose_on_the_left_in_place_with_conj_row_major_tmp(basis, factor, Conj::Yes, matrix, par, stack);
+	} else {
+		householder::apply_block_householder_transpose_on_the_left_in_place_with_conj(basis, factor, Conj::Yes, matrix, par, stack);
+	}
 }
 
 /// Completes the factor of a block whose `local = basis.ncols()` reflectors were factored in
@@ -425,20 +527,47 @@ pub fn qr_in_place<T: ComplexField>(
 	// save a few per cent of the panel and measurably loses (256x4096 f64 at one
 	// thread: 16.9 -> 20.7 ms). A single row is the limit case of the same thing:
 	// `qr_in_place` eliminates at most one column of it.
+	//
+	// Within those conditions, a sequential call on a square matrix below 192
+	// whose rows are contiguous (`|col_stride| == 1`) takes the transpose dual
+	// instead of the copy (tensor4all/faer#314): `A^T` is column-major, its LQ
+	// factorization is `A`'s QR in the same storage and with the same
+	// coefficient blocks, and `lq_in_place` stages each panel through the
+	// buffers `qr_in_place_scratch` reserves, so no `m x n` buffer is allocated.
+	// The bound is the measured one (Zen 5, f64, paired against the column-major
+	// call): square 64-176 at 0.98-1.04x, 192 at 1.04-1.06x, 256 at 1.11x, and
+	// tall shapes at 1.18-1.46x (`256 x 64` to `4096 x 256`), where the copy is
+	// at 1.22-1.56x; at eight threads the dual was 1.17-1.41x the copy on every
+	// shape measured (64 to `4096 x 256`). Those keep the copy, as do a view
+	// with neither stride 1 and a stack smaller than the query.
 	if A.row_stride().unsigned_abs() != 1
 		&& A.ncols() > 1
 		&& A.nrows() >= A.ncols()
 		&& linalg::row_major_copy_pays(A.nrows(), A.ncols())
 	{
+		if A.col_stride().unsigned_abs() == 1
+			&& A.nrows() == A.ncols()
+			&& A.nrows() < 192
+			&& crate::utils::thread::parallelism_degree(&par) == 1
+			&& stack.can_hold(qr_in_place_scratch::<T>(A.nrows(), A.ncols(), block_size, par.shape(), params))
+		{
+			let info = linalg::lq::no_pivoting::factor::lq_in_place(A.transpose_mut(), Q_coeff, par, stack, params);
+			return QrInfo { rank: info.rank };
+		}
 		return qr_in_place_adapted(A, Q_coeff, par, stack, params);
 	}
-	qr_in_place_packed(A, Q_coeff, par, stack, params)
+	qr_in_place_packed(A, Q_coeff, par, stack, params, false)
 }
-/// The factorization on the given layout, without the row-major adaptation: the
-/// panel of a matrix whose columns are not contiguous runs on the strides it is
-/// given. `lq::no_pivoting::factor::lq_in_place` factors the transposed view
-/// through this, because every LQ input presents that layout and the adaptation's
-/// copy would then be on the heap once per call.
+/// The factorization on the given layout, without the row-major adaptation.
+/// `lq::no_pivoting::factor::lq_in_place` factors the transposed view through
+/// this, because every LQ input presents that layout and the adaptation's copy
+/// would then be on the heap once per call.
+///
+/// With `stage_panels`, the panel of a matrix whose columns are not contiguous is
+/// factored in a column-major buffer from `stack` (`factor_panel_staged`), when
+/// `stack` holds what `lq_in_place_scratch` reserves for it; otherwise, and
+/// without it, the panel runs on the strides it is given. The trailing updates
+/// are matrix products on `A` in place either way.
 #[track_caller]
 pub(crate) fn qr_in_place_packed<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -446,6 +575,7 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 	par: Par,
 	stack: &mut MemStack,
 	params: Spec<QrParams, T>,
+	stage_panels: bool,
 ) -> QrInfo {
 	let block_size = Q_coeff.nrows();
 	assert!(all(
@@ -454,7 +584,7 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 	));
 	let mut Q_coeff = Q_coeff;
 	let rank =
-		qr_in_place_blocked(A, Q_coeff.rb_mut(), 0, 0, par, stack, params, true);
+		qr_in_place_blocked(A, Q_coeff.rb_mut(), 0, 0, par, stack, params, true, stage_panels);
 	Q_coeff.rb_mut().get_mut(.., rank..).fill(zero());
 	let mut col = rank / block_size * block_size;
 	let n = Q_coeff.ncols();
@@ -515,9 +645,19 @@ pub fn qr_in_place_scratch<T: ComplexField>(
 	params: Spec<QrParams, T>,
 ) -> StackReq {
 	let _ = par;
-	let _ = nrows;
 	let _ = &params;
-	temp_mat_scratch::<T>(block_size, ncols)
+	// the staged panels (`factor_panel_staged`), used by a row-major `qr_in_place`
+	// (through the transpose dual) and by every `lq_in_place`: two column-major
+	// buffers of `nrows x min(block_size, nrows, ncols)`, the panel's own block
+	// applies, and a trailing apply with either temporary. The query cannot see the
+	// layout, so a column-major caller reserves them too: `(2 * nrows + ncols +
+	// block_size) * block_size` elements against the `m x n` copy they replace.
+	let panel = Ord::min(block_size, Ord::min(nrows, ncols));
+	StackReq::all_of(&[
+		temp_mat_scratch::<T>(nrows, 2 * panel),
+		temp_mat_scratch::<T>(panel, panel),
+		temp_mat_scratch::<T>(block_size, ncols).or(temp_mat_scratch::<T>(ncols, panel)),
+	])
 }
 #[cfg(test)]
 mod tests {
@@ -527,6 +667,56 @@ mod tests {
 	use crate::utils::approx::*;
 	use crate::{Mat, Row, assert, c64};
 	use dyn_stack::MemBuffer;
+
+	/// [`copy_r`] reaches the tiled gate of `copy_lower_across_layouts` the long
+	/// way round: it copies the *upper* triangle, and
+	/// `MatMut::copy_from_triangular_upper` transposes both views, so a
+	/// column-major packed matrix and a row-major destination arrive at the
+	/// lower copy as the source and destination it tiles, with the working set
+	/// of the `k x n` factor. The route is pinned on both sides of the
+	/// threshold, square, wide and tall: the per-thread tiled-copy counter moves
+	/// by exactly one where the gate should tile and stays put where it should
+	/// fall back, which equal values alone cannot tell apart.
+	///
+	/// The destination here is the column-major `n x k` allocation, so its column
+	/// stride is `n`: the `n = 2048` and `k = 256` cells tile on
+	/// `tensor4all/faer#352`'s power-of-two stride although their working set is
+	/// below the byte threshold.
+	#[test]
+	fn copy_r_reaches_the_tiled_copy_gate() {
+		use crate::linalg::{tile_copy_pays, tiled_copies};
+		for (m, n, tiled) in [
+			(512, 512, true),
+			// square, 2048 bytes of stride: #352's measured cell
+			(256, 256, true),
+			// wide: `k = 256`, a `256 x 2048` factor is 8 MiB over both buffers
+			(256, 2048, true),
+			// wide: 2 MiB, tiled only because the stride is 16 KiB, a power of two
+			(64, 2048, true),
+			// tall: the factor is only `k x n = 256 x 256`, and its stride is 2 KiB
+			(2048, 256, true),
+		] {
+			let k = Ord::min(m, n);
+			let packed = Mat::<f64>::from_fn(m, n, |i, j| (i + 2 * j) as f64);
+			assert!(tile_copy_pays::<f64>(n, k, n as isize) == tiled);
+			// a row-major `k x n` destination: the transpose of a column-major
+			// `n x k` allocation
+			let mut out_col = Mat::<f64>::from_fn(n, k, |_, _| -1.0);
+			let before = tiled_copies();
+			copy_r(out_col.transpose_mut(), packed.as_ref(), false);
+			assert!(
+				tiled_copies() - before == tiled as usize,
+				"{m}x{n}: copy_r took the {} path",
+				if tiled { "elementwise" } else { "tiled" }
+			);
+			for j in 0..n {
+				for i in 0..k {
+					let want = if i <= j { packed[(i, j)] } else { 0.0 };
+					assert!(out_col[(j, i)] == want, "{m}x{n}: entry ({i}, {j})");
+				}
+			}
+		}
+	}
 
 	#[test]
 	fn test_qr() {
@@ -812,6 +1002,14 @@ mod tests {
 			exact: bool,
 			mut par: Par,
 		) {
+			// A sequential call on a square matrix below 192 takes the transpose
+			// dual instead of the copy (tensor4all/faer#314): the factorization
+			// of the same matrix through the staged LQ kernel, so the same
+			// reflectors, `tau` and rank up to rounding, not bit for bit.
+			let exact = exact
+				&& !(crate::utils::thread::parallelism_degree(&par) == 1
+					&& m == n
+					&& m < 192);
 			// An empty matrix has no row to start a backwards view from.
 			let flipped = flipped && m > 0 && n > 0;
 			let size = Ord::min(m, n);
@@ -906,7 +1104,8 @@ mod tests {
 		}
 		// Shapes the adaptation applies to: a tall or square matrix with more
 		// than one column, and at least `64 * 64` elements so the copy floor
-		// lets it through. These must match the column-major factor exactly.
+		// lets it through. These must match the column-major factor exactly
+		// where the copy is taken, and up to rounding where the dual is (`check`).
 		for (m, n) in [(64, 64), (128, 128), (256, 64), (300, 64), (512, 64)] {
 			let run = |mut par: Par<'_>| {
 				check::<f64>(m, n, false, false, true, par.reborrow());

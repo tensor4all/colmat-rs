@@ -1,0 +1,344 @@
+//! #271: `eigenvectors_from_schur_real` / `_cplx` on a caller-held team of two, with the output,
+//! `q` and the scratch sized by `eigenvectors_from_schur_scratch` built beforehand, allocate
+//! nothing on a warm call. The recursive shifted triangular solve calls `matmul` on one column
+//! per recursion step; on a column-major (F) `t` that is the column-major matrix-vector product,
+//! whose team branch built its `nrows x width` partial sums with a `MemBuffer::new` on every
+//! call (`linalg/matmul/mod.rs`, `matvec_colmajor`). A row-major (C) `t` takes the row-major
+//! product, which has no partials, so it is covered here as the control.
+//!
+//! Whether a product of a given size runs on the team is the cost model's decision, which
+//! depends on the host class and the scalar: on the Zen 5 / AVX2 hosts of the issue `n = 257`
+//! dispatches for f64, c32 and c64 (not f32, whose product is faster and stays serial), on the
+//! Apple M5 only from about `n = 512`. `n = 1024` dispatches for all four on both, so it is the
+//! size that catches the defect for f32 and on aarch64.
+//!
+//! The allocator counts every allocation of the process while the call runs, except those of
+//! libtest's harness thread (see `count`); the inputs, the output, the scratch and the residual
+//! checks are outside the counted interval.
+//!
+//! The back-transform by `q` is a full `matmul`, which off x86_64 (and on x86_64 without AVX2 and
+//! FMA) falls back to the `gemm` crate, whose packing buffer is allocated per call above its
+//! retention cap (#56). The case with `q` is therefore ignored off x86_64, as in
+//! `evd_svd_vectors_no_alloc.rs`; the case without `q` runs everywhere.
+#![cfg(all(feature = "std", feature = "threadteam"))]
+use faer::dyn_stack::{MemBuffer, MemStack};
+use faer::linalg::evd;
+use faer::traits::ComplexField;
+use faer::traits::math_utils::*;
+use faer::{Mat, MatMut, MatRef, Par, c32, c64};
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+struct Counting;
+static COUNTING: AtomicBool = AtomicBool::new(false);
+static ALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
+/// Sizes of the first counted allocations, so a failure says what allocated.
+static SIZES: [AtomicUsize; 16] = [const { AtomicUsize::new(0) }; 16];
+
+std::thread_local! {
+	/// Set while `count` itself runs on this thread, so its own allocations are not counted.
+	static IN_COUNT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Counts one allocation of `size` bytes and records its size, unless it comes from libtest's
+/// harness thread.
+///
+/// libtest runs each test on a thread of its own, named after the test. The process's `main`
+/// thread is the harness: it waits for results and works as a watchdog, and once a test has run
+/// for 60 s it prints `test ... has been running for over 60 seconds`. That warning allocates
+/// three times: `Vec<TestDesc>::push` in `get_timed_out_tests` (`library/test/src/lib.rs`) and
+/// the `format!` in `PrettyFormatter::write_timeout` (`library/test/src/formatters/pretty.rs`),
+/// which allocates once and grows once. Under `cargo llvm-cov` this test runs for minutes. The
+/// warning then lands inside whichever warm call is being counted, and the count reports
+/// libtest's three allocations as faer's (#362: f64 n = 1024 F on the CI runner, f32 on a Zen 2
+/// host). The harness thread is therefore excluded. The test body and the team's workers never
+/// run on `main` (`check_all` asserts this for the body), so no allocation of the measured call
+/// is dropped.
+///
+/// `thread::current()` can allocate the first time a thread calls it, and that allocation comes
+/// back into this allocator. `IN_COUNT` makes the nested call return without counting, so the
+/// filter neither recurses nor counts its own allocation. The thread is only inspected while
+/// `COUNTING` is set.
+fn count(size: usize) {
+	if !COUNTING.load(Ordering::Relaxed) {
+		return;
+	}
+	let _ = IN_COUNT.try_with(|in_count| {
+		if in_count.replace(true) {
+			return;
+		}
+		if std::thread::current().name() != Some("main") {
+			let i = ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+			if i < SIZES.len() {
+				SIZES[i].store(size, Ordering::Relaxed);
+			}
+		}
+		in_count.set(false);
+	});
+}
+
+unsafe impl GlobalAlloc for Counting {
+	unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+		count(layout.size());
+		unsafe { System.alloc(layout) }
+	}
+	unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+		count(layout.size());
+		unsafe { System.alloc_zeroed(layout) }
+	}
+	unsafe fn realloc(
+		&self,
+		ptr: *mut u8,
+		layout: Layout,
+		new_size: usize,
+	) -> *mut u8 {
+		count(new_size);
+		unsafe { System.realloc(ptr, layout, new_size) }
+	}
+	unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+		unsafe { System.dealloc(ptr, layout) }
+	}
+}
+#[global_allocator]
+static GLOBAL: Counting = Counting;
+
+/// The tests of this binary share the counter, so they run one at a time.
+static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+trait Scalar: ComplexField {
+	/// The upper triangular fixture of the issue: diagonal `i + 1` (plus `0.1 i` imaginary),
+	/// `0.03` (`0.03 + 0.02i`) above it.
+	fn point(i: usize, j: usize) -> Self;
+	fn run(
+		t: MatRef<'_, Self>,
+		q: Option<MatRef<'_, Self>>,
+		x: MatMut<'_, Self>,
+		par: Par<'_>,
+		stack: &mut MemStack,
+	);
+}
+macro_rules! real {
+	($t:ty) => {
+		impl Scalar for $t {
+			fn point(i: usize, j: usize) -> Self {
+				if i == j {
+					(i + 1) as Self
+				} else if i < j {
+					0.03
+				} else {
+					0.0
+				}
+			}
+
+			fn run(
+				t: MatRef<'_, Self>,
+				q: Option<MatRef<'_, Self>>,
+				x: MatMut<'_, Self>,
+				par: Par<'_>,
+				stack: &mut MemStack,
+			) {
+				evd::eigenvectors_from_schur_real(
+					t,
+					q,
+					x,
+					par,
+					stack,
+					Default::default(),
+				)
+				.unwrap();
+			}
+		}
+	};
+}
+macro_rules! complex {
+	($t:ty, $r:ty) => {
+		impl Scalar for $t {
+			fn point(i: usize, j: usize) -> Self {
+				if i == j {
+					Self::new((i + 1) as $r, 0.1 as $r * i as $r)
+				} else if i < j {
+					Self::new(0.03, 0.02)
+				} else {
+					Self::new(0.0, 0.0)
+				}
+			}
+
+			fn run(
+				t: MatRef<'_, Self>,
+				q: Option<MatRef<'_, Self>>,
+				x: MatMut<'_, Self>,
+				par: Par<'_>,
+				stack: &mut MemStack,
+			) {
+				evd::eigenvectors_from_schur_cplx(
+					t,
+					q,
+					x,
+					par,
+					stack,
+					Default::default(),
+				)
+				.unwrap();
+			}
+		}
+	};
+}
+real!(f32);
+real!(f64);
+complex!(c32, f32);
+complex!(c64, f64);
+
+/// Allocations of the third of three identical calls on the team (the first two are warm-up), for
+/// a column-major (`row_major == false`) or row-major `t` and `x`. Checks the eigenvectors of
+/// the counted call independently: `t x - x diag(t)` against `256 n eps |t|` and unit columns.
+fn warm_allocations<T: Scalar>(
+	n: usize,
+	row_major: bool,
+	with_q: bool,
+	par: &mut Par<'_>,
+) -> usize {
+	let t = Mat::<T>::from_fn(n, n, T::point);
+	let t_rm = Mat::<T>::from_fn(n, n, |i, j| T::point(j, i));
+	let q = Mat::<T>::identity(n, n);
+	let mut x = Mat::<T>::zeros(n, n);
+	let mut mem = MemBuffer::new(evd::eigenvectors_from_schur_scratch::<T>(n));
+	let mut call = |x: &mut Mat<T>, par: &mut Par<'_>| {
+		let t = if row_major {
+			t_rm.as_ref().transpose()
+		} else {
+			t.as_ref()
+		};
+		let x = if row_major {
+			x.as_mut().transpose_mut()
+		} else {
+			x.as_mut()
+		};
+		T::run(
+			t,
+			with_q.then(|| q.as_ref()),
+			x,
+			par.reborrow(),
+			MemStack::new(&mut mem),
+		);
+	};
+	// Two identical calls before the counted one: the first grows the per-thread working
+	// buffers. The 3 allocations that tensor4all/faer#362 once reported for f64 at n = 1024 F
+	// were not a late setup on the second call: they were libtest's 60 s warning on the harness
+	// thread, which `count` now leaves out. The second warm-up is kept as a margin; it costs one
+	// call per cell.
+	call(&mut x, par);
+	call(&mut x, par);
+	ALLOCATIONS.store(0, Ordering::SeqCst);
+	COUNTING.store(true, Ordering::SeqCst);
+	call(&mut x, par);
+	COUNTING.store(false, Ordering::SeqCst);
+	let count = ALLOCATIONS.load(Ordering::SeqCst);
+	if count != 0 {
+		let sizes: Vec<usize> = (0..count.min(SIZES.len()))
+			.map(|i| SIZES[i].load(Ordering::Relaxed))
+			.collect();
+		eprintln!("counted call allocated {count} times, sizes {sizes:?}");
+	}
+
+	let x = if row_major {
+		x.as_ref().transpose()
+	} else {
+		x.as_ref()
+	};
+	let mut residual = &t * x;
+	for j in 0..n {
+		for i in 0..n {
+			residual[(i, j)] =
+				sub(&residual[(i, j)], &mul(&x[(i, j)], &t[(j, j)]));
+		}
+	}
+	assert!(
+		residual.norm_l2()
+			<= from_f64::<T::Real>(256.0 * n as f64)
+				* eps::<T::Real>()
+				* t.norm_l2()
+	);
+	for j in 0..n {
+		assert!(
+			abs(&sub(&x.col(j).norm_l2(), &one::<T::Real>()))
+				< from_f64::<T::Real>(256.0) * eps::<T::Real>()
+		);
+	}
+	count
+}
+
+fn check_all(with_q: bool) {
+	let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+	// `count` leaves out the thread named `main` (libtest's harness); a body running there would
+	// have its own allocations dropped and the test would pass without measuring anything
+	assert_ne!(
+		std::thread::current().name(),
+		Some("main"),
+		"the test body runs on the harness thread, whose allocations are not counted"
+	);
+	faer::team::with_team(2, |mut par| {
+		let mut failures = Vec::new();
+		for n in [64, 257, 1024] {
+			for row_major in [false, true] {
+				let counts = [
+					(
+						"f32",
+						warm_allocations::<f32>(n, row_major, with_q, &mut par),
+					),
+					(
+						"f64",
+						warm_allocations::<f64>(n, row_major, with_q, &mut par),
+					),
+					(
+						"c32",
+						warm_allocations::<c32>(n, row_major, with_q, &mut par),
+					),
+					(
+						"c64",
+						warm_allocations::<c64>(n, row_major, with_q, &mut par),
+					),
+				];
+				let layout = if row_major { "C" } else { "F" };
+				println!("n = {n} {layout}: {counts:?}");
+				for (name, count) in counts {
+					if count != 0 {
+						failures.push(format!(
+							"{name} n = {n} {layout}: {count} allocations"
+						));
+					}
+				}
+			}
+		}
+		assert!(failures.is_empty(), "warm calls allocated: {failures:#?}");
+	});
+}
+
+/// `q = None`: the eigenvectors of `t` itself, no full product.
+#[test]
+fn schur_eigenvectors_on_a_team_allocate_nothing() {
+	check_all(false);
+}
+
+/// With `q`: the back-transform is a full `matmul`, which reaches the `gemm` crate off x86_64.
+#[test]
+#[cfg_attr(
+	not(target_arch = "x86_64"),
+	ignore = "off x86_64 the back-transform reaches the gemm crate, which allocates per call (#56)"
+)]
+fn schur_eigenvectors_with_q_on_a_team_allocate_nothing() {
+	#[cfg(target_arch = "x86_64")]
+	if !std::is_x86_feature_detected!("avx2") || !std::is_x86_feature_detected!("fma") {
+		// libtest has no skip result, so this prints and returns: the harness reports the
+		// test as passed without having exercised the kernel path. CI runs on x86_64 with
+		// AVX2 and does exercise it; a local run on a host without AVX2/FMA carries no
+		// information about the allocation count, which is why the line below is printed
+		// rather than swallowed. Do not read a green run here as a measurement.
+		eprintln!(
+			"SKIPPED schur_eigenvectors_with_q_on_a_team_allocate_nothing: this host has no \
+			 avx2/fma, so the back-transform takes the gemm crate's allocating path and the \
+			 zero-allocation claim is not observable here"
+		);
+		return;
+	}
+	check_all(true);
+}
