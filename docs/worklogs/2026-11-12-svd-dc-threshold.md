@@ -62,18 +62,24 @@ values-only route returns through `dqds` before the gate below is read, and both
 - **The recursion is cheaper at every size where the route differs, so the default moves and
   nothing else.** `qr_algorithm` takes no `Par` (`bidiag_svd.rs:281`), so the band below 128 was also
   the one band with no threaded route at all, which is why faer gained nothing from eight threads
-  there while MKL's driver did: at `96x96` the call is 2.03 ms at 1T and 2.01 ms at 8T, while MKL goes
-  1.58 to 1.28. The qualifier is not decoration: n = 32 keeps QR at either value (0.161 against
-  0.162 in table C), and n = 1024 at 8T is the same 167.0 ms either way, so "every size" would have
-  been a claim the probe does not make.
-- **40.** The leaf value is flat between 33 and 44 and 48 is already 4-9% worse at n = 96; 40 is the
+  there while MKL's driver did: at `96x96` the call is 2.04 ms at 1T and 2.08 ms at 8T, while MKL goes
+  1.58 to 1.28. The qualifier is not decoration: n = 32 keeps QR at either value (0.159 at 128
+  against 0.160 at 40 in table C, and the recursion there is 11% worse), and n = 1024 at 8T is
+  167.043 against 167.040 ms, so "every size" would have been a claim the probe does not make.
+- **40.** The leaf value is flat between 33 and 44 at n = 96 (0.2% at 1T, 0.8% at 8T) and 48 is already
+  4.6% (1T) and 9.9% (8T) worse; 40 is the
   middle of that flat region rather than an edge of it, and it is a multiple of 8. It also leaves
   n = 32 - the campaign's guard cell - on QR, where the route does not change.
-- **A base case far under 128 is not this machine's quirk.** Reference LAPACK's `DBDSDC` takes
-  `SMLSIZ` from `ILAENV(9, 'DBDSDC', ..)` and falls back to `DLASDQ` below it
-  (`lapack/SRC/dbdsdc.f:291`, `:346`; `ilaenv.f:677-681` returns 25). faer's own LAPACK-derived SVD
-  cases run at `TESTING/svd.in`'s threshold 50 and at 8, i.e. the recursion has been exercised far
-  below 128 - only never through the default.
+- **A base case far under 128 is not a choice unique to this decision.** Two supports, one
+  checkable here and one not. Checkable: faer's own LAPACK-derived SVD cases already run the
+  recursion at thresholds 8 and 128 (`faer/src/linalg/svd/tests/lapack.rs`, its `threshold`
+  argument), i.e. the recursion has been exercised far below 128 - only never through the default,
+  which is the whole defect. Not checkable here: reference LAPACK's `DBDSDC` takes `SMLSIZ` from
+  `ILAENV(9, 'DBDSDC', ..)` (25 in the reference distribution) and falls back to `DLASDQ` below it.
+  Those Fortran sources are not vendored in this repository; the citation is LAPACK 3.12.0 as
+  distributed in OpenMathLib/OpenBLAS commit `791b02a1…`, the same copy the header of
+  `tests/lapack.rs` names, so a reader can fetch exactly what was read. Nothing in the change rests
+  on it: the value is bracketed by table C, which is committed.
 - **One stage, no API change.** The field stays public and its default moves; no signature, no
   caller, no version change. `Auto<T>` already exists to tune a hyperparameter per scalar type, and
   a per-type gate is *not* used here: the only evidence for one is the four `f32` cells below, at one
@@ -142,6 +148,23 @@ values-only route returns through `dqds` before the gate below is read, and both
   0.998) over all 48 n = 32 cells and 1.306 -> 0.932 (worst 1.571 -> 1.035). Every number in the
   text is now printed by the reproduction script below, so a reader checks the script rather than
   this prose.
+- **Third round (6 `UNVERIFIED`, all six closed by changing the artefact, not the wording).**
+  (1) `PATCHSET.md` still carried the pre-recomputation medians and paired the worst *before* cell
+  with its own after value, calling it the worst cell; the row now prints 1.306 -> 0.932,
+  0.854 -> 0.746, names `96x96` 8T as the worst-before cell with its 1.571 -> 0.899, and states that
+  the worst remaining cell after the change is 1.035 at `32x32` 1T. (2) The probe behind 40 was not
+  in the tarball, so the value could not be re-derived; `probe/` is now committed with the driver,
+  the four CSVs and each run's guard, table C is regenerated from those CSVs (the earlier table had
+  been pasted from an earlier pass and disagreed with them by up to 3%), and the aggregation script
+  prints table C and the sweep. (3) The body's test count did not match the command as printed; both
+  are now given with the base revision on the same host (814 / 810, +4) and the reviewer's host
+  (806 / 802, +4). (4) The `dbdsdc.f` / `ilaenv.f` citation is now marked as not vendored here, with
+  the LAPACK copy it comes from named by the same commit `tests/lapack.rs` cites, and with the
+  in-repo half (the crate's own cases at thresholds 8 and 128) given as the part a reader can check;
+  nothing in the change depends on it. (5) "Code-quality is green" is replaced by what the workflow
+  actually says (`continue-on-error: true`, so it cannot distinguish clean from tolerated) and the
+  claim that the crate fails clippy on `main` is dropped rather than re-asserted. (6) Hosted CI is
+  reported as it stood (four green, three pending) instead of as green.
 - **One attempt was discarded, not used.** The first baseline recording
   (`20261111T122715Z-acc404-base`) ran the full four-regime grid and hit the two-hour cap with two of
   its three process sets complete (44 CSVs, no `report.md`); the guard log shows one attempt and no
@@ -237,22 +260,35 @@ median over both orders and both the plain and `in_place` variants (4 cells per 
 | c32 | 256 | 0.955 | 0.889 | 0.863 |
 | c32 | 512 | 0.971 | 0.977 | 0.957 |
 
-Table C - the value, from a decision probe (a standalone driver over the fork at `4d140a9`, the
-campaign's pinned cores and idle guard, 15 starts, min). This chose 40; it is not acceptance
-evidence and the tables above are:
+Table C - the value, from a decision probe. It is not acceptance evidence; the acceptance evidence
+is the campaign pair above. The probe is committed with the runs: `probe/` inside the evidence
+tarball holds the driver (`src/main.rs`), its `Cargo.toml`, the four CSVs and the idle guard's own
+output for each, and `probe/README.md` says how each was run. Cells are milliseconds, the minimum
+over every row committed for that (n, threads, threshold) - the later probe passes re-ran cells from
+the earlier ones, so a cell can have up to three invocations. Raw values are in the CSVs.
 
 | n | 1T 128 | 1T 40 | 8T 128 | 8T 40 |
 |---|---|---|---|---|
-| 32 | 0.161 | 0.162 | 0.227 | 0.223 |
-| 64 | 0.874 | 0.689 | 0.913 | 0.612 |
-| 96 | 2.107 | 1.554 | 2.080 | 1.198 |
-| 128 | 3.367 | 2.855 | 2.522 | 2.041 |
-| 256 | 16.72 | 14.73 | 9.615 | 7.757 |
-| 512 | 94.62 | 88.86 | 34.62 | 32.14 |
-| 1024 | 637.7 | 632.4 | 167.0 | 167.0 |
+| 32 | 0.159 | 0.160 | 0.227 | 0.223 |
+| 64 | 0.874 | 0.679 | 0.913 | 0.611 |
+| 96 | 2.042 | 1.552 | 2.080 | 1.195 |
+| 128 | 3.357 | 2.850 | 2.522 | 2.041 |
+| 256 | 16.72 | 14.73 | 9.61 | 7.76 |
+| 512 | 93.88 | 87.88 | 34.62 | 32.14 |
+| 1024 | 637.7 | 632.4 | 167.043 | 167.040 |
 
-48 is 4-9% worse than 40 at n = 96, and 32 puts the guard cell onto the recursion for ~10% at 1T,
-which is why the value sits inside 33-44 instead of at its edge.
+At n = 96, 128 -> 40 is 0.76x at 1T and 0.57x at 8T, and the sweep around the chosen value reads
+(threshold: ms, n = 96): 33: 1.552, 36: 1.554, 40: 1.552, 44: 1.555, 48: 1.624, 56: 1.777,
+128: 2.042 at 1T and 33: 1.198, 36: 1.197, 40: 1.195, 44: 1.204, 48: 1.313, 56: 1.433, 128: 2.080
+at 8T - within 0.2% (1T) and 0.8% (8T) from 33 to 44, then +4.6% and +9.9% at 48 and +14.5% and +19.9% at
+56. At n = 32 the recursion costs 11% at 1T (0.177 at 32 against 0.159 at 33-128), which is why the
+value stays above the guard cell; at n = 1024 8T the two are equal to 0.002%. The value sits inside the flat
+region rather than at its edge.
+
+The commit message for the perf commit quotes an earlier probe pass (0.689, 0.612, 2.107, 1.554,
+1.198, ...). Those older numbers differ from the committed CSVs by up to 3% because the pass ran
+fewer invocations; this table and its reproduction block below are the committed data and supersede
+them.
 
 ## Follow-ups, recorded not done
 
@@ -366,6 +402,23 @@ for c in CACHE[RUNS['before']]['run0']:
             raw_outside += 1
 print(f'CONTROL n={len(ratios)} median {st.median(ratios):.6f} '
       f'outside unfloored range {raw_outside} (the campaign floors it at 5%, candidate.py:221)')
+
+# PROBE: table C, from the committed probe CSVs (min over every row of a cell)
+import csv as _csv, glob as _glob
+cell = {}
+for path in sorted(_glob.glob('probe/probe*.csv')):
+    for r in _csv.DictReader(open(path)):
+        k = (int(r['n']), int(r['threads']), int(r['threshold']))
+        cell[k] = min(cell.get(k, float('inf')), float(r['ms']))
+print('PROBE table C (ms, min over committed rows)')
+for n in (32, 64, 96, 128, 256, 512, 1024):
+    row = [cell.get((n, t, thr)) for t in (1, 8) for thr in (128, 40)]
+    print('PROBE n={:<5}'.format(n) + ' '.join(f'{v:.3f}' for v in row))
+print('PROBE sweep n=96 1T', ' '.join(f'{thr}:{cell[(96,1,thr)]:.3f}'
+                                     for thr in (33, 36, 40, 44, 48, 56, 128)))
+print('PROBE sweep n=96 8T', ' '.join(f'{thr}:{cell[(96,8,thr)]:.3f}'
+                                     for thr in (33, 36, 40, 44, 48, 56, 128)))
+print('PROBE n=32 1T thr32 vs thr40', f'{cell[(32,1,32)]:.3f} vs {cell[(32,1,40)]:.3f}')
 PY
 ```
 
@@ -377,3 +430,26 @@ scripts/candidate_compare.py --baseline data/results/zen5-cpu/faer-kernels/20261
   --candidate data/results/zen5-cpu/faer-kernels/20261111T152001Z-acc404-cand \
   --checkout <worktree with a50d929>
 ```
+
+## The gates, as run
+
+```sh
+cargo test -p t4a-faer --lib --release
+```
+
+- This host (x86_64): **814 passed, 0 failed, 162 ignored**. The base revision `4d140a9` on the same
+  host: **810 passed, 0 failed, 162 ignored**, so the +4 is exactly the four `route_at_the_gate`
+  instantiations. The absolute count is not portable - a reviewer running the same command on
+  aarch64 reported **806** against a base of **802** - because some tests are target-gated; the
+  delta is what this change is responsible for.
+- `cargo build -p t4a-faer --no-default-features --features std`, and pure `--no-default-features`:
+  both build.
+- `clippy` is **not** a gate for this crate: `.github/workflows/code-quality.yml` runs it with
+  `continue-on-error: true`, so a green `code-quality` run cannot distinguish "clean" from
+  "tolerated errors". Nothing in this change was validated by clippy, and no claim is made about
+  its state before or after.
+- Hosted CI: at the time of writing `body`, `msrv-1.89.0` (ubuntu, windows) and `nostd-nightly`
+  (ubuntu, windows) had passed; `build`, `code-quality` and `testing-stable-ubuntu-latest` were
+  still **pending**. No claim of a green CI run is made here - the acceptance evidence is the
+  campaign pair and the local gates above.
+
