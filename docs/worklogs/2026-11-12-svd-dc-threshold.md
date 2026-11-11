@@ -95,7 +95,7 @@ values-only route returns through `dqds` before the gate below is read, and both
   against 0.160 at 40 in table C, and the recursion there is 11% worse), and n = 1024 at 8T is
   167.043 against 167.040 ms, so "every size" would have been a claim the probe does not make.
 - **40.** At n = 96 the four sampled thresholds 33, 36, 40 and 44 all land within 0.19% at 1T
-  (1.552-1.555 ms) and 0.75% at 8T (1.195-1.204 ms), while 48 is already 4.6% (1T) and 9.9% (8T)
+  (1.552-1.555 ms) and 0.72% at 8T (1.195-1.204 ms), while 48 is already 4.7% (1T) and 9.8% (8T)
   worse. 40 is interior to that band rather than at either end - 0.0% from 33 at 1T and 0.2% at 8T,
   0.2% and 0.7% from 44, with the band's midpoint near 38 - and it is a multiple of 8. It also
   leaves n = 32 - the campaign's guard cell - on QR, where the route does not change.
@@ -157,9 +157,10 @@ values-only route returns through `dqds` before the gate below is read, and both
 ## Review
 
 Independent review by GLM-5.3-flash (`ollama-cloud/glm-5.3-flash`), read-only with none of this
-session's context, against the whole branch diff at each head; the last one reports CRITICAL none,
-NEEDS_CHANGES 0, and six `UNVERIFIED` items that are all "this process cannot execute a command" -
-each of those was run here against the same artefacts. Findings are recorded as dispositions, not as
+session's context, against the whole branch diff at each head; the last one, at `1771d7dc8`, reports CRITICAL none,
+NEEDS_CHANGES 0, and three `UNVERIFIED` items that are all "this process cannot execute a command" -
+each of those was run here against the same artefacts. It hand-recomputed all 28 table C cells, the
+sweeps, several table A/B cells and the guard inventory from the committed blob. Findings are recorded as dispositions, not as
 a history:
 
 - **Applied.** The gate test is instantiated at all four precisions, not `f64` alone. The values-only
@@ -307,8 +308,9 @@ the earlier ones, so a cell can have up to three invocations. Raw values are in 
 At n = 96, 128 -> 40 is 0.76x at 1T and 0.57x at 8T, and the sweep around the chosen value reads
 (threshold: ms, n = 96): 33: 1.552, 36: 1.554, 40: 1.552, 44: 1.555, 48: 1.624, 56: 1.777,
 128: 2.042 at 1T and 33: 1.198, 36: 1.197, 40: 1.195, 44: 1.204, 48: 1.313, 56: 1.433, 128: 2.080
-at 8T - the four sampled thresholds 33-44 span 0.19% at 1T and 0.75% at 8T, then 48 is +4.6% (1T)
-and +9.9% (8T) and 56 is +14.5% and +19.9%. At n = 32 the recursion costs 11% at 1T (0.177 at 32 against 0.159 at 33-128), which is why the
+at 8T - the four sampled thresholds 33-44 span 0.19% at 1T and 0.72% at 8T, then 48 is +4.7% (1T)
+and +9.8% (8T) and 56 is +14.5% and +19.9%. These are computed from the unrounded CSVs; dividing the
+two rounded numbers printed in the table gives 4.6%/9.9%, which is the same data to 0.1 points. At n = 32 the recursion costs 11% at 1T (0.177 at 32 against 0.159 at 33-128), which is why the
 value stays above the guard cell; at n = 1024 8T the two are equal to 0.002%. The value sits inside the flat
 region rather than at its edge.
 
