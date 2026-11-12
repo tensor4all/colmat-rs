@@ -458,14 +458,26 @@ fn logarithmic_bidiagonal_seeded(n: usize, seed: u64) -> Mat<Scalar> {
 /// #110: since the values-only route went to dqds (#52), DCHKBD type 16 (entries `eps^U(-2, 2)`)
 /// returned `NoConvergence`: its singular values span more than the range of their squares, so the
 /// zero-shift dqds sweep underflows. The rotation path now finishes it, as LAPACK's `DBDSQR`
-/// finishes when `DLASQ1` fails. Two cases of the opt-in `dchkbd_15_to_19`, all four `U`/`V`
+/// finishes when `DLASQ1` fails. Four cases of the opt-in `dchkbd_15_to_19`, all four `U`/`V`
 /// modes each, run with the regular tests: n = 128 at threshold 8 falls back to divide and conquer,
-/// n = 127 at threshold 128 to the QR iteration directly.
+/// n = 127 at threshold 128 to the QR iteration directly, and two sizes at the default -
+/// n = 127, where `dqds` gives up at every precision, so the fall-through meets the gate and enters
+/// divide and conquer; and n = 40, the shallowest split. At n = 40 the fall-through is reached only
+/// by `f32`/`c32`: probed on this fixture's magnitudes, `dqds` finishes the call at that size for
+/// `f64` and `c64`, so their values-only modes return before the gate is read, and it is the `U`/`V`
+/// modes that cover the split there. Recorded because the case otherwise reads as values-only
+/// coverage of the gate at n = 40 in all four precisions, which it is not.
 #[test]
 fn dchkbd_type_16_values_only_finishes() {
 	let mut failures = Vec::new();
 	let mut attempted = 0;
-	for (n, threshold) in [(128, 8), (127, 128)] {
+	let default_threshold = <SvdParams as Auto<Scalar>>::auto().recursion_threshold;
+	for (n, threshold) in [
+		(128, 8),
+		(127, 128),
+		(127, default_threshold),
+		(40, default_threshold),
+	] {
 		let b = logarithmic_bidiagonal(n);
 		run_bidiagonal_case(
 			&mut failures,
@@ -476,7 +488,7 @@ fn dchkbd_type_16_values_only_finishes() {
 			threshold,
 		);
 	}
-	assert_eq!(attempted, 8);
+	assert_eq!(attempted, 16);
 	assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 

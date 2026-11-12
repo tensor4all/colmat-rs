@@ -41,6 +41,9 @@ pub struct SvdParams {
 	/// $QR$ parameters
 	pub qr: QrParams,
 	/// threshold at which the implementation should stop recursing
+	///
+	/// this is also the QR leaf of the divide-and-conquer bidiagonal SVD, floored
+	/// at 4 there but not at the entry gate. see `Auto` below.
 	pub recursion_threshold: usize,
 	/// threshold at which parallelism should be disabled
 	pub qr_ratio_threshold: f64,
@@ -50,7 +53,12 @@ pub struct SvdParams {
 impl<T: ComplexField> Auto<T> for SvdParams {
 	fn auto() -> Self {
 		Self {
-			recursion_threshold: 128,
+			// 40, not 128. this field is also the divide-and-conquer QR leaf, so 128
+			// meant no size below it ever reached `divide_and_conquer`: a 96-square thin
+			// SVD ran one `qr_algorithm` over the whole bidiagonal, which takes no `Par`.
+			// the leaf is flat between 33 and 44; the measurements that chose 40, and the
+			// MKL comparison, are in docs/worklogs/2026-11-12-svd-dc-threshold.md.
+			recursion_threshold: 40,
 			qr_ratio_threshold: 11.0 / 6.0,
 			bidiag: auto!(T),
 			qr: auto!(T),
@@ -1016,6 +1024,9 @@ mod tests {
 		mod svd_views {
 			include!("tests/svd_views.rs");
 		}
+		mod route_at_the_gate {
+			include!("tests/route_at_the_gate.rs");
+		}
 	}
 	mod lapack_svd_f32 {
 		type Real = f32;
@@ -1034,6 +1045,9 @@ mod tests {
 		}
 		mod svd_views {
 			include!("tests/svd_views.rs");
+		}
+		mod route_at_the_gate {
+			include!("tests/route_at_the_gate.rs");
 		}
 		#[test]
 		fn f32_fixtures_use_single_precision_limits() {
@@ -1070,6 +1084,9 @@ mod tests {
 		mod svd_views {
 			include!("tests/svd_views.rs");
 		}
+		mod route_at_the_gate {
+			include!("tests/route_at_the_gate.rs");
+		}
 		mod complex_tests {
 			include!("tests/complex.rs");
 		}
@@ -1096,6 +1113,9 @@ mod tests {
 		}
 		mod svd_views {
 			include!("tests/svd_views.rs");
+		}
+		mod route_at_the_gate {
+			include!("tests/route_at_the_gate.rs");
 		}
 		mod complex_tests {
 			include!("tests/complex.rs");
