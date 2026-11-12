@@ -58,7 +58,7 @@ at 512, 8T, with nothing but the reservation (`docs/worklogs/2026-10-23-blocked-
 reservation was a spindle group there, the mechanism threadteam kept when it replaced it).
 
 The library never builds a team; the width, the lifetime and the thread count are the caller's
-(`faer::team` is the route, not the policy). A caller that runs parallel work repeatedly owns the
+(`colmat::team` is the route, not the policy). A caller that runs parallel work repeatedly owns the
 `threadteam::Pool` and `Team` once and lends a `Par` from the team to each call:
 
 ```rust
@@ -73,7 +73,7 @@ for (a, h) in work {
 }
 ```
 
-`faer::team::with_team(width, ..)` is the one-off form: it builds a pool and acquires its members
+`colmat::team::with_team(width, ..)` is the one-off form: it builds a pool and acquires its members
 inside the closure, measured at 50 us to 5 ms per call on the M5 depending on whether the threads
 came back from threadteam's cache of idle pools, against 0.6-1 us for a token taken from a team the
 caller already owns. On a call of tens of milliseconds that is lost in the work; in a loop of short

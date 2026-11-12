@@ -188,7 +188,7 @@ def main():
         (project / 'src').mkdir(parents=True)
         shutil.copyfile(ASSETS / 'main.rs', project / 'src/main.rs')
         shutil.copyfile(ASSETS / 'Cargo.lock', project / 'Cargo.lock')
-        (project / 'Cargo.toml').write_text('[package]\nname="pfaffian-faer-probe"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nfaer={package="colmat",path="' + str(dest / 'faer') + '"}\npulp={version="0.22.2",default-features=false,features=["std","x86-v3"]}\n[profile.release]\ndebug=0\n')
+        (project / 'Cargo.toml').write_text('[package]\nname="pfaffian-faer-probe"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nfaer={package="t4a-faer",path="' + str(dest / 'faer') + '"}\npulp={version="0.22.2",default-features=false,features=["std","x86-v3"]}\n[profile.release]\ndebug=0\n')
         with (out / (name + '-build.log')).open('w') as log:
             command(['cargo', 'build', '--release', '--locked', '-j4', '--manifest-path', project / 'Cargo.toml'], env=env, stdout=log, stderr=subprocess.STDOUT)
         bins[name] = project / 'target/release/pfaffian-faer-probe'

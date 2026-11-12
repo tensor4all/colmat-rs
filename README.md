@@ -11,7 +11,7 @@ The crate was published as `t4a-faer` up to 0.33.0; 0.34.0 is the same library u
 (see the [rename note](CHANGELOG.md) and [migration guide](docs/migration-guide.md)).
 
 The caller owns the `threadteam` team and passes `Par::Team` for parallel work, or `Par::Seq` for sequential work.
-faer does not use an implicit global thread pool. See the [migration guide](docs/par-team-migration.md).
+colmat does not use an implicit global thread pool. See the [migration guide](docs/par-team-migration.md).
 
 [Benchmarks](https://tensor4all.org/faer-benchmark/): published measurements and their conditions live here.
 **Status:** Published versions follow semver; APIs can change in incompatible releases.
@@ -112,7 +112,7 @@ budget builds the pool and the team once and lends the team to each call.
 let pool = threadteam::Pool::builder().threads(8).build()?;
 let team = pool.into_team(8).ok().expect("an idle pool");
 
-// per call: lend the team to faer for the duration of the closure
+// per call: lend the team to colmat for the duration of the closure
 for (a, h) in work {
     let mut exec = team.exec(8);
     exec.team(|t| qr_in_place(a.as_mut(), h.as_mut(), Par::Team(t), stack, params))
@@ -124,12 +124,12 @@ for (a, h) in work {
 A caller that already holds a token lends a sub-team to a phase with `par.reborrow()`; a width of one
 runs the phase on the calling thread.
 
-`faer::team::with_team` is the one-off route. It builds a pool, reserves its members, runs one closure,
+`colmat::team::with_team` is the one-off route. It builds a pool, reserves its members, runs one closure,
 and releases them afterwards, so it suits a single call or a script that runs a single operation:
 
 ```rust
-faer::team::with_team(8, |par| {
-    // every faer call in here with `par` runs its regions on 8 participants: the calling thread
+colmat::team::with_team(8, |par| {
+    // every colmat call in here with `par` runs its regions on 8 participants: the calling thread
     // and 7 reserved workers
     qr_in_place(a.as_mut(), h.as_mut(), par, stack, params);
 });

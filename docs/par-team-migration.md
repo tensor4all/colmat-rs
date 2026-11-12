@@ -87,7 +87,7 @@ path dispatches to the global Rayon pool with a `Team` in hand.
 
 | change | who sees it |
 | --- | --- |
-| `Par` is not `Copy`, `Clone` or `PartialEq` | code that reuses one `par`: loops calling faer once per batch item (tenferro-cpu `provider.rs`, `gemm/faer_gemm.rs`), tlinalg's `with_parallel` and its per-algorithm `par: colmat::Par` arguments, tcontract `strategy/faer.rs` (its per-item closure already receives a child `Par`) |
+| `Par` is not `Copy`, `Clone` or `PartialEq` | code that reuses one `par`: loops calling faer once per batch item (tenferro-cpu `provider.rs`, `gemm/faer_gemm.rs`), tlinalg's `with_parallel` and its per-algorithm `par: faer::Par` arguments, tcontract `strategy/faer.rs` (its per-item closure already receives a child `Par`) |
 | `*_scratch(.., par)` take `ParShape` | every caller of a scratch function: pass `par.shape()` or `ParShape::{Seq, rayon(n), team(n)}` |
 | `LinOp`, `BiLinOp`, `Precond`, `BiPrecond` | implementors keep `par: Par` in `apply` and friends (lifetime elided) and take `ParShape` in the scratch methods; an `apply` that uses `par` twice adds `reborrow()` |
 | `Par::Team(TeamExec<'team>)` | `exec.team(\|team\| faer_fn(.., Par::Team(team)))`; the width is the team size |

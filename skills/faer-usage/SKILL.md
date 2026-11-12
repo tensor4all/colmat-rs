@@ -83,13 +83,13 @@ let mut stack = MemStack::new(&mut mem);
 `*_scratch` functions take a `ParShape` (the width, without the authority to run anything), not a
 `Par` (`docs/par-team-migration.md:44`). Combine several requirements with `StackReq::any_of(&[...])`,
 as `faer/src/linalg/qr/mod.rs:63` does. `MemStack`, `MemBuffer` and `StackReq` are re-exported from
-`faer::dyn_stack` (`faer/src/lib.rs:1431`). A caller-held `MemBuffer` reused across calls is the
+`colmat::dyn_stack` (`faer/src/lib.rs:1431`). A caller-held `MemBuffer` reused across calls is the
 route to a steady-state call that allocates nothing; `faer/tests/svd_values_no_alloc.rs` and
 `faer/tests/no_step_alloc.rs` are the contracts.
 
 ## Solving
 
-Import the trait: `use faer::linalg::solvers::Solve;`. Two families:
+Import the trait: `use colmat::linalg::solvers::Solve;`. Two families:
 
 | You want | Method | Allocates |
 | --- | --- | --- |
@@ -145,7 +145,7 @@ There is no `truncated_svd` and no rank argument on the owning methods.
 | --- | --- |
 | `Par::Seq` | one call on the calling thread; always correct |
 | build a `threadteam::Pool` once, `pool.into_team(w)`, `team.exec(w)` per call | the primary route: a budget held across many calls |
-| `faer::team::with_team(w, \|par\| ...)` (`faer/src/utils/team.rs:97`) | a single call, or a script |
+| `colmat::team::with_team(w, \|par\| ...)` (`faer/src/utils/team.rs:97`) | a single call, or a script |
 
 Inside a region, lend the token to every call but the last: `par.reborrow()` (as in
 `docs/migration/README.md`'s checked example). Nesting does not add threads: split the team first
@@ -173,7 +173,7 @@ Column-major is native (`Mat` is column-major; `MatRef`/`MatMut` may be strided)
 ## Pitfalls
 
 - **One name.** `colmat` in `Cargo.toml` and `colmat` in `use`; the crate was published as
-  `t4a-faer` up to 0.33.0, whose library was named `faer`. A plain `faer = "0.24"` pulls upstream,
+  `t4a-faer` up to 0.33.0, whose library was named `faer`. A plain `faer = "0.x"` pulls upstream,
   not this crate.
 - **Upstream code does not compile here.** `set_global_parallelism`, `get_global_parallelism` and
   `Par::Rayon` are gone; the factorization methods take a trailing `Par`.
@@ -196,8 +196,8 @@ Column-major is native (`Mat` is column-major; `MatRef`/`MatMut` may be strided)
 Verified against this tree; the CI-run counterpart is `faer/examples/migration_overview.rs`.
 
 ```rust
-use faer::linalg::solvers::{Solve, SolveLstsq};
-use faer::{Par, mat};
+use colmat::linalg::solvers::{Solve, SolveLstsq};
+use colmat::{Par, mat};
 
 fn main() {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];

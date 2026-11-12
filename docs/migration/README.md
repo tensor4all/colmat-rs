@@ -20,7 +20,9 @@ Choose a guide by the library you already use. The tables map mathematical opera
 ## Dependency and upstream API differences
 
 The package and the Rust library are both named `colmat` (renamed from `t4a-faer` 0.33.0,
-whose library was `faer`).
+whose library was `faer`; the [0.34.0 changelog
+section](../../CHANGELOG.md#colmat-0340-tensor4all-fork-with-colmat-traits-0250) records what
+moved).
 In a consuming project's `Cargo.toml`, use:
 
 ```toml
@@ -30,8 +32,8 @@ colmat = "0.34"
 
 These examples use the default features, which include `std` and `threadteam`.
 Without `threadteam`, there is no `Par::Team` or `colmat::team` module.
-The examples build a `threadteam::Pool` directly, so add `threadteam` alongside the faer
-dependency, at the version faer itself resolves: `Par::Team` carries a `threadteam::TeamExec`, and
+The examples build a `threadteam::Pool` directly, so add `threadteam` alongside the `colmat`
+dependency, at the version `colmat` itself resolves: `Par::Team` carries a `threadteam::TeamExec`, and
 two threadteam minors are two distinct types.
 
 Upstream faer exposed process wide parallelism controls backed by a global Rayon pool.
