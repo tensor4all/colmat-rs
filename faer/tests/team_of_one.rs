@@ -9,20 +9,30 @@
 use colmat::utils::thread::with_width;
 use colmat::{Accum, Mat, Par};
 use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 struct Counting;
 static COUNTING: AtomicBool = AtomicBool::new(false);
+thread_local! {
+	// only the measuring thread counts: the harness, the other test and a pool's starting
+	// workers allocate on their own threads while the counted call runs
+	static MINE: Cell<bool> = const { Cell::new(false) };
+}
+fn counting() -> bool {
+	COUNTING.load(Ordering::Relaxed)
+		&& MINE.try_with(|m| m.get()).unwrap_or(false)
+}
 static BYTES: AtomicUsize = AtomicUsize::new(0);
 unsafe impl GlobalAlloc for Counting {
 	unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-		if COUNTING.load(Ordering::Relaxed) {
+		if counting() {
 			BYTES.fetch_add(layout.size(), Ordering::Relaxed);
 		}
 		unsafe { System.alloc(layout) }
 	}
 	unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-		if COUNTING.load(Ordering::Relaxed) {
+		if counting() {
 			BYTES.fetch_add(layout.size(), Ordering::Relaxed);
 		}
 		unsafe { System.alloc_zeroed(layout) }
@@ -33,7 +43,7 @@ unsafe impl GlobalAlloc for Counting {
 		layout: Layout,
 		new_size: usize,
 	) -> *mut u8 {
-		if COUNTING.load(Ordering::Relaxed) {
+		if counting() {
 			BYTES.fetch_add(new_size, Ordering::Relaxed);
 		}
 		unsafe { System.realloc(ptr, layout, new_size) }
@@ -106,6 +116,7 @@ fn matvec_on_a_team_of_one_takes_the_sequential_branch() {
 		s.spawn(|| {
 			with_team_of_one(|par| {
 				let mut dst = Mat::<f64>::from_fn(n, 1, |i, _| i as f64);
+				MINE.with(|m| m.set(true));
 				BYTES.store(0, Ordering::Relaxed);
 				COUNTING.store(true, Ordering::Relaxed);
 				colmat::linalg::matmul::matmul(
