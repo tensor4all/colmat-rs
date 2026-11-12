@@ -1,0 +1,11 @@
+[package]
+name = "lu123"
+version = "0.1.0"
+edition = "2021"
+# Standalone: the probe sits inside the measured checkout's tree, and must not join its workspace.
+[workspace]
+[dependencies]
+faer = { package = "t4a-faer", path = "../../../../../faer", default-features = false, features = ["std", "rayon", "threadteam"] }
+num-complex = { version = "0.4", default-features = false, features = ["std"] }
+[profile.release]
+debug = 1
