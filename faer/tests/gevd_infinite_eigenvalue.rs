@@ -24,12 +24,12 @@
 //! computed in `c64` against `10 * n * eps` of the scalar type, with `u`, `v`
 //! and `(alpha, beta)` normalized before the numerator is formed. A `NaN`
 //! residual or `beta` fails the test instead of being dropped by `f64::max`.
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{gevd_cplx, gevd_scratch};
-use faer::traits::ComplexField;
-use faer::{Mat, Par, Scale, c32, c64};
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{gevd_cplx, gevd_scratch};
+use colmat::traits::ComplexField;
+use colmat::{Mat, Par, Scale, c32, c64};
 
 /// `A` and `B` of faer#324, 12 x 12 column-major `c32` as `(re, im)` f32 bit
 /// patterns. Made in Julia by `rng = Xoshiro(23)`, `U` and `V` the Q factors of

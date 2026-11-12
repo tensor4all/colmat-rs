@@ -1,8 +1,8 @@
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::sparse::linalg::{SupernodalThreshold, lu::*};
-use faer::sparse::{SparseColMat, Triplet};
-use faer::traits::{ComplexField, math_utils::from_f64};
-use faer::{Mat, Par, ParShape};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::sparse::linalg::{SupernodalThreshold, lu::*};
+use colmat::sparse::{SparseColMat, Triplet};
+use colmat::traits::{ComplexField, math_utils::from_f64};
+use colmat::{Mat, Par, ParShape};
 fn check<T: ComplexField>(tolerance: f64, value: fn(f64, f64) -> T) {
 	for n in [0, 1, 3, 12, 40] {
 		let a = Mat::<T>::from_fn(n, n, |i, j| {
@@ -74,7 +74,7 @@ fn check<T: ComplexField>(tolerance: f64, value: fn(f64, f64) -> T) {
 				sym.solve_in_place_scratch::<T>(1, ParShape::Seq),
 			);
 			f.solve_in_place_with_conj(
-				faer::Conj::No,
+				colmat::Conj::No,
 				x.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut work),
@@ -103,9 +103,9 @@ fn f64_components() {
 }
 #[test]
 fn c32_components() {
-	check::<faer::c32>(1e-3, |re, im| faer::c32::new(re as f32, im as f32));
+	check::<colmat::c32>(1e-3, |re, im| colmat::c32::new(re as f32, im as f32));
 }
 #[test]
 fn c64_components() {
-	check::<faer::c64>(1e-10, faer::c64::new);
+	check::<colmat::c64>(1e-10, colmat::c64::new);
 }

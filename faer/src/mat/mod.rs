@@ -1,7 +1,7 @@
 use crate::{Shape, Stride, Unbind};
 use core::marker::PhantomData;
 use core::ptr::NonNull;
-use faer_traits::{ComplexField, Conjugate};
+use colmat_traits::{ComplexField, Conjugate};
 use reborrow::*;
 
 pub(crate) struct MatView<T: ?Sized, Rows, Cols, RStride, CStride> {
@@ -119,7 +119,7 @@ pub type MatRef<
 /// original variable unusable
 ///
 /// ```compile_fail
-/// use faer::{Mat, MatMut};
+/// use colmat::{Mat, MatMut};
 ///
 /// fn takes_matmut(view: MatMut<'_, f64>) {}
 ///
@@ -136,7 +136,7 @@ pub type MatRef<
 /// [`reborrow::Reborrow`]
 ///
 /// ```
-/// use faer::{Mat, MatMut, MatRef};
+/// use colmat::{Mat, MatMut, MatRef};
 /// use reborrow::*;
 /// fn takes_matmut(view: MatMut<'_, f64>) {}
 /// fn takes_matref(view: MatRef<'_, f64>) {}

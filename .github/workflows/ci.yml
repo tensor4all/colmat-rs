@@ -18,27 +18,27 @@ jobs:
       # Build the crates, test the traits and migration guides, and check package layout.
       # The inherited upstream workflows (`run-tests.yml`, `code-quality.yml`)
       # also run on these events with the heavier upstream suite.
-      - run: cargo build -p t4a-faer-traits -p t4a-faer
-      - run: cargo build -p t4a-faer --no-default-features --features std
+      - run: cargo build -p colmat-traits -p colmat
+      - run: cargo build -p colmat --no-default-features --features std
       # The library also builds without `rayon`; keep the sequential-only path tested, not
       # just compiled (the test modules inside the library need `threadteam`, #203).
-      - run: cargo test -p t4a-faer --no-default-features --features "std,linalg" --test public_bidiag_sequential --test sparse_lu_no_rayon --test iteration_control
-      - run: cargo test -p t4a-faer-traits
+      - run: cargo test -p colmat --no-default-features --features "std,linalg" --test public_bidiag_sequential --test sparse_lu_no_rayon --test iteration_control
+      - run: cargo test -p colmat-traits
       # `faer-ffi` is in the workspace again (#98); its two tests drive the C entry points, the team
       # handle, and the "the team is left again" affinity check.
       - run: cargo test -p faer-ffi -j4
-      - run: cargo test -p t4a-faer --no-default-features --features "std,linalg" --test lsmr_initial_residual --test generalized_schur_reorder --test generalized_schur_reorder_no_alloc --test gevd_no_alloc --test public_qz_aed --test public_qz_scratch --test public_householder_upgrade --test generalized_hessenberg_rotations --test qz_scratch
-      - run: cargo test -p t4a-faer --features perf-warn --test lu_perf_warn --test evd_perf_warn
+      - run: cargo test -p colmat --no-default-features --features "std,linalg" --test lsmr_initial_residual --test generalized_schur_reorder --test generalized_schur_reorder_no_alloc --test gevd_no_alloc --test public_qz_aed --test public_qz_scratch --test public_householder_upgrade --test generalized_hessenberg_rotations --test qz_scratch
+      - run: cargo test -p colmat --features perf-warn --test lu_perf_warn --test evd_perf_warn
       # #271: held-team Schur eigenvectors allocate nothing warm; the `q` case runs only on x86_64.
-      - run: cargo test -p t4a-faer --test schur_eigenvectors_team_no_alloc
+      - run: cargo test -p colmat --test schur_eigenvectors_team_no_alloc
       - run: python3 scripts/check-migration-examples.py
       - run: cargo build --examples -j8
       - run: |
           for example in migration_overview migration_cpp migration_fortran migration_julia; do
-            cargo run -p t4a-faer --example "$example" -j8
+            cargo run -p colmat --example "$example" -j8
           done
       - run: cargo test --doc --workspace -j8 -- --test-threads=4
-      - run: cargo package -p t4a-faer-traits -p t4a-faer --no-verify --list
+      - run: cargo package -p colmat-traits -p colmat --no-verify --list
       # The header is only re-derived when `FAER_FFI` is set, and cbindgen needs nightly
       # (`-Zunpretty=expanded`): without this, a stale or broken `faer.h` passes every Rust test,
       # because none of them resolves a C declaration.

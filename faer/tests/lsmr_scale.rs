@@ -1,10 +1,10 @@
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::matrix_free::{IdentityPrecond, InitialGuessStatus, lsmr::*};
-use faer::traits::{
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::matrix_free::{IdentityPrecond, InitialGuessStatus, lsmr::*};
+use colmat::traits::{
 	ComplexField,
 	math_utils::{from_f64, is_finite},
 };
-use faer::{Mat, Par, c32, c64};
+use colmat::{Mat, Par, c32, c64};
 
 /// A scalar multiple of the identity has condition number one and the representable
 /// solution `x = b / scale`, so LSMR must return it whatever the scale is. Before the

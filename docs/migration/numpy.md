@@ -25,7 +25,7 @@ It maps mathematical operations. There is no binding, no `PyObject`, and no dtyp
 | `scipy.linalg.lu(a)` | `let lu = a.partial_piv_lu(par)`; see the convention note below. |
 | `scipy.linalg.lu_factor(a)` + `lu_solve` | `a.partial_piv_lu(par)`, then `solve` / `solve_in_place`. |
 | `scipy.linalg.qr(a, pivoting=True)` | `a.col_piv_qr(par)` (`faer/src/linalg/solvers.rs:426`); `P()`, `R()` (`:1531`, `:1482`). |
-| `scipy.linalg.solve_triangular(T, b)` | `faer::linalg::triangular_solve::solve_lower_triangular_in_place(tri, rhs, par)` (`faer/src/linalg/triangular_solve.rs:283`) or `solve_upper_triangular_in_place` (`:385`). |
+| `scipy.linalg.solve_triangular(T, b)` | `colmat::linalg::triangular_solve::solve_lower_triangular_in_place(tri, rhs, par)` (`faer/src/linalg/triangular_solve.rs:283`) or `solve_upper_triangular_in_place` (`:385`). |
 | `np.linalg.norm(a)` (Frobenius) | `a.norm_l2()` (`faer/src/mat/matref.rs:1669`). |
 | `np.linalg.norm(a, np.inf)` | `a.norm_max()` (`faer/src/mat/matref.rs:1658`). |
 | `np.linalg.matrix_rank(a)` | No call. Take `a.singular_values(par)` and apply your own tolerance, or read the rank of a truncated LU (see [truncation](#numerical-rank-and-truncation)). |
@@ -95,5 +95,5 @@ factorisation if an upstream `numpy` view would have been non-contiguous too.
 
 No `interpolative`, no `einsum`/broadcasting, no batched or stacked arrays, no dtype promotion, no
 `matrix_power`. `np.linalg.lstsq`'s residual/rank/singular-value return has to be assembled by hand.
-The sparse modules (`faer::sparse`) are out of scope for this page: their API is not a translation of
+The sparse modules (`colmat::sparse`) are out of scope for this page: their API is not a translation of
 `scipy.sparse`.

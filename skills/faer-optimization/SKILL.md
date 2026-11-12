@@ -1,6 +1,6 @@
 ---
 name: faer-optimization
-description: Optimise a kernel or decomposition in the tensor4all faer fork (t4a-faer) against a vendor yardstick. Use when asked to make an SVD, QR, LU, eigen or matmul path faster, to close a gap to MKL/OpenBLAS, or to investigate why a benchmark cell is slow. Covers the order of work (breakdown first, hypothesis probes, one change per commit, campaign measurement), the lessons that carry over (PERFORMANCE_TIPS.md), the provenance rule for proprietary yardsticks, and where the evidence goes.
+description: Optimise a kernel or decomposition in the tensor4all faer fork (colmat) against a vendor yardstick. Use when asked to make an SVD, QR, LU, eigen or matmul path faster, to close a gap to MKL/OpenBLAS, or to investigate why a benchmark cell is slow. Covers the order of work (breakdown first, hypothesis probes, one change per commit, campaign measurement), the lessons that carry over (PERFORMANCE_TIPS.md), the provenance rule for proprietary yardsticks, and where the evidence goes.
 ---
 
 # Optimising in the faer fork
@@ -33,7 +33,7 @@ reached through `skills/faer-optimization/SKILL.md` and the per-harness links be
 3. **One change per commit**, with its own numbers in the message: the stage it moved, at which
    sizes and budgets, and what did not move. Constants (block width, floor, threshold, back-off
    factor) are scanned, and the scan's table goes next to the constant and into the worklog.
-4. **Tests before timing.** `cargo test -p t4a-faer --lib` (all of it, every time: a numerical
+4. **Tests before timing.** `cargo test -p colmat --lib` (all of it, every time: a numerical
    corner shows up in a special-matrix test far from the file you edited) plus one focused test
    that crosses the new code's boundaries (a shape that takes two panels and the tail; a graded
    spectrum).

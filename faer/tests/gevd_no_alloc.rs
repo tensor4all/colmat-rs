@@ -8,11 +8,11 @@
 //! counted); the inputs, the outputs and the scratch are built outside the
 //! counted interval. `Par::Seq`, so the call does not leave the thread.
 #![cfg(feature = "std")]
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{GevdParams, gevd_cplx, gevd_real, gevd_scratch};
-use faer::{Mat, Par, ParShape, Spec, c64};
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{GevdParams, gevd_cplx, gevd_real, gevd_scratch};
+use colmat::{Mat, Par, ParShape, Spec, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 

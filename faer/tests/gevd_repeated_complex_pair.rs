@@ -15,13 +15,13 @@
 //!
 //! The two-block f64 tests produce NaN without the pivot protection. Longer
 //! coupled chains also need scaling during substitution, in both precisions.
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{GevdParams, gevd_real, gevd_scratch};
-use faer::linalg::matmul::matmul;
-use faer::traits::RealField;
-use faer::{Accum, Col, ColRef, Mat, MatRef, Par, ParShape, Spec, c64};
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{GevdParams, gevd_real, gevd_scratch};
+use colmat::linalg::matmul::matmul;
+use colmat::traits::RealField;
+use colmat::{Accum, Col, ColRef, Mat, MatRef, Par, ParShape, Spec, c64};
 
 fn pencil(coupling: f32) -> (Mat<f32>, Mat<f32>) {
 	let mut a = Mat::<f32>::zeros(5, 5);

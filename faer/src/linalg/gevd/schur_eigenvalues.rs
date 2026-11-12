@@ -8,7 +8,7 @@ use equator::assert;
 ///
 /// # Examples
 /// ```
-/// use faer::linalg::gevd::SchurEigenvalueError;
+/// use colmat::linalg::gevd::SchurEigenvalueError;
 /// let error = SchurEigenvalueError { position: 2 };
 /// assert_eq!(error.position, 2);
 /// ```
@@ -181,9 +181,9 @@ pub(super) fn real_block<T: RealField>(
 ///
 /// # Examples
 /// ```
-/// use faer::{mat, Col};
-/// use faer::linalg::gevd::schur_eigenvalues_real;
-/// # fn main() -> Result<(), faer::linalg::gevd::SchurEigenvalueError> {
+/// use colmat::{mat, Col};
+/// use colmat::linalg::gevd::schur_eigenvalues_real;
+/// # fn main() -> Result<(), colmat::linalg::gevd::SchurEigenvalueError> {
 /// let s = mat![[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 3.0]];
 /// let t = mat![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]];
 /// let mut re = Col::<f64>::zeros(3);

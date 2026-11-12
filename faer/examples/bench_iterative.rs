@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use diol::prelude::*;
 use dyn_stack::{MemBuffer, MemStack};
-use faer::prelude::*;
-use faer::stats::prelude::*;
+use colmat::prelude::*;
+use colmat::stats::prelude::*;
 fn eigen(bencher: Bencher, PlotArg(n): PlotArg) {
 	let rng = &mut StdRng::seed_from_u64(0);
 	let A = CwiseMatDistribution {
@@ -22,14 +22,14 @@ fn eigen(bencher: Bencher, PlotArg(n): PlotArg) {
 	let mut V = Mat::zeros(n, n_eigval);
 	let mut w = vec![c64::ZERO; n_eigval];
 	let mut mem =
-		MemBuffer::new(faer::matrix_free::eigen::partial_eigen_scratch(
+		MemBuffer::new(colmat::matrix_free::eigen::partial_eigen_scratch(
 			&A,
 			n_eigval,
 			ParShape::Seq,
 			default(),
 		));
 	bencher.bench(|| {
-		faer::matrix_free::eigen::partial_eigen(
+		colmat::matrix_free::eigen::partial_eigen(
 			V.rb_mut(),
 			&mut w,
 			&A,

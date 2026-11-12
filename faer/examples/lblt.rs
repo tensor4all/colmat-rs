@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 use diol::prelude::*;
 use dyn_stack::{MemBuffer, MemStack};
-use faer::diag::Diag;
-use faer::linalg::cholesky::lblt;
-use faer::prelude::*;
-use faer::reborrow::ReborrowMut;
-use faer::stats::prelude::*;
+use colmat::diag::Diag;
+use colmat::linalg::cholesky::lblt;
+use colmat::prelude::*;
+use colmat::reborrow::ReborrowMut;
+use colmat::stats::prelude::*;
 #[cfg(any(openblas, mkl, blis))]
 use lapack_sys as la;
 #[cfg(blis)]

@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::evd::*;
+use colmat::linalg::evd::*;
 
 fn real<T: RealField>() {
 	for n in SIZES {
@@ -168,7 +168,7 @@ fn normalized_right_residuals_in_diagonal_order() {
 }
 #[test]
 fn nonfinite_is_an_error() {
-	let t = faer::mat![[f64::INFINITY]];
+	let t = colmat::mat![[f64::INFINITY]];
 	let mut x = Mat::zeros(1, 1);
 	let mut mem = MemBuffer::new(eigenvectors_from_schur_scratch::<f64>(1));
 	assert_eq!(
@@ -200,9 +200,9 @@ fn tridiagonal_dedicated_scratch() {
 			}
 		});
 		for compute in [ComputeEigenvectors::No, ComputeEigenvectors::Yes] {
-			let mut s = faer::diag::Diag::zeros(n);
+			let mut s = colmat::diag::Diag::zeros(n);
 			let mut u = Mat::zeros(n, n);
-			let mut params = faer::Spec::<SelfAdjointEvdParams, c64>::default();
+			let mut params = colmat::Spec::<SelfAdjointEvdParams, c64>::default();
 			params.recursion_threshold = 8;
 			let mut mem =
 				MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<c64>(
@@ -241,9 +241,9 @@ fn tridiagonal_dedicated_scratch() {
 #[test]
 fn into_never_reads_previous_output() {
 	// A real pair followed by a singleton, with an orthogonal back-transform.
-	let t = faer::mat![[1.0f64, 2.0, 0.3], [-0.5, 1.0, -0.7], [0.0, 0.0, 4.0]];
+	let t = colmat::mat![[1.0f64, 2.0, 0.3], [-0.5, 1.0, -0.7], [0.0, 0.0, 4.0]];
 	let (c, s) = (0.6f64, 0.8f64);
-	let q = faer::mat![[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]];
+	let q = colmat::mat![[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]];
 	let tc = Mat::from_fn(3, 3, |i, j| {
 		if i > j {
 			c64::ZERO

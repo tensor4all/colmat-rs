@@ -8,11 +8,11 @@
 // Only the team run below needs `threadteam`; the sequential checks also run
 // without it, as in the benchmark build (`std`, `rayon`).
 #![cfg(feature = "std")]
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lu::full_pivoting::factor as flu;
-use faer::traits::ComplexField;
-use faer::traits::math_utils::zero;
-use faer::{Auto, MatMut, Par, c64, cx128, fx128};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lu::full_pivoting::factor as flu;
+use colmat::traits::ComplexField;
+use colmat::traits::math_utils::zero;
+use colmat::{Auto, MatMut, Par, c64, cx128, fx128};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
@@ -164,7 +164,7 @@ fn small_square_row_major_full_piv_lu_does_not_copy_the_matrix() {
 	};
 	run(Par::Seq);
 	#[cfg(feature = "threadteam")]
-	faer::team::with_team(4, |par| run(par));
+	colmat::team::with_team(4, |par| run(par));
 }
 
 /// The first pivot `lu_in_place` picks on a zero matrix with two entries of

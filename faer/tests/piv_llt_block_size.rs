@@ -2,11 +2,11 @@
 //! `cholesky_in_place` never returned even for `A = [1]` (tensor4all/faer#283). The public
 //! contract is a positive block size, rejected before the input is touched.
 
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::cholesky::llt_pivoting::factor::{
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::cholesky::llt_pivoting::factor::{
 	PivLltParams, cholesky_in_place, cholesky_in_place_scratch,
 };
-use faer::{Mat, Par};
+use colmat::{Mat, Par};
 
 fn params(block_size: usize) -> PivLltParams {
 	PivLltParams {

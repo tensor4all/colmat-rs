@@ -19,8 +19,8 @@ use crate::internal_prelude::*;
 /// # example
 ///
 /// ```
-/// use faer::linalg::kron::kron;
-/// use faer::{Mat, mat};
+/// use colmat::linalg::kron::kron;
+/// use colmat::{Mat, mat};
 /// let a = mat![[1.0, 2.0], [3.0, 4.0]];
 /// let b = mat![[0.0, 5.0], [6.0, 7.0]];
 /// let c = mat![

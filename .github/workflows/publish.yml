@@ -4,13 +4,13 @@ name: publish
 # example `v0.24.4`), or runs this workflow by hand. Publishing needs a
 # CRATES_IO_API_TOKEN secret.
 #
-# `t4a-faer` resolves `t4a-faer-traits` from the registry, so traits goes first.
+# `colmat` resolves `colmat-traits` from the registry, so traits goes first.
 # A crate whose version is already on crates.io is skipped, so a release that
 # bumps only one of the two still succeeds.
 #
 # A `dry-run-only` dispatch does not upload, so it can only preflight crates
 # whose dependencies are already on the registry. It cannot validate the first
-# publication of `t4a-faer-traits` together with `t4a-faer`.
+# publication of `colmat-traits` together with `colmat`.
 
 on:
   push:
@@ -35,30 +35,30 @@ jobs:
         id: versions
         run: |
           meta=$(cargo metadata --no-deps --format-version 1)
-          echo "traits=$(jq -r '.packages[] | select(.name == "t4a-faer-traits") | .version' <<<"$meta")" >> "$GITHUB_OUTPUT"
-          echo "faer=$(jq -r '.packages[] | select(.name == "t4a-faer") | .version' <<<"$meta")" >> "$GITHUB_OUTPUT"
+          echo "traits=$(jq -r '.packages[] | select(.name == "colmat-traits") | .version' <<<"$meta")" >> "$GITHUB_OUTPUT"
+          echo "colmat=$(jq -r '.packages[] | select(.name == "colmat") | .version' <<<"$meta")" >> "$GITHUB_OUTPUT"
 
       - name: Dry run
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run-only }}
         run: |
-          cargo publish -p t4a-faer-traits --dry-run
-          cargo publish -p t4a-faer --dry-run
+          cargo publish -p colmat-traits --dry-run
+          cargo publish -p colmat --dry-run
 
       - name: Publish
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry-run-only) }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_TOKEN }}
           TRAITS_VERSION: ${{ steps.versions.outputs.traits }}
-          FAER_VERSION: ${{ steps.versions.outputs.faer }}
+          COLMAT_VERSION: ${{ steps.versions.outputs.colmat }}
         run: |
           publish() {
             local crate="$1" version="$2"
-            if curl -sf -H "User-Agent: tensor4all-faer-release" \
+            if curl -sf -H "User-Agent: tensor4all-colmat-release" \
                  "https://crates.io/api/v1/crates/${crate}/${version}" > /dev/null; then
               echo "${crate} ${version} is already published; skipping"
             else
               cargo publish -p "${crate}"
             fi
           }
-          publish t4a-faer-traits "$TRAITS_VERSION"
-          publish t4a-faer "$FAER_VERSION"
+          publish colmat-traits "$TRAITS_VERSION"
+          publish colmat "$COLMAT_VERSION"

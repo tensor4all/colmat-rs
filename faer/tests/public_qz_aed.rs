@@ -3,9 +3,9 @@
 //! recognise that sentinel instead of subtracting it from `ihi`, which
 //! overflows in a checked build (tensor4all/faer#254).
 
-use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-use faer::linalg::gevd::{self, ComputeEigenvectors};
-use faer::{Col, Mat, Par, ParShape};
+use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+use colmat::linalg::gevd::{self, ComputeEigenvectors};
+use colmat::{Col, Mat, Par, ParShape};
 
 fn sample(i: usize, j: usize) -> f64 {
 	let mut x = (i as u64 + 7).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (j as u64 + 19);
@@ -48,7 +48,7 @@ fn fully_deflated_row_zero_window_does_not_overflow() {
 		let mut ar = Col::<f64>::zeros(n);
 		let mut ai = Col::<f64>::zeros(n);
 		let mut beta = Col::<f64>::zeros(n);
-		let params: gevd::GeneralizedSchurParams = faer::auto!(f64);
+		let params: gevd::GeneralizedSchurParams = colmat::auto!(f64);
 
 		let req = gevd::qz_real::hessenberg_to_qz_scratch::<f64>(n, ParShape::Seq, params);
 		// Ample, valid storage: this test isolates the index arithmetic from

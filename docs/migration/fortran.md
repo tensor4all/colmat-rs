@@ -1,8 +1,8 @@
-# From Fortran LAPACK and BLAS to t4a-faer
+# From Fortran LAPACK and BLAS to colmat
 
-The Rust package is `t4a-faer`, imported as `faer`. These are mathematical mappings, not LAPACK ABI replacements.
+The Rust package is `colmat`, imported as `faer`. These are mathematical mappings, not LAPACK ABI replacements.
 
-| LAPACK or BLAS construct | t4a-faer equivalent |
+| LAPACK or BLAS construct | colmat equivalent |
 | --- | --- |
 | `DGETRF(M, N, A, LDA, IPIV, INFO)` | `a.partial_piv_lu(par)`, or `linalg::lu::partial_pivoting::factor::lu_in_place` for packed factors and caller scratch |
 | `DGETRS('N', N, NRHS, A, LDA, IPIV, B, LDB, INFO)` | Import `linalg::solvers::Solve`; use `lu.solve(&b, par)` or the low level `solve::solve_in_place` with factors and a `PermRef` |
@@ -28,7 +28,7 @@ back when that `exec` is dropped. The width includes the calling thread, and dro
 its reservation. A program with a sequence of calls holds the pool and the team outside the
 loop, so the members are reserved once.
 
-`faer::team::with_team(width, |mut par| ...)` is the one-off route: it acquires a team and
+`colmat::team::with_team(width, |mut par| ...)` is the one-off route: it acquires a team and
 releases it after the closure returns. Use it for one call, or for a script that runs a single
 operation. The [Rust guide](../migration-guide.md#explicit-parallelism) gives the cost of
 each route per call.
@@ -49,7 +49,7 @@ Use `Par::Seq` when the call must stay on the calling thread. It bypasses team a
 and worker dispatch; it does not enter a global pool at width one.
 Upstream faer exposed global parallelism settings and `Par::Rayon`; this fork removes them
 and requires trailing `Par` arguments on factorization and solver methods.
-Use this fork's [API reference](https://docs.rs/t4a-faer), not upstream signatures, and the
+Use this fork's [API reference](https://docs.rs/colmat), not upstream signatures, and the
 [API migration history](../par-team-migration.md).
 Published timing results and conditions live on the [benchmark site](https://tensor4all.org/faer-benchmark/).
 
@@ -78,16 +78,16 @@ Do not treat successful LU factor construction as a singularity test, or reinter
 ## Complete example: padded input, LU scratch, a product, and eigenvectors
 
 The source is [`faer/examples/migration_fortran.rs`](../../faer/examples/migration_fortran.rs).
-Run it with `cargo run -p t4a-faer --example migration_fortran -j8`.
+Run it with `cargo run -p colmat --example migration_fortran -j8`.
 It factors a matrix that requires a row interchange, solves a known system, and checks `A * x = b`.
 The last calculation checks the eigenvalue equations for a symmetric matrix.
 
 ```rust
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::EvdError;
-use faer::linalg::lu::partial_pivoting::{factor, solve};
-use faer::linalg::matmul::matmul;
-use faer::{Accum, Mat, MatRef, Par, Side, mat};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::EvdError;
+use colmat::linalg::lu::partial_pivoting::{factor, solve};
+use colmat::linalg::matmul::matmul;
+use colmat::{Accum, Mat, MatRef, Par, Side, mat};
 
 fn main() -> Result<(), EvdError> {
 	// Two logical rows, two columns, lda = 3. Padding is not matrix data.
@@ -165,7 +165,7 @@ fn main() -> Result<(), EvdError> {
 
 ## Open gaps
 
-- `t4a-faer` does not export the LAPACK or BLAS Fortran ABI. Translate calls and data ownership in Rust.
+- `colmat` does not export the LAPACK or BLAS Fortran ABI. Translate calls and data ownership in Rust.
 - There is no `LWORK = -1` protocol or shared `INFO` convention. Use scratch requests and each routine's return type.
 - There is no direct `IPIV` interchange API in the factorization calls above. Retain faer's permutation pair when using its low level factor and solve routines.
 - `Accum` accepts replace or add, not an arbitrary BLAS `beta`. For other values, scale `c` explicitly before adding the product.

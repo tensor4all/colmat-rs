@@ -12,15 +12,15 @@
 //! returns an error or returns `Ok(())` with a NaN eigenvalue. A generic-strided `u` keeps the
 //! in-place path and is checked against the column-major one to a tolerance.
 #![cfg(feature = "std")]
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::{
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::{
 	ComputeEigenvectors, EvdError, SelfAdjointEvdParams, self_adjoint_evd,
 	self_adjoint_evd_scratch,
 };
-use faer::traits::ComplexField;
-use faer::traits::math_utils::{abs, conj, from_f64, is_nan, zero};
-use faer::{Auto, Mat, MatMut, MatRef, Par, Spec, c32, c64};
+use colmat::traits::ComplexField;
+use colmat::traits::math_utils::{abs, conj, from_f64, is_nan, zero};
+use colmat::{Auto, Mat, MatMut, MatRef, Par, Spec, c32, c64};
 
 /// The bytes of a native scalar (`f32`, `f64`, `c32`, `c64`: no padding), to compare two results
 /// bit for bit, NaN payloads included.
@@ -164,7 +164,7 @@ fn check<T: ComplexField>(
 	if finite {
 		assert!(rc.is_ok(), "{what}: {rc:?}");
 		let tol = from_f64::<T::Real>(64.0 * (n as f64 + 1.0))
-			* faer::traits::math_utils::eps::<T::Real>();
+			* colmat::traits::math_utils::eps::<T::Real>();
 		let norm = from_f64::<T::Real>(1.0) + a.norm_max();
 		let s = Mat::<T>::from_fn(n, n, |i, j| {
 			if i == j { sg[i].clone() } else { zero() }
@@ -222,7 +222,7 @@ fn check_type<T: ComplexField>(make: impl Fn(f64, f64) -> T) {
 		{
 			kept += check(a, finite, Par::Seq, &init);
 			#[cfg(feature = "threadteam")]
-			faer::team::with_team(4, |par| {
+			colmat::team::with_team(4, |par| {
 				kept += check(a, finite, par, &init)
 			});
 		}

@@ -1,5 +1,5 @@
-use faer::linalg::solvers::Solve;
-use faer::{Mat, Par, mat};
+use colmat::linalg::solvers::Solve;
+use colmat::{Mat, Par, mat};
 
 fn solve_checked(a: &Mat<f64>, b: &Mat<f64>, mut par: Par<'_>) {
 	let lu = a.partial_piv_lu(par.reborrow());

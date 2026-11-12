@@ -1,6 +1,6 @@
 use crate::internal_prelude::*;
 use core::ops::Mul;
-use faer_traits::Real;
+use colmat_traits::Real;
 extern crate alloc;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ApproxEq<T> {

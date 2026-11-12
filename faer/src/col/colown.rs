@@ -19,7 +19,7 @@ impl<T, Rows: Shape> Col<T, Rows> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::Col;
+	/// use colmat::Col;
 	/// let mut vector = Col::<f64>::zeros(3);
 	/// vector.reserve(17);
 	/// let capacity = vector.capacity();

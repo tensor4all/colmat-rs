@@ -3,7 +3,7 @@ use crate::utils::cost::{ParThreshold, rate};
 use crate::perm::{swap_cols_idx, swap_rows_idx};
 use crate::utils::thread::par_split_indices;
 use crate::utils::thread::with_width;
-use faer_traits::{Real, RealReg};
+use colmat_traits::{Real, RealReg};
 use linalg::matmul::matmul;
 use pulp::Simd;
 

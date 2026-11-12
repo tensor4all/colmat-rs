@@ -607,7 +607,7 @@ name = "pfaffian-faer-probe"
 version = "0.0.0"
 dependencies = [
  "pulp",
- "t4a-faer",
+ "colmat",
 ]
 
 [[package]]
@@ -912,7 +912,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "t4a-faer"
+name = "colmat"
 version = "0.28.1"
 dependencies = [
  "bytemuck",
@@ -929,14 +929,14 @@ dependencies = [
  "rand_distr",
  "rayon",
  "reborrow",
- "t4a-faer-traits",
+ "colmat-traits",
  "t4a-gemm",
  "t4a-private-gemm-x86",
  "threadteam",
 ]
 
 [[package]]
-name = "t4a-faer-traits"
+name = "colmat-traits"
 version = "0.24.2"
 dependencies = [
  "bytemuck",

@@ -2,7 +2,7 @@
 use crate::internal_prelude::*;
 use crate::utils::thread::join_raw;
 use crate::{assert, debug_assert};
-use faer_traits::{Conjugate, SimdArch};
+use colmat_traits::{Conjugate, SimdArch};
 use reborrow::*;
 #[inline(always)]
 fn identity<T: ComplexField>(x: T) -> T {

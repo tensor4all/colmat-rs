@@ -1,6 +1,29 @@
-# Unreleased
+# colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
-Changes since `t4a-faer` 0.32.0 (tag `faer-v0.32.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
+Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
+
+## Breaking: the crate is renamed to `colmat`
+
+The package `t4a-faer` is `colmat` from this release, and `t4a-faer-traits` is
+`colmat-traits`. The library target moves with the package: `[lib] name = "faer"` is
+`"colmat"`, and `"faer_traits"` is `"colmat_traits"`, so callers write
+`use colmat::...`.
+
+```toml
+# before
+faer = { package = "t4a-faer", version = "0.33" }
+# after
+colmat = "0.34"
+```
+
+- `t4a-faer` 0.33.0 stays published and is not yanked, so a crate that pins it keeps
+  resolving. Nothing is published under the old name that re-exports `colmat`: this is a
+  rename, not a compatibility layer.
+- The API, the numerics and the caller-owned `threadteam` team contract are unchanged.
+  Every other entry in this release was already pending before the rename and is listed
+  below.
+- The repository, its issue references (`tensor4all/faer#NNN`) and the released tags up
+  to `faer-v0.33.0` keep their names.
 
 ## Behaviour change: `norm_max` propagates NaN
 

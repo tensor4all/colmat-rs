@@ -13,7 +13,7 @@ The remaining #31 families build on this pilot; they are catalogued in
 From the repository root, run all thirty-two validation groups explicitly:
 
 ```sh
-CARGO_PROFILE_DEV_DEBUG=0 cargo test -p t4a-faer --lib lapack_svd -- --ignored --nocapture --test-threads=1
+CARGO_PROFILE_DEV_DEBUG=0 cargo test -p colmat --lib lapack_svd -- --ignored --nocapture --test-threads=1
 ```
 
 The `lapack_svd_f32`, `lapack_svd_f64`, `lapack_svd_c32`, and
@@ -28,7 +28,7 @@ precision and native-f32 scale calibrations for f32/c32. To run these thirty-two
 pilot checker/fixture tests with the existing SVD tests:
 
 ```sh
-CARGO_PROFILE_DEV_DEBUG=0 cargo test -p t4a-faer --lib linalg::svd::tests -- --test-threads=1
+CARGO_PROFILE_DEV_DEBUG=0 cargo test -p colmat --lib linalg::svd::tests -- --test-threads=1
 ```
 
 ## Scheduled validation and budget

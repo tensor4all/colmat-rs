@@ -21,11 +21,11 @@
 //! retention cap (#56). The case with `q` is therefore ignored off x86_64, as in
 //! `evd_svd_vectors_no_alloc.rs`; the case without `q` runs everywhere.
 #![cfg(all(feature = "std", feature = "threadteam"))]
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd;
-use faer::traits::ComplexField;
-use faer::traits::math_utils::*;
-use faer::{Mat, MatMut, MatRef, Par, c32, c64};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd;
+use colmat::traits::ComplexField;
+use colmat::traits::math_utils::*;
+use colmat::{Mat, MatMut, MatRef, Par, c32, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -276,7 +276,7 @@ fn check_all(with_q: bool) {
 		Some("main"),
 		"the test body runs on the harness thread, whose allocations are not counted"
 	);
-	faer::team::with_team(2, |mut par| {
+	colmat::team::with_team(2, |mut par| {
 		let mut failures = Vec::new();
 		for n in [64, 257, 1024] {
 			for row_major in [false, true] {

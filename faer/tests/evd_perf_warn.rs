@@ -9,12 +9,12 @@
 
 use std::sync::{Arc, Mutex, OnceLock};
 
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::{
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::{
 	ComputeEigenvectors, self_adjoint_evd, self_adjoint_evd_scratch,
 };
-use faer::{Mat, MatMut, Par};
+use colmat::{Mat, MatMut, Par};
 
 /// The `faer_perf` messages this process produced.
 struct Capture(Arc<Mutex<Vec<String>>>);

@@ -20,11 +20,11 @@
 //! to translate this to code, we can proceed as follows:
 //!
 //! ```
-//! use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-//! use faer::linalg::qr::no_pivoting::factor;
-//! use faer::linalg::{householder, triangular_solve};
-//! use faer::reborrow::*;
-//! use faer::{Conj, Mat, Par, mat};
+//! use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+//! use colmat::linalg::qr::no_pivoting::factor;
+//! use colmat::linalg::{householder, triangular_solve};
+//! use colmat::reborrow::*;
+//! use colmat::{Conj, Mat, Par, mat};
 //! // we start by defining matrices A and B that define our least-squares problem.
 //! let a = mat![
 //! 	[-1.14920683, -1.67950492],
@@ -65,7 +65,7 @@
 //! 			a.nrows(),
 //! 			a.ncols(),
 //! 			block_size,
-//! 			faer::ParShape::Seq,
+//! 			colmat::ParShape::Seq,
 //! 			Default::default(),
 //! 		),
 //! 		householder::apply_block_householder_sequence_transpose_on_the_left_in_place_scratch::<
@@ -111,15 +111,15 @@ pub mod col_pivoting;
 pub mod no_pivoting;
 #[cfg(test)]
 mod tests {
-	use crate as faer;
+	use crate as colmat;
 	use equator::assert;
 	#[test]
 	fn test_example() {
-		use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-		use faer::linalg::qr::no_pivoting::factor;
-		use faer::linalg::{householder, triangular_solve};
-		use faer::reborrow::*;
-		use faer::{Conj, Mat, Par};
+		use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+		use colmat::linalg::qr::no_pivoting::factor;
+		use colmat::linalg::{householder, triangular_solve};
+		use colmat::reborrow::*;
+		use colmat::{Conj, Mat, Par};
 		let a = mat![
 			[-1.14920683, -1.67950492],
 			[-0.93009756, -0.03885086],

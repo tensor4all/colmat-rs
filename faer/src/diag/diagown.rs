@@ -18,7 +18,7 @@ impl<T, Dim: Shape> Diag<T, Dim> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::Col;
+	/// use colmat::Col;
 	/// let diagonal = Col::from_fn(3, |i| i as f64).into_diagonal();
 	/// let capacity = diagonal.capacity();
 	/// assert!(capacity >= 3);

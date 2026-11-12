@@ -1,6 +1,6 @@
 use crate::assert;
 use crate::internal_prelude::*;
-use faer_traits::RealReg;
+use colmat_traits::RealReg;
 /// Specifies how missing values should be handled in mean and variance
 /// computations.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

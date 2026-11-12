@@ -360,6 +360,72 @@ dependencies = [
 ]
 
 [[package]]
+name = "colmat"
+version = "0.34.0"
+dependencies = [
+ "aligned-vec",
+ "amd",
+ "approx",
+ "assert_approx_eq",
+ "blis-src",
+ "bytemuck",
+ "colmat-traits",
+ "curl",
+ "diol",
+ "dyn-stack",
+ "eigen-bench-setup",
+ "equator 0.6.0",
+ "flate2",
+ "generativity",
+ "intel-mkl-src",
+ "itertools 0.14.0",
+ "lapack-src",
+ "lapack-sys",
+ "libm",
+ "log",
+ "matrix-market-rs",
+ "nalgebra",
+ "nano-gemm",
+ "netlib-src",
+ "npyz",
+ "num-complex",
+ "num-traits",
+ "openblas-src",
+ "openmp-sys",
+ "openssl-sys",
+ "pulp",
+ "rand 0.9.2",
+ "rand_distr",
+ "rayon",
+ "reborrow",
+ "serde",
+ "serde_json",
+ "serde_test",
+ "simba",
+ "suitesparse_sys",
+ "t4a-gemm",
+ "t4a-private-gemm-x86",
+ "tar",
+ "threadteam",
+ "toml 0.9.8",
+]
+
+[[package]]
+name = "colmat-traits"
+version = "0.25.0"
+dependencies = [
+ "bytemuck",
+ "dyn-stack",
+ "generativity",
+ "libm",
+ "num-complex",
+ "num-traits",
+ "pulp",
+ "qd",
+ "reborrow",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -827,8 +893,8 @@ name = "faer-ffi"
 version = "0.1.0"
 dependencies = [
  "cbindgen",
+ "colmat",
  "pastey",
- "t4a-faer",
  "threadteam",
 ]
 
@@ -2588,72 +2654,6 @@ dependencies = [
  "libc",
  "thiserror 1.0.69",
  "walkdir",
-]
-
-[[package]]
-name = "t4a-faer"
-version = "0.32.0"
-dependencies = [
- "aligned-vec",
- "amd",
- "approx",
- "assert_approx_eq",
- "blis-src",
- "bytemuck",
- "curl",
- "diol",
- "dyn-stack",
- "eigen-bench-setup",
- "equator 0.6.0",
- "flate2",
- "generativity",
- "intel-mkl-src",
- "itertools 0.14.0",
- "lapack-src",
- "lapack-sys",
- "libm",
- "log",
- "matrix-market-rs",
- "nalgebra",
- "nano-gemm",
- "netlib-src",
- "npyz",
- "num-complex",
- "num-traits",
- "openblas-src",
- "openmp-sys",
- "openssl-sys",
- "pulp",
- "rand 0.9.2",
- "rand_distr",
- "rayon",
- "reborrow",
- "serde",
- "serde_json",
- "serde_test",
- "simba",
- "suitesparse_sys",
- "t4a-faer-traits",
- "t4a-gemm",
- "t4a-private-gemm-x86",
- "tar",
- "threadteam",
- "toml 0.9.8",
-]
-
-[[package]]
-name = "t4a-faer-traits"
-version = "0.24.3"
-dependencies = [
- "bytemuck",
- "dyn-stack",
- "generativity",
- "libm",
- "num-complex",
- "num-traits",
- "pulp",
- "qd",
- "reborrow",
 ]
 
 [[package]]

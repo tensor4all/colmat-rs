@@ -418,11 +418,11 @@ fn compute_bidiag_real_svd<T: RealField>(
 ///
 /// # Examples
 /// ```
-/// use faer::Par;
-/// use faer::linalg::svd::bidiagonal_svd_scratch;
+/// use colmat::Par;
+/// use colmat::linalg::svd::bidiagonal_svd_scratch;
 /// let _buffer = dyn_stack::MemBuffer::new(bidiagonal_svd_scratch::<f64>(
 /// 	3,
-/// 	faer::ParShape::Seq,
+/// 	colmat::ParShape::Seq,
 /// 	Default::default(),
 /// ));
 /// ```
@@ -461,13 +461,13 @@ pub fn bidiagonal_svd_scratch<T: ComplexField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::svd::*;
-/// use faer::{Mat, Par};
+/// use colmat::linalg::svd::*;
+/// use colmat::{Mat, Par};
 /// let mut d = [3.0f64, -2.0];
 /// let (mut u, mut v) = (Mat::zeros(2, 2), Mat::zeros(2, 2));
 /// let mut mem = MemBuffer::new(bidiagonal_svd_scratch::<f64>(
 /// 	2,
-/// 	faer::ParShape::Seq,
+/// 	colmat::ParShape::Seq,
 /// 	Default::default(),
 /// ));
 /// bidiagonal_svd(

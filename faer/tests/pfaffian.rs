@@ -1,10 +1,10 @@
 //! Independent definitions and congruences, not fixtures ported from PfaPack.
-use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-use faer::linalg::pfaffian::{PfaffianError, pfaffian, pfaffian_scratch};
-use faer::{Mat, MatRef, Par, c32, c64};
-use faer_traits::ComplexField;
-use faer_traits::ext::*;
-use faer_traits::math_utils::{eps, from_f64, one, zero};
+use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+use colmat::linalg::pfaffian::{PfaffianError, pfaffian, pfaffian_scratch};
+use colmat::{Mat, MatRef, Par, c32, c64};
+use colmat_traits::ComplexField;
+use colmat_traits::ext::*;
+use colmat_traits::math_utils::{eps, from_f64, one, zero};
 
 fn compute<T: ComplexField>(
 	a: MatRef<'_, T>,
@@ -129,7 +129,7 @@ fn shapes_singularity_and_negative_pfaffian() {
 		compute(Mat::<f64>::zeros(8, 8).as_ref(), Par::Seq),
 		Err(PfaffianError::ZeroPivot { index: 0 })
 	);
-	let a = faer::mat![[0.0, -3.0], [3.0, 0.0]];
+	let a = colmat::mat![[0.0, -3.0], [3.0, 0.0]];
 	assert_eq!(compute(a.as_ref(), Par::Seq), Ok(-3.0));
 	let mut singular = Mat::<f64>::zeros(4, 4);
 	singular[(1, 0)] = 2.0;
@@ -301,7 +301,7 @@ fn nonfinite_pivot_candidate_is_not_a_zero_pivot() {
 	);
 	#[cfg(feature = "threadteam")]
 	for width in [3, 8] {
-		faer::team::with_team(width, |par| {
+		colmat::team::with_team(width, |par| {
 			assert_eq!(
 				compute(a.as_ref(), par),
 				Err(PfaffianError::NumericalFailure)
@@ -321,7 +321,7 @@ fn runtime_selected_lane() {
 				core::any::type_name::<S>(),
 				core::mem::size_of::<<f64 as ComplexField>::SimdVec<S>>() / 8,
 				core::mem::size_of::<
-					<faer_traits::ComplexImpl<f64> as ComplexField>::SimdVec<S>,
+					<colmat_traits::ComplexImpl<f64> as ComplexField>::SimdVec<S>,
 				>() / 16,
 				S::IS_SCALAR,
 			)
@@ -344,7 +344,7 @@ fn insufficient_scratch_panics() {
 
 #[test]
 fn generic_extended_precision_real_and_complex() {
-	use faer_traits::{cx128, fx128};
+	use colmat_traits::{cx128, fx128};
 	let a = random_skew(8, 128, |r, _| from_f64::<fx128>(r));
 	close(
 		compute(a.as_ref(), Par::Seq).unwrap(),
@@ -363,7 +363,7 @@ fn generic_extended_precision_real_and_complex() {
 #[test]
 fn team_validation_checks_nonleading_columns() {
 	let (mut a, expected) = known_congruence(128, true);
-	faer::team::with_team(8, |mut par| {
+	colmat::team::with_team(8, |mut par| {
 		close(
 			compute(a.as_ref(), par.reborrow()).unwrap(),
 			expected,
@@ -384,11 +384,11 @@ fn team_validation_checks_nonleading_columns() {
 #[test]
 fn team_agreement_and_actual_row_dispatch() {
 	fn check<T: ComplexField>(a: Mat<T>) {
-		use faer::utils::team::stats;
+		use colmat::utils::team::stats;
 		let want = compute(a.as_ref(), Par::Seq).unwrap();
 		let scalar = core::any::type_name::<T>();
 		for width in [1, 3, 8, 32] {
-			faer::team::with_team(width, |par| {
+			colmat::team::with_team(width, |par| {
 				stats::enable(true);
 				let _ = stats::take();
 				let got = compute(a.as_ref(), par).unwrap();

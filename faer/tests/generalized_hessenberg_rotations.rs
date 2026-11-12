@@ -1,7 +1,7 @@
 //! Public finite-pencil regression for safe generalized-Hessenberg rotations.
 mod common;
 use common::*;
-use faer::linalg::gevd::gen_hessenberg::{self, GeneralizedHessenbergParams};
+use colmat::linalg::gevd::gen_hessenberg::{self, GeneralizedHessenbergParams};
 fn normalized<T: ComplexField>(x: &T, scale: &T::Real, imaginary: &T) -> T {
 	from_real::<T>(&(&x.real() / scale))
 		+ imaginary.mul_real(&(&x.imag() / scale))
@@ -28,7 +28,7 @@ fn check<T: ComplexField>(make: fn(f64, f64) -> T, tiny: f64, large: f64) {
 		let mut b = Mat::<T>::identity(3, 3);
 		let mut q = b.clone();
 		let mut z = b.clone();
-		let params: GeneralizedHessenbergParams = faer::auto!(T);
+		let params: GeneralizedHessenbergParams = colmat::auto!(T);
 		let mut memory = MemBuffer::new(
 			gen_hessenberg::generalized_hessenberg_scratch::<T>(3, params),
 		);

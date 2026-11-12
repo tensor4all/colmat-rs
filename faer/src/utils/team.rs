@@ -25,13 +25,13 @@ use threadteam::TeamExec;
 /// every call:
 ///
 /// ```
-/// use faer::{Accum, Mat};
+/// use colmat::{Accum, Mat};
 /// let a = Mat::<f64>::from_fn(8, 8, |i, j| (i + j) as f64);
 /// let mut dst = Mat::<f64>::zeros(8, 8);
-/// faer::team::with_team(2, |par| {
+/// colmat::team::with_team(2, |par| {
 ///     // every faer call in here runs its regions on 2 participants: the calling thread and
 ///     // 1 reserved worker
-///     faer::linalg::matmul::matmul(dst.as_mut(), Accum::Replace, a.as_ref(), a.as_ref(), 1.0, par);
+///     colmat::linalg::matmul::matmul(dst.as_mut(), Accum::Replace, a.as_ref(), a.as_ref(), 1.0, par);
 /// });
 /// ```
 ///
@@ -51,7 +51,7 @@ use threadteam::TeamExec;
 /// the team to each call:
 ///
 /// ```
-/// use faer::{Accum, Mat, Par};
+/// use colmat::{Accum, Mat, Par};
 /// let a = Mat::<f64>::from_fn(8, 8, |i, j| (i + j) as f64);
 /// let mut dst = Mat::<f64>::zeros(8, 8);
 ///
@@ -69,7 +69,7 @@ use threadteam::TeamExec;
 /// for _ in 0..3 {
 ///     let mut exec = team.exec(4);
 ///     exec.team(|t| {
-///         faer::linalg::matmul::matmul(
+///         colmat::linalg::matmul::matmul(
 ///             dst.as_mut(),
 ///             Accum::Replace,
 ///             a.as_ref(),

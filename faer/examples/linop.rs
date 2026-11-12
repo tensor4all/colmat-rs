@@ -3,17 +3,17 @@
 use dyn_stack::{MemStack, StackReq};
 use reborrow::{Reborrow, ReborrowMut};
 
-use faer::{dyn_stack, reborrow};
+use colmat::{dyn_stack, reborrow};
 
-use faer::mat::{AsMatMut, MatMut, MatRef};
-use faer::matrix_free::{BiLinOp, LinOp};
-use faer::sparse::{SparseRowMatRef, linalg};
-use faer::{Accum, Conj, Par, ParShape};
+use colmat::mat::{AsMatMut, MatMut, MatRef};
+use colmat::matrix_free::{BiLinOp, LinOp};
+use colmat::sparse::{SparseRowMatRef, linalg};
+use colmat::{Accum, Conj, Par, ParShape};
 
-use faer::c64;
+use colmat::c64;
 
-use faer::traits::ext::ComplexFieldExt;
-use faer::traits::{ComplexField, Index};
+use colmat::traits::ext::ComplexFieldExt;
+use colmat::traits::{ComplexField, Index};
 
 #[derive(Debug)]
 pub struct BinvAOperator<'a, I: Index, T: ComplexField> {
@@ -64,7 +64,7 @@ impl<I: Index, T: ComplexField> LinOp<T> for BinvAOperatorScratch<'_, I> {
 
 impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperatorScratch<'_, I> {
 	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
-		faer::linalg::temp_mat_scratch::<T>(self.Binv.nrows(), rhs_ncols).and(
+		colmat::linalg::temp_mat_scratch::<T>(self.Binv.nrows(), rhs_ncols).and(
 			self.Binv
 				.solve_transpose_in_place_scratch::<T>(rhs_ncols, par),
 		)
@@ -176,7 +176,7 @@ impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperator<'_, I, T> {
 		let (m, n) = (rhs.nrows(), rhs.ncols());
 
 		let (mut tmp, stack) =
-			faer::linalg::temp_mat_zeroed::<T, _, _>(m, n, stack);
+			colmat::linalg::temp_mat_zeroed::<T, _, _>(m, n, stack);
 		let mut tmp = tmp.as_mat_mut();
 		tmp.copy_from(rhs);
 
@@ -206,7 +206,7 @@ impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperator<'_, I, T> {
 		let (m, n) = (rhs.nrows(), rhs.ncols());
 
 		let (mut tmp, stack) =
-			faer::linalg::temp_mat_zeroed::<T, _, _>(m, n, stack);
+			colmat::linalg::temp_mat_zeroed::<T, _, _>(m, n, stack);
 		let mut tmp = tmp.as_mat_mut();
 		tmp.copy_from(rhs);
 
@@ -228,12 +228,12 @@ impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperator<'_, I, T> {
 }
 
 use dyn_stack::MemBuffer;
-use faer::prelude::default;
-use faer::sparse::{SparseRowMat, Triplet};
-use faer::{Col, Mat};
+use colmat::prelude::default;
+use colmat::sparse::{SparseRowMat, Triplet};
+use colmat::{Col, Mat};
 
 fn main() -> Result<(), Box<dyn core::error::Error>> {
-	use faer::stats::prelude::*;
+	use colmat::stats::prelude::*;
 	let rng = &mut StdRng::seed_from_u64(0);
 
 	let dist = ComplexDistribution::new(StandardNormal, StandardNormal);
@@ -282,7 +282,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 	// computing allocation size
 	let factorize_scratch =
 		symbolic.factorize_numeric_lu_scratch::<c64>(par.shape(), default());
-	let eigen_scratch = faer::matrix_free::eigen::partial_eigen_scratch(
+	let eigen_scratch = colmat::matrix_free::eigen::partial_eigen_scratch(
 		&BinvAOperatorScratch { Binv: &symbolic } as &dyn LinOp<c64>,
 		n_eig,
 		par.shape(),
@@ -342,7 +342,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
 	let v0 = Col::<c64>::ones(n);
 
-	faer::matrix_free::eigen::partial_eigen(
+	colmat::matrix_free::eigen::partial_eigen(
 		eigvecs.rb_mut(),
 		&mut eigvals,
 		&BinvAOperator { Binv, A: A.rb() },
@@ -383,7 +383,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 	}
 
 	{
-		use faer::prelude::*;
+		use colmat::prelude::*;
 
 		println!("sanity check:");
 		let Binv_A = B.sp_lu(Par::Seq)?.solve(A.to_dense(), Par::Seq);

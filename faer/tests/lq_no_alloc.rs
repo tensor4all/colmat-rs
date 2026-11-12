@@ -36,10 +36,10 @@
 //! asserts only faer's own on an Apple aarch64 host (see the cell); every other
 //! cell, and that one on every other target, still asserts the whole count.
 #![cfg(feature = "std")]
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
-use faer::traits::ComplexField;
-use faer::{Auto, Mat, Par, ParShape, c32, c64};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
+use colmat::traits::ComplexField;
+use colmat::{Auto, Mat, Par, ParShape, c32, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::backtrace::Backtrace;
 use std::cell::{Cell, RefCell};

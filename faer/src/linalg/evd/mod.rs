@@ -163,13 +163,13 @@ pub fn self_adjoint_evd_scratch<T: ComplexField>(
 ///
 /// # Examples
 /// ```
-/// use faer::Par;
-/// use faer::linalg::evd::*;
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
 /// let _buffer =
 /// 	dyn_stack::MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(
 /// 		3,
 /// 		ComputeEigenvectors::Yes,
-/// 		faer::ParShape::Seq,
+/// 		colmat::ParShape::Seq,
 /// 		Default::default(),
 /// 	));
 /// ```
@@ -1510,10 +1510,10 @@ pub fn evd_scratch<T: ComplexField>(
 ///
 /// # Examples
 /// ```
-/// use faer::Par;
-/// use faer::linalg::evd::hessenberg_schur_scratch;
+/// use colmat::Par;
+/// use colmat::linalg::evd::hessenberg_schur_scratch;
 /// let req =
-/// 	hessenberg_schur_scratch::<f64>(3, true, faer::ParShape::Seq, Default::default());
+/// 	hessenberg_schur_scratch::<f64>(3, true, colmat::ParShape::Seq, Default::default());
 /// let _buffer = dyn_stack::MemBuffer::new(req);
 /// ```
 pub fn hessenberg_schur_scratch<T: ComplexField>(
@@ -1542,15 +1542,15 @@ pub fn hessenberg_schur_scratch<T: ComplexField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::evd::*;
-/// use faer::{Col, Mat, Par};
-/// let mut h = faer::mat![[1.0f64, 2.0], [-2.0, 1.0]];
+/// use colmat::linalg::evd::*;
+/// use colmat::{Col, Mat, Par};
+/// let mut h = colmat::mat![[1.0f64, 2.0], [-2.0, 1.0]];
 /// let mut z = Mat::identity(2, 2);
 /// let (mut wr, mut wi) = (Col::zeros(2), Col::zeros(2));
 /// let mut mem = MemBuffer::new(hessenberg_schur_scratch::<f64>(
 /// 	2,
 /// 	true,
-/// 	faer::ParShape::Seq,
+/// 	colmat::ParShape::Seq,
 /// 	Default::default(),
 /// ));
 /// hessenberg_schur_real(
@@ -1627,14 +1627,14 @@ pub fn hessenberg_schur_real<T: RealField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::evd::*;
-/// use faer::{Col, Mat, Par, c64};
+/// use colmat::linalg::evd::*;
+/// use colmat::{Col, Mat, Par, c64};
 /// let mut h = Mat::<c64>::identity(2, 2);
 /// let mut w = Col::zeros(2);
 /// let mut mem = MemBuffer::new(hessenberg_schur_scratch::<c64>(
 /// 	2,
 /// 	false,
-/// 	faer::ParShape::Seq,
+/// 	colmat::ParShape::Seq,
 /// 	Default::default(),
 /// ));
 /// hessenberg_schur_cplx(
@@ -1698,7 +1698,7 @@ pub fn hessenberg_schur_cplx<T: ComplexField>(
 ///
 /// # Examples
 /// ```
-/// use faer::linalg::evd::SchurReorderError;
+/// use colmat::linalg::evd::SchurReorderError;
 /// let err = SchurReorderError { position: 2 };
 /// assert_eq!(err.position, 2);
 /// ```
@@ -1713,7 +1713,7 @@ pub struct SchurReorderError {
 ///
 /// # Examples
 /// ```
-/// let req = faer::linalg::evd::reorder_schur_scratch::<f64>(3);
+/// let req = colmat::linalg::evd::reorder_schur_scratch::<f64>(3);
 /// let _buffer = dyn_stack::MemBuffer::new(req);
 /// ```
 pub fn reorder_schur_scratch<T: ComplexField>(dim: usize) -> StackReq {
@@ -1747,9 +1747,9 @@ pub fn reorder_schur_scratch<T: ComplexField>(dim: usize) -> StackReq {
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let mut t = faer::mat![[1.0f64, 0.0], [0.0, 2.0]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let mut t = colmat::mat![[1.0f64, 0.0], [0.0, 2.0]];
 /// let mut mem = MemBuffer::new(reorder_schur_scratch::<f64>(2));
 /// assert_eq!(
 /// 	reorder_schur_real(
@@ -1874,8 +1874,8 @@ pub fn reorder_schur_real<T: RealField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::evd::*;
-/// use faer::{Mat, Par, c64};
+/// use colmat::linalg::evd::*;
+/// use colmat::{Mat, Par, c64};
 /// let mut t = Mat::<c64>::identity(2, 2);
 /// let mut mem = MemBuffer::new(reorder_schur_scratch::<c64>(2));
 /// assert_eq!(
@@ -1916,7 +1916,7 @@ pub fn reorder_schur_cplx<T: ComplexField>(
 ///
 /// # Examples
 /// ```
-/// let req = faer::linalg::evd::eigenvectors_from_schur_scratch::<f64>(3);
+/// let req = colmat::linalg::evd::eigenvectors_from_schur_scratch::<f64>(3);
 /// let _buffer = dyn_stack::MemBuffer::new(req);
 /// ```
 pub fn eigenvectors_from_schur_scratch<T: ComplexField>(
@@ -1942,9 +1942,9 @@ pub fn eigenvectors_from_schur_scratch<T: ComplexField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::evd::*;
-/// use faer::{Mat, Par};
-/// let t = faer::mat![[1.0f64, 2.0], [0.0, 3.0]];
+/// use colmat::linalg::evd::*;
+/// use colmat::{Mat, Par};
+/// let t = colmat::mat![[1.0f64, 2.0], [0.0, 3.0]];
 /// let mut x = Mat::zeros(2, 2);
 /// let mut mem = MemBuffer::new(eigenvectors_from_schur_scratch::<f64>(2));
 /// eigenvectors_from_schur_real(
@@ -2011,8 +2011,8 @@ pub fn eigenvectors_from_schur_real<T: RealField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::evd::*;
-/// use faer::{Mat, Par, c64};
+/// use colmat::linalg::evd::*;
+/// use colmat::{Mat, Par, c64};
 /// let t = Mat::<c64>::identity(2, 2);
 /// let mut x = Mat::zeros(2, 2);
 /// let mut mem = MemBuffer::new(eigenvectors_from_schur_scratch::<c64>(2));

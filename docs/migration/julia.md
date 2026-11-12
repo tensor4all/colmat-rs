@@ -69,7 +69,7 @@ with `pool.into_team(width)`, and take an execution token for each call with
 the scope; the team comes back when that `exec` is dropped. A factor object owns its numerical data, but it does not own a team or
 silently choose parallelism. The separate choice of `Par::Seq` needs no team at all.
 
-`faer::team::with_team(2, |mut par| ...)` is the one-off route: it builds a pool,
+`colmat::team::with_team(2, |mut par| ...)` is the one-off route: it builds a pool,
 reserves its members, and releases them after the closure returns. Use it for one call, or
 for a script that runs a single operation. The
 [Rust guide](../migration-guide.md#explicit-parallelism) gives the cost of each
@@ -97,16 +97,16 @@ See [the Par migration guide](../par-team-migration.md) for detailed API history
 ## Hold one team across several factorizations
 
 The source is [`faer/examples/migration_julia.rs`](../../faer/examples/migration_julia.rs).
-Run it with `cargo run -p t4a-faer --example migration_julia -j8`.
+Run it with `cargo run -p colmat --example migration_julia -j8`.
 It checks a known solution, rectangular QR and SVD reconstruction, and complex dot conjugation.
 The Cholesky input has positive leading principal minors 4 and 11; the example asserts that
 known success condition and propagates SVD nonconvergence as its original typed error.
 
 ```rust
-use faer::linalg::matmul::dot::inner_prod;
-use faer::linalg::matmul::matmul;
-use faer::linalg::solvers::{DenseSolveCore, Solve, SvdError};
-use faer::{Accum, Conj, Mat, Par, Side, c64, col, mat};
+use colmat::linalg::matmul::dot::inner_prod;
+use colmat::linalg::matmul::matmul;
+use colmat::linalg::solvers::{DenseSolveCore, Solve, SvdError};
+use colmat::{Accum, Conj, Mat, Par, Side, c64, col, mat};
 
 fn main() -> Result<(), SvdError> {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];

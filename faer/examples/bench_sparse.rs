@@ -1,9 +1,9 @@
 #![allow(non_snake_case, dead_code)]
 use curl::easy::Easy;
 use diol::prelude::*;
-use faer::{Par, Side};
-use faer::reborrow::*;
-use faer::sparse::*;
+use colmat::{Par, Side};
+use colmat::reborrow::*;
+use colmat::sparse::*;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::sync::LazyLock;

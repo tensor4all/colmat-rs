@@ -12,7 +12,7 @@ use reborrow::*;
 /// # example
 ///
 /// ```
-/// use faer::{mat, perm};
+/// use colmat::{mat, perm};
 /// let mut m = mat![
 /// 	[1.0, 2.0, 3.0], //
 /// 	[4.0, 5.0, 6.0],
@@ -46,7 +46,7 @@ pub fn swap_cols<N: Shape, T>(a: ColMut<'_, T, N>, b: ColMut<'_, T, N>) {
 /// # example
 ///
 /// ```
-/// use faer::{mat, perm};
+/// use colmat::{mat, perm};
 /// let mut m = mat![
 /// 	[1.0, 2.0, 3.0], //
 /// 	[4.0, 5.0, 6.0],
@@ -77,7 +77,7 @@ pub fn swap_rows<N: Shape, T>(a: RowMut<'_, T, N>, b: RowMut<'_, T, N>) {
 /// # example
 ///
 /// ```
-/// use faer::{mat, perm};
+/// use colmat::{mat, perm};
 /// let mut m = mat![
 /// 	[1.0, 2.0, 3.0], //
 /// 	[4.0, 5.0, 6.0],
@@ -114,7 +114,7 @@ pub fn swap_rows_idx<M: Shape, N: Shape, T>(
 /// # example
 ///
 /// ```
-/// use faer::{mat, perm};
+/// use colmat::{mat, perm};
 /// let mut m = mat![
 /// 	[1.0, 2.0, 3.0], //
 /// 	[4.0, 5.0, 6.0],

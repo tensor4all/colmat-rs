@@ -1,9 +1,9 @@
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::perm::Perm;
-use faer::sparse::linalg::{SupernodalThreshold, lu, qr};
-use faer::sparse::{SparseColMat, Triplet};
-use faer::traits::{ComplexField, math_utils::from_f64};
-use faer::{Conj, Mat, Par, ParShape};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::perm::Perm;
+use colmat::sparse::linalg::{SupernodalThreshold, lu, qr};
+use colmat::sparse::{SparseColMat, Triplet};
+use colmat::traits::{ComplexField, math_utils::from_f64};
+use colmat::{Conj, Mat, Par, ParShape};
 fn check<T: ComplexField>(tolerance: f64, value: fn(f64, f64) -> T) {
 	for n in [0, 1, 5, 40] {
 		for tall in [false, true] {
@@ -150,11 +150,11 @@ fn f64_ordering() {
 }
 #[test]
 fn c32_ordering() {
-	check::<faer::c32>(1e-3, |r, i| faer::c32::new(r as f32, i as f32));
+	check::<colmat::c32>(1e-3, |r, i| colmat::c32::new(r as f32, i as f32));
 }
 #[test]
 fn c64_ordering() {
-	check::<faer::c64>(1e-10, faer::c64::new);
+	check::<colmat::c64>(1e-10, colmat::c64::new);
 }
 
 #[test]

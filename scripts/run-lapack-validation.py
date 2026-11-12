@@ -193,7 +193,7 @@ def main():
                         ['uname', '-a'], ['rustc', '-Vv']):
             subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True)
     code, seconds = run_command(
-        ['cargo', 'test', '-p', 't4a-faer', '--lib', '--locked', '--no-run', '--message-format=json'],
+        ['cargo', 'test', '-p', 'colmat', '--lib', '--locked', '--no-run', '--message-format=json'],
         output / 'build.log', 1200,
     )
     report = dict(build_exit_code=code, build_seconds=round(seconds, 3), families=[], cases=[])
@@ -207,11 +207,11 @@ def main():
             except json.JSONDecodeError:
                 continue
             if (item.get('reason') == 'compiler-artifact' and item.get('executable')
-                    and item.get('target', {}).get('name') == 'faer'
+                    and item.get('target', {}).get('name') == 'colmat'
                     and item.get('profile', {}).get('test')):
                 binaries.append(item['executable'])
         if len(binaries) != 1:
-            raise ValueError(f'expected one faer test binary, got {binaries}')
+            raise ValueError(f'expected one colmat test binary, got {binaries}')
         binary = Path(binaries[0])
         listing = subprocess.run([str(binary), '--list', '--format', 'terse'],
                                  text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True).stdout

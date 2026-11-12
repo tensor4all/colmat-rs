@@ -5,7 +5,7 @@ use crate::{Conj, ContiguousFwd, Idx, IdxInc};
 use core::mem::MaybeUninit;
 
 use equator::assert;
-use faer_traits::ComplexField;
+use colmat_traits::ComplexField;
 use generativity::Guard;
 use linalg::zip::Last;
 /// see [`super::MatMut`]
@@ -290,7 +290,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// # example
 	///
 	/// ```
-	/// use faer::{MatMut, mat};
+	/// use colmat::{MatMut, mat};
 	/// // row major matrix with 2 rows, 3 columns, with a column at the end that we want to skip.
 	/// // the row stride is the pointer offset from the address of 1.0 to the address of 4.0,
 	/// // which is 4
@@ -1799,7 +1799,7 @@ impl<'a, T, Rows: Shape, Cols: Shape> MatMut<'a, T, Rows, Cols> {
 	///
 	/// # example
 	/// ```
-	/// use faer::{MatMut, mat};
+	/// use colmat::{MatMut, mat};
 	/// let mut slice = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0_f64];
 	/// let view = MatMut::from_column_major_slice_mut(&mut slice, 3, 2);
 	/// let expected = mat![[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]];
@@ -1871,7 +1871,7 @@ impl<'a, T, Rows: Shape, Cols: Shape> MatMut<'a, T, Rows, Cols> {
 	///
 	/// # example
 	/// ```
-	/// use faer::{MatMut, mat};
+	/// use colmat::{MatMut, mat};
 	/// let mut slice = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0_f64];
 	/// let view = MatMut::from_row_major_slice_mut(&mut slice, 3, 2);
 	/// let expected = mat![[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]];

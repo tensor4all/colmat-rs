@@ -1,8 +1,8 @@
-use faer::sparse::linalg::{
+use colmat::sparse::linalg::{
 	SupernodalThreshold,
 	qr::{QrSymbolicParams, SymbolicQr, SymbolicQrRaw, factorize_symbolic_qr},
 };
-use faer::sparse::{SparseColMat, Triplet};
+use colmat::sparse::{SparseColMat, Triplet};
 fn algorithm(s: &SymbolicQr<usize>) -> &'static str {
 	match s.raw() {
 		SymbolicQrRaw::Simplicial(_) => "simplicial",

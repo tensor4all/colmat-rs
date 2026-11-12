@@ -1,6 +1,6 @@
 [package]
-name = "t4a-faer"
-version = "0.32.0"
+name = "colmat"
+version = "0.34.0"
 edition = "2021"
 authors = ["sarah quiñones <sarah@veganb.tw>"]
 description.workspace = true
@@ -12,9 +12,10 @@ keywords.workspace = true
 categories.workspace = true
 rust-version = "1.89.0"
 
-# The dependency key stays `faer`, so downstream `use faer::...` is unchanged.
+# Package and library target are both `colmat`, so downstream writes
+# `use colmat::...` with no `package` alias (renamed from `t4a-faer` 0.33.0).
 [lib]
-name = "faer"
+name = "colmat"
 
 [dependencies]
 bytemuck = "1.24.0"
@@ -39,7 +40,7 @@ dyn-stack = { version = "0.13.2", default-features = false, features = ["core-er
 pulp = { version = "0.22.2", default-features = false, features = ["x86-v3"] }
 equator = { version = "0.6.0" }
 
-faer-traits = { package = "t4a-faer-traits", path = "../faer-traits", version = "0.24.3", default-features = false }
+colmat-traits = { path = "../faer-traits", version = "0.25.0", default-features = false }
 
 # tensor4all fork of gemm: same [lib] name (`gemm`), so every `use gemm::...` in
 # this crate is unchanged. The fork adds the Apple SME microkernels (f64/c64/f32/c32)
@@ -80,7 +81,7 @@ default = [
   "npy",
 ]
 std = [
-  "faer-traits/std",
+  "colmat-traits/std",
   "pulp/std",
   "gemm/std",
   # Apple SME (aarch64 + Apple + macOS >= 26) microkernels for f64/c64/f32/c32.

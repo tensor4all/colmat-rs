@@ -10,11 +10,11 @@
 
 use std::sync::{Arc, Mutex, OnceLock};
 
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lu::partial_pivoting::factor::{
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lu::partial_pivoting::factor::{
 	self as plu, PartialPivLuParams,
 };
-use faer::{Auto, MatMut, Par};
+use colmat::{Auto, MatMut, Par};
 
 /// The `faer_perf` messages this process produced.
 struct Capture(Arc<Mutex<Vec<String>>>);

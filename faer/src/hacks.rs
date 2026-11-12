@@ -1,5 +1,5 @@
 use core::fmt::{Debug, Write};
-use faer_traits::ComplexConj;
+use colmat_traits::ComplexConj;
 use num_complex::Complex;
 /// Obtain a TypeId for T without `T: 'static`
 /// credit goes to: <https://github.com/thomcc>

@@ -1199,8 +1199,8 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// # example
 ///
 /// ```
-/// use faer::linalg::matmul::triangular::{BlockStructure, matmul_with_conj};
-/// use faer::{Accum, Conj, Mat, Par, mat, unzip, zip};
+/// use colmat::linalg::matmul::triangular::{BlockStructure, matmul_with_conj};
+/// use colmat::{Accum, Conj, Mat, Par, mat, unzip, zip};
 /// let lhs = mat![[0.0, 2.0], [1.0, 3.0]];
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
@@ -1315,8 +1315,8 @@ pub fn matmul_with_conj<T: ComplexField, M: Shape, N: Shape, K: Shape>(
 /// # example
 ///
 /// ```
-/// use faer::linalg::matmul::triangular::{BlockStructure, matmul};
-/// use faer::{Accum, Conj, Mat, Par, mat, unzip, zip};
+/// use colmat::linalg::matmul::triangular::{BlockStructure, matmul};
+/// use colmat::{Accum, Conj, Mat, Par, mat, unzip, zip};
 /// let lhs = mat![[0.0, 2.0], [1.0, 3.0]];
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);

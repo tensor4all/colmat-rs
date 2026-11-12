@@ -62,7 +62,7 @@ calls lends one reservation instead of acquiring one per call. The matrix and fa
 owners remain ordinary Rust values; holding a matrix does not grant worker
 access.
 
-`faer::team::with_team(2, |mut par| ...)` is the one-off route: it builds a pool,
+`colmat::team::with_team(2, |mut par| ...)` is the one-off route: it builds a pool,
 reserves its members, and releases them after the closure returns. Use it for one call, or
 for a script that runs a single operation; the
 [Rust guide](../migration-guide.md#explicit-parallelism) gives its cost per call
@@ -94,12 +94,12 @@ The symmetric matrix below is positive definite: its leading principal minors
 are 4 and 11. Both LU and unpivoted LDLT should recover the known solution.
 The last product checks a mutable block without changing the surrounding cells.
 The source is [`faer/examples/migration_cpp.rs`](../../faer/examples/migration_cpp.rs).
-Run it with `cargo run -p t4a-faer --example migration_cpp -j8`.
+Run it with `cargo run -p colmat --example migration_cpp -j8`.
 
 ```rust
-use faer::linalg::matmul::matmul;
-use faer::linalg::solvers::{LdltError, Solve};
-use faer::{Accum, Mat, Par, Side, mat};
+use colmat::linalg::matmul::matmul;
+use colmat::linalg::solvers::{LdltError, Solve};
+use colmat::{Accum, Mat, Par, Side, mat};
 
 fn main() -> Result<(), LdltError> {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];

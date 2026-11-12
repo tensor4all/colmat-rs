@@ -1,6 +1,6 @@
 ---
 name: faer-usage
-description: Call this library from a downstream Rust project. Use when writing or reviewing code that factorises, solves, multiplies or decomposes dense matrices with `faer` (package `t4a-faer`): which decomposition and entry point to pick, the borrowed-versus-in-place forms, the error types, scratch sizing, and caller-owned thread teams.
+description: Call this library from a downstream Rust project. Use when writing or reviewing code that factorises, solves, multiplies or decomposes dense matrices with `colmat`: which decomposition and entry point to pick, the borrowed-versus-in-place forms, the error types, scratch sizing, and caller-owned thread teams.
 ---
 
 # Using the library from a downstream project
@@ -9,12 +9,12 @@ This is the usage layer: how a **consumer** of the crate calls it correctly. The
 workflow for developing the fork itself is the separate
 [`faer-optimization`](../faer-optimization/SKILL.md) skill.
 
-The package is `t4a-faer`; the Rust library name is `faer` (`faer/Cargo.toml:2`, `faer/Cargo.toml:17`).
-Depend on it with the package name aliased:
+The package and the Rust library are both `colmat` (`faer/Cargo.toml:2`, `faer/Cargo.toml:18`),
+renamed from `t4a-faer` 0.33.0; depend on it directly:
 
 ```toml
 [dependencies]
-faer = { package = "t4a-faer", version = "0.32" }
+colmat = "0.34"
 ```
 
 This is **not** upstream `faer`: upstream examples from a model's training data do not compile here.
@@ -172,8 +172,9 @@ Column-major is native (`Mat` is column-major; `MatRef`/`MatMut` may be strided)
 
 ## Pitfalls
 
-- **Package versus library name.** `t4a-faer` in `Cargo.toml`, `faer` in `use`. A plain
-  `faer = "0.32"` pulls upstream, not this crate.
+- **One name.** `colmat` in `Cargo.toml` and `colmat` in `use`; the crate was published as
+  `t4a-faer` up to 0.33.0, whose library was named `faer`. A plain `faer = "0.24"` pulls upstream,
+  not this crate.
 - **Upstream code does not compile here.** `set_global_parallelism`, `get_global_parallelism` and
   `Par::Rayon` are gone; the factorization methods take a trailing `Par`.
 - **`A = U S V^H`.** `Svd::V()` returns `V`, so a reconstruction is `U · S · V.adjoint()`, not

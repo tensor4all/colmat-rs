@@ -5,9 +5,9 @@
 //! thread while the call runs (the guard is the one `svd_values_no_alloc.rs`
 //! uses).
 #![cfg(feature = "std")]
-use faer::perm::Perm;
-use faer::sparse::SymbolicSparseColMat;
-use faer::sparse::linalg::{SupernodalThreshold, colamd, lu, qr};
+use colmat::perm::Perm;
+use colmat::sparse::SymbolicSparseColMat;
+use colmat::sparse::linalg::{SupernodalThreshold, colamd, lu, qr};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 

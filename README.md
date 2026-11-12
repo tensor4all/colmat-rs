@@ -1,7 +1,14 @@
-# t4a-faer
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/tensor4all/tensor4all-meta/main/branding/colmat/svg/colmat-wordmark-dark.svg">
+  <img alt="colmat" src="https://raw.githubusercontent.com/tensor4all/tensor4all-meta/main/branding/colmat/svg/colmat-wordmark.svg" height="64">
+</picture>
 
-`t4a-faer` provides dense and sparse linear algebra in Rust for scientific and HPC applications.
+# colmat
+
+`colmat` provides dense and sparse linear algebra in Rust for scientific and HPC applications.
 `tenferro` and other tensor4all libraries use it. It is not API compatible with upstream faer.
+The crate was published as `t4a-faer` up to 0.33.0; 0.34.0 is the same library under its new name
+(see the [rename note](CHANGELOG.md) and [migration guide](docs/migration-guide.md)).
 
 The caller owns the `threadteam` team and passes `Par::Team` for parallel work, or `Par::Seq` for sequential work.
 faer does not use an implicit global thread pool. See the [migration guide](docs/par-team-migration.md).
@@ -46,9 +53,9 @@ number is a snapshot of one run, the file and the run are named.
   checks that the migration guides are byte-identical to the examples CI runs
   (`scripts/check-migration-examples.py`), builds and runs those examples, runs the doctests, and
   checks the package contents. `.github/workflows/code-quality.yml` runs `cargo clippy -D warnings` as
-  a **blocking** gate for `t4a-faer-traits`, and the compiler is pinned in
+  a **blocking** gate for `colmat-traits`, and the compiler is pinned in
   [`rust-toolchain.toml`](rust-toolchain.toml) (1.96.0) so a local run lints with the same toolchain
-  as CI. `t4a-faer` itself has 2,340 clippy warnings on that toolchain and its clippy step is
+  as CI. `colmat` itself has 2,340 clippy warnings on that toolchain and its clippy step is
   therefore advisory — the count is recorded in the workflow file rather than hidden.
 - **Bitwise reproducibility is a fixed-thread-count promise.** On the same machine and build, results
   are bit-identical across fresh threads, fresh processes and repeated runs **at a fixed thread
@@ -80,12 +87,10 @@ faer itself. The fork's own channel is the Matrix space above.
   <img src="https://faer.veganb.tw/faer-logo-color.png" alt="faer logo"/ width="25%">
 </p>
 
-# faer
+[![documentation](https://docs.rs/colmat/badge.svg)](https://docs.rs/colmat)
+[![crate](https://img.shields.io/crates/v/colmat.svg)](https://crates.io/crates/colmat)
 
-[![documentation](https://docs.rs/t4a-faer/badge.svg)](https://docs.rs/t4a-faer)
-[![crate](https://img.shields.io/crates/v/t4a-faer.svg)](https://crates.io/crates/t4a-faer)
-
-`faer` is a rust crate that implements low level linear algebra routines and a high level wrapper
+`colmat` is a rust crate that implements low level linear algebra routines and a high level wrapper
 for ease of use, in pure rust, with a focus on portability, correctness and performance. This fork
 keeps upstream's API where it can and changes it where the tensor4all workload needs another shape;
 [`PATCHSET.md`](PATCHSET.md) lists every difference.
@@ -150,7 +155,7 @@ first issue", and ask on the [upstream zulip server](https://faer.zulipchat.com)
 itself. Fork specific reports belong in this repository's issues, and a defect that also reproduces on
 the published upstream crates belongs in
 [`upstream-reports/`](upstream-reports/README.md). Undefined behaviour is checked weekly by Miri on the
-`t4a-faer-traits` crate only; [`docs/miri.md`](docs/miri.md) says how to run it and why the main
+`colmat-traits` crate only; [`docs/miri.md`](docs/miri.md) says how to run it and why the main
 crate is not in that lane yet (test selection, not a capability limit).
 
 # benchmarks

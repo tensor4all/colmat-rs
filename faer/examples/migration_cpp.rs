@@ -1,6 +1,6 @@
-use faer::linalg::matmul::matmul;
-use faer::linalg::solvers::{LdltError, Solve};
-use faer::{Accum, Mat, Par, Side, mat};
+use colmat::linalg::matmul::matmul;
+use colmat::linalg::solvers::{LdltError, Solve};
+use colmat::{Accum, Mat, Par, Side, mat};
 
 fn main() -> Result<(), LdltError> {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];

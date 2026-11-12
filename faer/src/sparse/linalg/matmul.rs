@@ -255,7 +255,7 @@ pub trait DenseSparseMatMul<T: ComplexField>: Sized {
 
 /// multiplies a sparse matrix `lhs` by a dense matrix `rhs`, and stores or adds
 /// the result to `dst`. see
-/// [`faer::linalg::matmul::matmul`](crate::linalg::matmul::matmul) for more
+/// [`colmat::linalg::matmul::matmul`](crate::linalg::matmul::matmul) for more
 /// details.
 ///
 /// # note
@@ -394,7 +394,7 @@ fn sparse_dense_csc_matmul<
 
 /// multiplies a dense matrix `lhs` by a sparse matrix `rhs`, and stores or adds
 /// the result to `dst`. see
-/// [`faer::linalg::matmul::matmul`](crate::linalg::matmul::matmul) for more
+/// [`colmat::linalg::matmul::matmul`](crate::linalg::matmul::matmul) for more
 /// details.
 ///
 /// # note

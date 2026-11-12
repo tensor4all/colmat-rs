@@ -32,7 +32,7 @@ use crate::mat::matown::align_for;
 use crate::mat::{AsMatMut, MatMut};
 use core::marker::PhantomData;
 use dyn_stack::StackReq;
-use faer_traits::ComplexField;
+use colmat_traits::ComplexField;
 /// returns the stack requirements for creating a temporary matrix with the
 /// given dimensions.
 pub fn temp_mat_scratch<T: ComplexField>(

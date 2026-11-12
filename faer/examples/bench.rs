@@ -1,10 +1,10 @@
 #![allow(non_snake_case, non_camel_case_types, unused_imports, dead_code)]
-use ::faer::diag::Diag;
-use ::faer::linalg::cholesky::lblt::factor::LbltParams;
-use ::faer::prelude::*;
-use ::faer::stats::prelude::*;
-use ::faer::{Auto, linalg};
-use ::faer_traits::math_utils::*;
+use ::colmat::diag::Diag;
+use ::colmat::linalg::cholesky::lblt::factor::LbltParams;
+use ::colmat::prelude::*;
+use ::colmat::stats::prelude::*;
+use ::colmat::{Auto, linalg};
+use ::colmat_traits::math_utils::*;
 use ::nalgebra as na;
 use aligned_vec::avec;
 use diol::config::PlotMetric;
@@ -21,7 +21,7 @@ use std::ffi::*;
 use std::ptr::*;
 use toml::{Table, Value};
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-struct fx128(::faer::fx128);
+struct fx128(::colmat::fx128);
 type cx128 = num_complex::Complex<fx128>;
 impl core::fmt::Display for fx128 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -244,7 +244,7 @@ impl core::ops::Rem for &fx128 {
 }
 impl num_traits::Zero for fx128 {
 	fn zero() -> Self {
-		fx128(::faer::fx128::ZERO)
+		fx128(::colmat::fx128::ZERO)
 	}
 
 	fn is_zero(&self) -> bool {
@@ -253,7 +253,7 @@ impl num_traits::Zero for fx128 {
 }
 impl num_traits::One for fx128 {
 	fn one() -> Self {
-		fx128(::faer::fx128::ONE)
+		fx128(::colmat::fx128::ONE)
 	}
 
 	fn is_one(&self) -> bool {
@@ -267,124 +267,124 @@ impl num_traits::Num for fx128 {
 		Err(())
 	}
 }
-impl faer_traits::ComplexField for fx128 {
-	type Arch = <::faer::fx128 as ::faer::traits::ComplexField>::Arch;
-	type Index = <::faer::fx128 as ::faer::traits::ComplexField>::Index;
+impl colmat_traits::ComplexField for fx128 {
+	type Arch = <::colmat::fx128 as ::colmat::traits::ComplexField>::Arch;
+	type Index = <::colmat::fx128 as ::colmat::traits::ComplexField>::Index;
 	type Real = Self;
 	type SimdCtx<S: pulp::Simd> =
-		<::faer::fx128 as ::faer::traits::ComplexField>::SimdCtx<S>;
+		<::colmat::fx128 as ::colmat::traits::ComplexField>::SimdCtx<S>;
 	type SimdIndex<S: pulp::Simd> =
-		<::faer::fx128 as ::faer::traits::ComplexField>::SimdIndex<S>;
+		<::colmat::fx128 as ::colmat::traits::ComplexField>::SimdIndex<S>;
 	type SimdMask<S: pulp::Simd> =
-		<::faer::fx128 as ::faer::traits::ComplexField>::SimdMask<S>;
+		<::colmat::fx128 as ::colmat::traits::ComplexField>::SimdMask<S>;
 	type SimdMemMask<S: pulp::Simd> =
-		<::faer::fx128 as ::faer::traits::ComplexField>::SimdMemMask<S>;
+		<::colmat::fx128 as ::colmat::traits::ComplexField>::SimdMemMask<S>;
 	type SimdVec<S: pulp::Simd> =
-		<::faer::fx128 as ::faer::traits::ComplexField>::SimdVec<S>;
-	type Unit = <::faer::fx128 as ::faer::traits::ComplexField>::Unit;
+		<::colmat::fx128 as ::colmat::traits::ComplexField>::SimdVec<S>;
+	type Unit = <::colmat::fx128 as ::colmat::traits::ComplexField>::Unit;
 
 	const IS_REAL: bool = true;
-	const SIMD_CAPABILITIES: faer_traits::SimdCapabilities =
-		::faer::fx128::SIMD_CAPABILITIES;
+	const SIMD_CAPABILITIES: colmat_traits::SimdCapabilities =
+		::colmat::fx128::SIMD_CAPABILITIES;
 
 	#[inline(always)]
 	fn zero_impl() -> Self {
-		Self(::faer::fx128::zero_impl())
+		Self(::colmat::fx128::zero_impl())
 	}
 
 	#[inline(always)]
 	fn one_impl() -> Self {
-		Self(::faer::fx128::one_impl())
+		Self(::colmat::fx128::one_impl())
 	}
 
 	#[inline(always)]
 	fn nan_impl() -> Self {
-		Self(::faer::fx128::nan_impl())
+		Self(::colmat::fx128::nan_impl())
 	}
 
 	#[inline(always)]
 	fn infinity_impl() -> Self {
-		Self(::faer::fx128::infinity_impl())
+		Self(::colmat::fx128::infinity_impl())
 	}
 
 	#[inline(always)]
 	fn from_real_impl(real: &Self::Real) -> Self {
-		Self(::faer::fx128::from_real_impl(&real.0))
+		Self(::colmat::fx128::from_real_impl(&real.0))
 	}
 
 	#[inline(always)]
 	fn from_f64_impl(real: f64) -> Self {
-		Self(::faer::fx128::from_f64_impl(real))
+		Self(::colmat::fx128::from_f64_impl(real))
 	}
 
 	#[inline(always)]
 	fn real_part_impl(value: &Self) -> Self::Real {
-		Self(::faer::fx128::real_part_impl(&value.0))
+		Self(::colmat::fx128::real_part_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn imag_part_impl(value: &Self) -> Self::Real {
-		Self(::faer::fx128::imag_part_impl(&value.0))
+		Self(::colmat::fx128::imag_part_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn copy_impl(value: &Self) -> Self {
-		Self(::faer::fx128::copy_impl(&value.0))
+		Self(::colmat::fx128::copy_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn conj_impl(value: &Self) -> Self {
-		Self(::faer::fx128::conj_impl(&value.0))
+		Self(::colmat::fx128::conj_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn recip_impl(value: &Self) -> Self {
-		Self(::faer::fx128::recip_impl(&value.0))
+		Self(::colmat::fx128::recip_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn sqrt_impl(value: &Self) -> Self {
-		Self(::faer::fx128::sqrt_impl(&value.0))
+		Self(::colmat::fx128::sqrt_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn abs_impl(value: &Self) -> Self::Real {
-		Self(::faer::fx128::abs_impl(&value.0))
+		Self(::colmat::fx128::abs_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn abs1_impl(value: &Self) -> Self::Real {
-		Self(::faer::fx128::abs1_impl(&value.0))
+		Self(::colmat::fx128::abs1_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn abs2_impl(value: &Self) -> Self::Real {
-		Self(::faer::fx128::abs2_impl(&value.0))
+		Self(::colmat::fx128::abs2_impl(&value.0))
 	}
 
 	#[inline(always)]
 	fn mul_real_impl(lhs: &Self, rhs: &Self::Real) -> Self {
-		Self(::faer::fx128::mul_real_impl(&lhs.0, &rhs.0))
+		Self(::colmat::fx128::mul_real_impl(&lhs.0, &rhs.0))
 	}
 
 	#[inline(always)]
 	fn mul_pow2_impl(lhs: &Self, rhs: &Self::Real) -> Self {
-		Self(::faer::fx128::mul_pow2_impl(&lhs.0, &rhs.0))
+		Self(::colmat::fx128::mul_pow2_impl(&lhs.0, &rhs.0))
 	}
 
 	#[inline(always)]
 	fn is_finite_impl(value: &Self) -> bool {
-		::faer::fx128::is_finite_impl(&value.0)
+		::colmat::fx128::is_finite_impl(&value.0)
 	}
 
 	#[inline(always)]
 	fn simd_ctx<S: pulp::Simd>(simd: S) -> Self::SimdCtx<S> {
-		::faer::fx128::simd_ctx(simd)
+		::colmat::fx128::simd_ctx(simd)
 	}
 
 	#[inline(always)]
 	fn ctx_from_simd<S: pulp::Simd>(ctx: &Self::SimdCtx<S>) -> S {
-		::faer::fx128::ctx_from_simd(ctx)
+		::colmat::fx128::ctx_from_simd(ctx)
 	}
 
 	#[inline(always)]
@@ -393,7 +393,7 @@ impl faer_traits::ComplexField for fx128 {
 		start: Self::Index,
 		end: Self::Index,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_mask_between(ctx, start, end)
+		::colmat::fx128::simd_mask_between(ctx, start, end)
 	}
 
 	#[inline(always)]
@@ -402,7 +402,7 @@ impl faer_traits::ComplexField for fx128 {
 		start: Self::Index,
 		end: Self::Index,
 	) -> Self::SimdMemMask<S> {
-		::faer::fx128::simd_mem_mask_between(ctx, start, end)
+		::colmat::fx128::simd_mem_mask_between(ctx, start, end)
 	}
 
 	#[inline(always)]
@@ -411,7 +411,7 @@ impl faer_traits::ComplexField for fx128 {
 		mask: Self::SimdMemMask<S>,
 		ptr: *const Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_mask_load_raw(ctx, mask, ptr)
+		::colmat::fx128::simd_mask_load_raw(ctx, mask, ptr)
 	}
 
 	#[inline(always)]
@@ -421,7 +421,7 @@ impl faer_traits::ComplexField for fx128 {
 		ptr: *mut Self::SimdVec<S>,
 		values: Self::SimdVec<S>,
 	) {
-		::faer::fx128::simd_mask_store_raw(ctx, mask, ptr, values)
+		::colmat::fx128::simd_mask_store_raw(ctx, mask, ptr, values)
 	}
 
 	#[inline(always)]
@@ -429,7 +429,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: &Self,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_splat(ctx, &value.0)
+		::colmat::fx128::simd_splat(ctx, &value.0)
 	}
 
 	#[inline(always)]
@@ -437,7 +437,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: &Self::Real,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_splat_real(ctx, &value.0)
+		::colmat::fx128::simd_splat_real(ctx, &value.0)
 	}
 
 	#[inline(always)]
@@ -446,7 +446,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_add(ctx, lhs, rhs)
+		::colmat::fx128::simd_add(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -455,7 +455,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_sub(ctx, lhs, rhs)
+		::colmat::fx128::simd_sub(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -463,7 +463,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_neg(ctx, value)
+		::colmat::fx128::simd_neg(ctx, value)
 	}
 
 	#[inline(always)]
@@ -471,7 +471,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_conj(ctx, value)
+		::colmat::fx128::simd_conj(ctx, value)
 	}
 
 	#[inline(always)]
@@ -479,7 +479,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_abs1(ctx, value)
+		::colmat::fx128::simd_abs1(ctx, value)
 	}
 
 	#[inline(always)]
@@ -487,7 +487,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_abs_max(ctx, value)
+		::colmat::fx128::simd_abs_max(ctx, value)
 	}
 
 	#[inline(always)]
@@ -496,7 +496,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_mul_real(ctx, lhs, real_rhs)
+		::colmat::fx128::simd_mul_real(ctx, lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -505,7 +505,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_mul_pow2(ctx, lhs, real_rhs)
+		::colmat::fx128::simd_mul_pow2(ctx, lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -514,7 +514,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_mul(ctx, lhs, rhs)
+		::colmat::fx128::simd_mul(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -523,7 +523,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_conj_mul(ctx, lhs, rhs)
+		::colmat::fx128::simd_conj_mul(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -533,7 +533,7 @@ impl faer_traits::ComplexField for fx128 {
 		rhs: Self::SimdVec<S>,
 		acc: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_mul_add(ctx, lhs, rhs, acc)
+		::colmat::fx128::simd_mul_add(ctx, lhs, rhs, acc)
 	}
 
 	#[inline(always)]
@@ -543,7 +543,7 @@ impl faer_traits::ComplexField for fx128 {
 		rhs: Self::SimdVec<S>,
 		acc: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_conj_mul_add(ctx, lhs, rhs, acc)
+		::colmat::fx128::simd_conj_mul_add(ctx, lhs, rhs, acc)
 	}
 
 	#[inline(always)]
@@ -551,7 +551,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_abs2(ctx, value)
+		::colmat::fx128::simd_abs2(ctx, value)
 	}
 
 	#[inline(always)]
@@ -560,7 +560,7 @@ impl faer_traits::ComplexField for fx128 {
 		value: Self::SimdVec<S>,
 		acc: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_abs2_add(ctx, value, acc)
+		::colmat::fx128::simd_abs2_add(ctx, value, acc)
 	}
 
 	#[inline(always)]
@@ -568,7 +568,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self {
-		Self(::faer::fx128::simd_reduce_sum(ctx, value))
+		Self(::colmat::fx128::simd_reduce_sum(ctx, value))
 	}
 
 	#[inline(always)]
@@ -576,7 +576,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdVec<S>,
 	) -> Self {
-		Self(::faer::fx128::simd_reduce_max(ctx, value))
+		Self(::colmat::fx128::simd_reduce_max(ctx, value))
 	}
 
 	#[inline(always)]
@@ -585,7 +585,7 @@ impl faer_traits::ComplexField for fx128 {
 		real_lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_equal(ctx, real_lhs, real_rhs)
+		::colmat::fx128::simd_equal(ctx, real_lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -594,7 +594,7 @@ impl faer_traits::ComplexField for fx128 {
 		real_lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_less_than(ctx, real_lhs, real_rhs)
+		::colmat::fx128::simd_less_than(ctx, real_lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -603,7 +603,7 @@ impl faer_traits::ComplexField for fx128 {
 		real_lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_less_than_or_equal(ctx, real_lhs, real_rhs)
+		::colmat::fx128::simd_less_than_or_equal(ctx, real_lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -612,7 +612,7 @@ impl faer_traits::ComplexField for fx128 {
 		real_lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_greater_than(ctx, real_lhs, real_rhs)
+		::colmat::fx128::simd_greater_than(ctx, real_lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -621,7 +621,7 @@ impl faer_traits::ComplexField for fx128 {
 		real_lhs: Self::SimdVec<S>,
 		real_rhs: Self::SimdVec<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_greater_than_or_equal(ctx, real_lhs, real_rhs)
+		::colmat::fx128::simd_greater_than_or_equal(ctx, real_lhs, real_rhs)
 	}
 
 	#[inline(always)]
@@ -631,7 +631,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdVec<S>,
 		rhs: Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
-		::faer::fx128::simd_select(ctx, mask, lhs, rhs)
+		::colmat::fx128::simd_select(ctx, mask, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -641,7 +641,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdIndex<S>,
 		rhs: Self::SimdIndex<S>,
 	) -> Self::SimdIndex<S> {
-		::faer::fx128::simd_index_select(ctx, mask, lhs, rhs)
+		::colmat::fx128::simd_index_select(ctx, mask, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -649,7 +649,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::Index,
 	) -> Self::SimdIndex<S> {
-		::faer::fx128::simd_index_splat(ctx, value)
+		::colmat::fx128::simd_index_splat(ctx, value)
 	}
 
 	#[inline(always)]
@@ -658,7 +658,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdIndex<S>,
 		rhs: Self::SimdIndex<S>,
 	) -> Self::SimdIndex<S> {
-		::faer::fx128::simd_index_add(ctx, lhs, rhs)
+		::colmat::fx128::simd_index_add(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -667,7 +667,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdIndex<S>,
 		rhs: Self::SimdIndex<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_index_less_than(ctx, lhs, rhs)
+		::colmat::fx128::simd_index_less_than(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -676,7 +676,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdMask<S>,
 		rhs: Self::SimdMask<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_and_mask(ctx, lhs, rhs)
+		::colmat::fx128::simd_and_mask(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -685,7 +685,7 @@ impl faer_traits::ComplexField for fx128 {
 		lhs: Self::SimdMask<S>,
 		rhs: Self::SimdMask<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_or_mask(ctx, lhs, rhs)
+		::colmat::fx128::simd_or_mask(ctx, lhs, rhs)
 	}
 
 	#[inline(always)]
@@ -693,7 +693,7 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		mask: Self::SimdMask<S>,
 	) -> Self::SimdMask<S> {
-		::faer::fx128::simd_not_mask(ctx, mask)
+		::colmat::fx128::simd_not_mask(ctx, mask)
 	}
 
 	#[inline(always)]
@@ -701,38 +701,38 @@ impl faer_traits::ComplexField for fx128 {
 		ctx: &Self::SimdCtx<S>,
 		value: Self::SimdMask<S>,
 	) -> usize {
-		::faer::fx128::simd_first_true_mask(ctx, value)
+		::colmat::fx128::simd_first_true_mask(ctx, value)
 	}
 }
-impl faer_traits::RealField for fx128 {
+impl colmat_traits::RealField for fx128 {
 	#[inline(always)]
 	fn epsilon_impl() -> Self {
-		Self(::faer::fx128::epsilon_impl())
+		Self(::colmat::fx128::epsilon_impl())
 	}
 
 	#[inline(always)]
 	fn nbits_impl() -> usize {
-		::faer::fx128::nbits_impl()
+		::colmat::fx128::nbits_impl()
 	}
 
 	#[inline(always)]
 	fn min_positive_impl() -> Self {
-		Self(::faer::fx128::min_positive_impl())
+		Self(::colmat::fx128::min_positive_impl())
 	}
 
 	#[inline(always)]
 	fn max_positive_impl() -> Self {
-		Self(::faer::fx128::max_positive_impl())
+		Self(::colmat::fx128::max_positive_impl())
 	}
 
 	#[inline(always)]
 	fn sqrt_min_positive_impl() -> Self {
-		Self(::faer::fx128::sqrt_min_positive_impl())
+		Self(::colmat::fx128::sqrt_min_positive_impl())
 	}
 
 	#[inline(always)]
 	fn sqrt_max_positive_impl() -> Self {
-		Self(::faer::fx128::sqrt_max_positive_impl())
+		Self(::colmat::fx128::sqrt_max_positive_impl())
 	}
 }
 impl simba::scalar::SupersetOf<f32> for fx128 {
@@ -809,12 +809,12 @@ impl simba::scalar::SubsetOf<fx128> for fx128 {
 impl num_traits::FromPrimitive for fx128 {
 	#[inline(always)]
 	fn from_i64(n: i64) -> Option<Self> {
-		f64::from_i64(n).map(::faer::fx128::from_f64).map(Self)
+		f64::from_i64(n).map(::colmat::fx128::from_f64).map(Self)
 	}
 
 	#[inline(always)]
 	fn from_u64(n: u64) -> Option<Self> {
-		f64::from_u64(n).map(::faer::fx128::from_f64).map(Self)
+		f64::from_u64(n).map(::colmat::fx128::from_f64).map(Self)
 	}
 }
 impl ::nalgebra::SimdValue for fx128 {
@@ -878,7 +878,7 @@ impl approx::AbsDiffEq for fx128 {
 	type Epsilon = Self;
 
 	fn default_epsilon() -> Self::Epsilon {
-		Self(::faer::fx128::EPSILON)
+		Self(::colmat::fx128::EPSILON)
 	}
 
 	fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
@@ -896,7 +896,7 @@ impl approx::UlpsEq for fx128 {
 }
 impl approx::RelativeEq for fx128 {
 	fn default_max_relative() -> Self::Epsilon {
-		Self(::faer::fx128::EPSILON)
+		Self(::colmat::fx128::EPSILON)
 	}
 
 	fn relative_eq(
@@ -963,7 +963,7 @@ impl ::nalgebra::ComplexField for fx128 {
 
 	/// The imaginary part of this complex number.
 	fn imaginary(self) -> Self::RealField {
-		Self(::faer::fx128::ZERO)
+		Self(::colmat::fx128::ZERO)
 	}
 
 	/// The modulus of this complex number.
@@ -979,9 +979,9 @@ impl ::nalgebra::ComplexField for fx128 {
 	/// The argument of this complex number.
 	fn argument(self) -> Self::RealField {
 		if self.0.0.is_sign_negative() {
-			Self(::faer::fx128::PI)
+			Self(::colmat::fx128::PI)
 		} else {
-			Self(::faer::fx128::ZERO)
+			Self(::colmat::fx128::ZERO)
 		}
 	}
 
@@ -1191,39 +1191,39 @@ impl ::nalgebra::RealField for fx128 {
 	}
 
 	fn min_value() -> Option<Self> {
-		Some(Self(::faer::fx128::MIN_POSITIVE))
+		Some(Self(::colmat::fx128::MIN_POSITIVE))
 	}
 
 	fn max_value() -> Option<Self> {
-		Some(Self(::faer::fx128::MAX))
+		Some(Self(::colmat::fx128::MAX))
 	}
 
 	fn pi() -> Self {
-		Self(::faer::fx128::PI)
+		Self(::colmat::fx128::PI)
 	}
 
 	fn two_pi() -> Self {
-		Self(::faer::fx128::PI * ::faer::fx128::from(2.0))
+		Self(::colmat::fx128::PI * ::colmat::fx128::from(2.0))
 	}
 
 	fn frac_pi_2() -> Self {
-		Self(::faer::fx128::PI * ::faer::fx128::from(0.5))
+		Self(::colmat::fx128::PI * ::colmat::fx128::from(0.5))
 	}
 
 	fn frac_pi_3() -> Self {
-		Self(::faer::fx128::PI / ::faer::fx128::from(3.0))
+		Self(::colmat::fx128::PI / ::colmat::fx128::from(3.0))
 	}
 
 	fn frac_pi_4() -> Self {
-		Self(::faer::fx128::PI * ::faer::fx128::from(0.25))
+		Self(::colmat::fx128::PI * ::colmat::fx128::from(0.25))
 	}
 
 	fn frac_pi_6() -> Self {
-		Self(::faer::fx128::PI / ::faer::fx128::from(6.0))
+		Self(::colmat::fx128::PI / ::colmat::fx128::from(6.0))
 	}
 
 	fn frac_pi_8() -> Self {
-		Self(::faer::fx128::PI * ::faer::fx128::from(0.125))
+		Self(::colmat::fx128::PI * ::colmat::fx128::from(0.125))
 	}
 
 	fn frac_1_pi() -> Self {
@@ -1368,7 +1368,7 @@ fn lapack_set_num_threads(threads: usize) {
 	#[cfg(not(any(openblas, mkl, blis)))]
 	let _ = threads;
 }
-trait Scalar: Copy + faer_traits::ComplexField + na::ComplexField {
+trait Scalar: Copy + colmat_traits::ComplexField + na::ComplexField {
 	const IS_NATIVE: bool = Self::IS_NATIVE_F32
 		|| Self::IS_NATIVE_C32
 		|| Self::IS_NATIVE_F64
@@ -1595,7 +1595,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -1646,7 +1646,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -1821,7 +1821,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -1879,7 +1879,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2051,7 +2051,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2109,7 +2109,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2167,7 +2167,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2343,7 +2343,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2538,7 +2538,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2646,7 +2646,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2758,7 +2758,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -2996,7 +2996,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -3220,7 +3220,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
@@ -3458,7 +3458,7 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	}
 	};
 	if Thd::PAR && Lib::FAER {
-		::faer::team::with_team(threads, body)
+		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}

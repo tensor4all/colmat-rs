@@ -2,7 +2,7 @@ use super::*;
 use crate::utils::bound::{Array, Dim, Partition};
 use crate::{ContiguousFwd, Idx, IdxInc};
 use equator::{assert, debug_assert};
-use faer_traits::Real;
+use colmat_traits::Real;
 /// see [`super::RowRef`]
 pub struct Ref<'a, T, Cols = usize, CStride = isize> {
 	pub(crate) trans: ColRef<'a, T, Cols, CStride>,

@@ -2612,10 +2612,10 @@ mod tests {
 // tests by @sjoelund
 #[cfg(test)]
 mod t {
-	use faer::dyn_stack::{MemBuffer, MemStack};
-	use faer::linalg::evd::ComputeEigenvectors as CE;
-	use faer::prelude::*;
-	use faer::{Par, Spec, linalg};
+	use colmat::dyn_stack::{MemBuffer, MemStack};
+	use colmat::linalg::evd::ComputeEigenvectors as CE;
+	use colmat::prelude::*;
+	use colmat::{Par, Spec, linalg};
 
 	fn mk(n: usize, seed: u64) -> Mat<f64> {
 		let mut s = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
@@ -2632,9 +2632,9 @@ mod t {
 	fn gevd(a: &Mat<f64>, b: &Mat<f64>, vectors: bool) -> Vec<(f64, f64)> {
 		let n = a.nrows();
 		let (mut am, mut bm) = (a.clone(), b.clone());
-		let mut sre = faer::diag::Diag::<f64>::zeros(n);
-		let mut sim = faer::diag::Diag::<f64>::zeros(n);
-		let mut bet = faer::diag::Diag::<f64>::zeros(n);
+		let mut sre = colmat::diag::Diag::<f64>::zeros(n);
+		let mut sim = colmat::diag::Diag::<f64>::zeros(n);
+		let mut bet = colmat::diag::Diag::<f64>::zeros(n);
 		let mut u = Mat::<f64>::zeros(n, n);
 		let ce = if vectors { CE::Yes } else { CE::No };
 		let mut mem = MemBuffer::new(linalg::gevd::gevd_scratch::<f64>(
@@ -2765,7 +2765,7 @@ mod t {
 	/// must not leak into the eigenvectors through the entries it leaves unwritten.
 	#[test]
 	fn reused_eigenvector_buffers() {
-		fn check<T: faer::traits::RealField>(
+		fn check<T: colmat::traits::RealField>(
 			a: Mat<T>,
 			b: Mat<T>,
 			prefills: [T; 2],
@@ -2777,9 +2777,9 @@ mod t {
 				{
 					let mut am = a.clone();
 					let mut bm = b.clone();
-					let mut sre = faer::diag::Diag::<T>::zeros(2);
-					let mut sim = faer::diag::Diag::<T>::zeros(2);
-					let mut bet = faer::diag::Diag::<T>::zeros(2);
+					let mut sre = colmat::diag::Diag::<T>::zeros(2);
+					let mut sim = colmat::diag::Diag::<T>::zeros(2);
+					let mut bet = colmat::diag::Diag::<T>::zeros(2);
 					let mut ul = Mat::<T>::full(2, 2, prefill.clone());
 					let mut ur = Mat::<T>::full(2, 2, prefill.clone());
 					let ce = |v: bool| {

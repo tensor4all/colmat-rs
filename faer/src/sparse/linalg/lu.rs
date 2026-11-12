@@ -1,5 +1,5 @@
 //! computes the $LU$ decomposition of a given sparse matrix. see
-//! [`faer::linalg::lu`](crate::linalg::lu) for more info
+//! [`colmat::linalg::lu`](crate::linalg::lu) for more info
 //!
 //! the entry point in this module is [`SymbolicLu`] and
 //! [`factorize_symbolic_lu`]
@@ -1989,7 +1989,7 @@ impl<'a, I: Index, T> LuRef<'a, I, T> {
 
 	/// # Examples
 	/// ```
-	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
+	/// use colmat::{Par, sparse::{SparseColMat, Triplet}};
 	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
 	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
 	/// let owner = a.sp_lu(Par::Seq)?;
@@ -2365,8 +2365,8 @@ pub fn factorize_symbolic_lu<I: Index>(
 /// the matrix shape is unsupported by this factorization.
 /// # Examples
 /// ```
-/// use faer::{perm::Perm, sparse::{SparseColMat, Triplet}};
-/// use faer::sparse::linalg::lu::{factorize_symbolic_lu_with_column_ordering, LuSymbolicParams};
+/// use colmat::{perm::Perm, sparse::{SparseColMat, Triplet}};
+/// use colmat::sparse::linalg::lu::{factorize_symbolic_lu_with_column_ordering, LuSymbolicParams};
 /// let a = SparseColMat::<usize, f64>::try_new_from_triplets(2, 2, &[
 ///     Triplet { row: 0, col: 0, val: 2.0 }, Triplet { row: 1, col: 1, val: 3.0 }])?;
 /// let p = Perm::new_checked(vec![1,0].into_boxed_slice(), vec![1,0].into_boxed_slice(), 2);
