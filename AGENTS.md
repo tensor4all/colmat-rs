@@ -45,9 +45,34 @@ file-layout and test-placement overrides to the shared rules.
   do not reintroduce an alias or a shim crate. `faer-macros` keeps its name
   (published under upstream's crates.io name) and `faer-ffi` keeps its name
   (the C API crate mirrors upstream's).
-* Keep the rename mechanical so upstream rebases stay cheap: apply
-  `sed -E 's/\bfaer_traits::/colmat_traits::/g; s/\bfaer::/colmat::/g'` to the
-  incoming tree before resolving a sync. Every other rename hunk is text.
+* Keep the rename mechanical so upstream rebases stay cheap: run this over the
+  incoming upstream tree before resolving a sync, and take its diff as the
+  rename hunks. Every other rename hunk is text. Python, not `sed`: macOS's
+  default `sed` has no `\b`, and the command would silently rename nothing.
+
+  ```sh
+  python3 - <<'PY'
+  import pathlib, re
+  roots = ('faer/src', 'faer/tests', 'faer/examples', 'faer-ffi/src',
+           'faer-ffi/tests', 'faer-no-std-test/src')
+  for root in roots:
+      for path in pathlib.Path(root).rglob('*.rs'):
+          text = path.read_text(encoding='utf-8')
+          # `.faer()` / `.faer::<T>()` is faer-ffi's own helper method on its C
+          # wrapper types and keeps its name; `..faer::` is a struct update.
+          new = re.sub(r'\.\.faer::', '..colmat::', text)
+          new = re.sub(r'(?<!\.)\bfaer::', 'colmat::', new)
+          new = re.sub(r'\bfaer_traits::', 'colmat_traits::', new)
+          if new != text:
+              path.write_text(new, encoding='utf-8')
+  PY
+  ```
+
+  Three lines name the crates without `::` and are renamed by hand, and the
+  regenerated C header follows them: `pub extern crate faer_traits as traits;` and
+  `extern crate self as faer;` (`faer/src/lib.rs`), `use crate as faer;` in a test
+  module (`faer/src/linalg/qr/mod.rs`), then `FAER_FFI=1 cargo +nightly build -p
+  faer-ffi` for `faer-ffi/faer.h`, whose doc comments carry the crate name.
 * `faer-ffi` is in the workspace and builds the C API (cbindgen build); its parallel boundary is
   a caller-owned team handle, never a `Par` by value (tensor4all/faer#98).
 * Each crate directory keeps a `LICENSE` copy so the published archive ships

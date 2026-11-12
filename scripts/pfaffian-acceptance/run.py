@@ -18,6 +18,9 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = Path(__file__).resolve().parent
 BENCH = Path.home() / 'projects/tensor4all/faer-benchmark'
+# Probe, generated dependency and pinned lock all target the pre-rename crate
+# (`faer`, package `t4a-faer`), as BASE below does; running this against a
+# post-`colmat` head updates those three together, as a separate change.
 BASE = 'e765e0a9702cb355e421d8e77ba5f20a82cf0ea1'
 PFA = '5ad8a9b11020db5ac6acc9705408213ee67a1294'
 SIZES = (2, 64, 128, 256, 512, 1024)
