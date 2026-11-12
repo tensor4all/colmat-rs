@@ -161,11 +161,12 @@ values-only route returns through `dqds` before the gate below is read, and both
 ## Review
 
 Independent review by GLM-5.3-flash (`ollama-cloud/glm-5.3-flash`), read-only with none of this
-session's context, against the whole branch diff at each head; the last one, at `1771d7dc8`, reports CRITICAL none,
-NEEDS_CHANGES 0, and three `UNVERIFIED` items that are all "this process cannot execute a command" -
-each of those was run here against the same artefacts. It hand-recomputed all 28 table C cells, the
-sweeps, several table A/B cells and the guard inventory from the committed blob. Findings are recorded as dispositions, not as
-a history:
+session's context, over the whole branch diff, repeated at each head as the branch changed. The last
+round reports CRITICAL none, NEEDS_CHANGES 0, and only `UNVERIFIED` items that are all "this process
+cannot execute a command" - each of those was run here against the same artefacts, and that reviewer
+hand-recomputes the tables, the sweeps and the guard inventory from the committed blob rather than
+trusting the record. Earlier rounds found real errors in it, so the clean verdict is the tail of a
+sequence, not a first pass. Findings are recorded as dispositions, not as a chronology:
 
 - **Applied.** The gate test is instantiated at all four precisions, not `f64` alone. The values-only
   fall-through is stated as covered at n = 127 everywhere and at n = 40 only in `f32`/`c32`. The leaf
