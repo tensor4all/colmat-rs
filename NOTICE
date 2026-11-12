@@ -6,8 +6,10 @@ Upstream project
   Copyright (c) 2026 sarah quiñones el kazdadi
   License: MIT (see LICENSE)
 
-This fork
-  https://github.com/tensor4all/faer
+This repository
+  https://github.com/tensor4all/colmat-rs
+  (until 0.34.0 developed at https://github.com/tensor4all/faer, archived as
+  https://github.com/tensor4all/t4a-faer)
   Maintained by tensor4all contributors.
 
 The source in this repository is upstream faer plus tensor4all modifications.
