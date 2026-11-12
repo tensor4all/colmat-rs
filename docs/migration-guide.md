@@ -1,6 +1,6 @@
 # Migrating Rust linear algebra to colmat
 
-This guide targets users of upstream faer, nalgebra, and ndarray with ndarray-linalg. It describes the API in the repository at version 0.28.0. This fork can differ from upstream and incompatible releases can change its API.
+This guide targets users of upstream faer, nalgebra, and ndarray with ndarray-linalg. It describes the API in the repository at version 0.34.0. This fork can differ from upstream and incompatible releases can change its API.
 
 ## Why consider the fork?
 
@@ -15,7 +15,7 @@ In `Cargo.toml`, the package and the crate name are both `colmat`:
 colmat = "0.34"
 ```
 
-The default features include dense and sparse linear algebra and `threadteam`. Rust 1.89 or newer is required. If you disable default features, enable the features needed by your application. Without `threadteam` only sequential execution is available. To manage a pool directly, also add a `threadteam` dependency at the version faer itself resolves. The fork and upstream are distinct Cargo packages, so their matrix and parallelism types are not interchangeable.
+The default features include dense and sparse linear algebra and `threadteam`. Rust 1.89 or newer is required. If you disable default features, enable the features needed by your application. Without `threadteam` only sequential execution is available. To manage a pool directly, also add a `threadteam` dependency at the version `colmat` itself resolves. The fork and upstream are distinct Cargo packages, so their matrix and parallelism types are not interchangeable.
 
 ## Common operations
 
@@ -29,7 +29,7 @@ The table gives comparable operations, not a guarantee that their return types, 
 | QR factorization | `a.qr()` | `a.qr()` via `QR` | `a.qr(par)` |
 | Singular values and vectors | `a.svd(true, true)` | `a.svd(true, true)` via `SVD` | `a.svd(par)` |
 
-Nalgebra constructors use a closure with two indices; ndarray uses a single tuple. The ndarray-linalg `solve_into` call factors and solves, whereas the colmat factor can be retained for further right hand sides. Import the respective library's `Solve` trait for either solve method. SVD returns a `Result` in colmat. Check the dimensions and vector conventions before replacing decomposition consumers: faer represents the SVD as `U S V^H`, while other APIs may return `V^H` directly. Prefer solving a system to explicitly computing its inverse.
+Nalgebra constructors use a closure with two indices; ndarray uses a single tuple. The ndarray-linalg `solve_into` call factors and solves, whereas the colmat factor can be retained for further right hand sides. Import the respective library's `Solve` trait for either solve method. SVD returns a `Result` in colmat. Check the dimensions and vector conventions before replacing decomposition consumers: `colmat` represents the SVD as `U S V^H`, while other APIs may return `V^H` directly. Prefer solving a system to explicitly computing its inverse.
 
 This complete example constructs and solves a small system. The assertions check the numerical result:
 
@@ -49,7 +49,7 @@ fn main() {
 
 ## From nalgebra and ndarray
 
-Copy existing values by logical index when moving an owned matrix or a view. This works independently of the input layout, but allocates a new faer matrix. The examples below add `nalgebra = "0.33"` or `ndarray = "0.16"` respectively alongside the faer dependency shown above.
+Copy existing values by logical index when moving an owned matrix or a view. This works independently of the input layout, but allocates a new `colmat` matrix. The examples below add `nalgebra = "0.33"` or `ndarray = "0.16"` respectively alongside the `colmat` dependency shown above.
 
 From nalgebra:
 
@@ -65,7 +65,7 @@ fn main() {
 }
 ```
 
-For ndarray-linalg users, its matrices are ndarray arrays. The conversion itself needs only ndarray; the solve below uses faer instead of ndarray-linalg:
+For ndarray-linalg users, its matrices are ndarray arrays. The conversion itself needs only ndarray; the solve below uses `colmat` instead of ndarray-linalg:
 
 ```rust
 use colmat::{Mat, Par};
@@ -84,7 +84,7 @@ fn main() {
 
 ## From upstream faer
 
-Keep imports such as `use colmat::Mat`, but change the Cargo dependency. Replace global parallelism settings and implicit parallel calls with an explicit `Par` at each operation that takes one.
+Change the Cargo dependency and the crate path in imports: upstream `use faer::Mat` becomes `use colmat::Mat`. Replace global parallelism settings and implicit parallel calls with an explicit `Par` at each operation that takes one.
 
 | Upstream pattern | colmat pattern |
 | :--- | :--- |
@@ -93,11 +93,11 @@ Keep imports such as `use colmat::Mat`, but change the Cargo dependency. Replace
 | `lu.solve(&b)` | `lu.solve(&b, Par::Seq)` |
 | Global parallelism setting | Pass `Par::Seq` or a team to each operation |
 
-This fork has no `Par::rayon`, `Par::Rayon`, or global faer parallelism setter. Replace old Rayon width tokens with an owned team or `colmat::team::with_team`. For scratch queries use `par.shape()`, not the execution token itself. See the current API in `faer/src/lib.rs` and the [changelog](../CHANGELOG.md) for the release history.
+This fork has no `Par::rayon`, `Par::Rayon`, or global `colmat` parallelism setter. Replace old Rayon width tokens with an owned team or `colmat::team::with_team`. For scratch queries use `par.shape()`, not the execution token itself. See the current API in `faer/src/lib.rs` and the [changelog](../CHANGELOG.md) for the release history.
 
 ## Explicit parallelism
 
-Owning a team is the primary route, and the one we measure and publish. Build the pool once, reserve the team once, and take an execution token for each call with `team.exec(width)`; `Exec::team` lends that token to the operations of the call, and dropping the `exec` frees it for the next one. The requested width includes the calling thread. A width of one, or zero, selects sequential execution. The default `threadteam` feature is required; add `threadteam` alongside the faer dependency, at the version faer itself resolves, to name the pool and team types. `Par::Team` carries a `threadteam::TeamExec`, and two threadteam minors are two distinct types, so the versions have to agree.
+Owning a team is the primary route, and the one we measure and publish. Build the pool once, reserve the team once, and take an execution token for each call with `team.exec(width)`; `Exec::team` lends that token to the operations of the call, and dropping the `exec` frees it for the next one. The requested width includes the calling thread. A width of one, or zero, selects sequential execution. The default `threadteam` feature is required; add `threadteam` alongside the `colmat` dependency, at the version `colmat` itself resolves, to name the pool and team types. `Par::Team` carries a `threadteam::TeamExec`, and two threadteam minors are two distinct types, so the versions have to agree.
 
 ```rust
 use colmat::linalg::matmul::matmul;
@@ -156,19 +156,19 @@ The rules that bite:
 * Do not acquire the same team recursively. `threadteam::Team::exec` panics when the calling thread already holds a token of that team, and the token lives until its `Exec` is dropped, not until the operation returns. Pass the existing authority through the call chain with `reborrow()`, or take one token per call and drop it.
 * Independent nested pools can oversubscribe the machine. Internal algorithms may split a team into disjoint children; that is not permission to duplicate a parent token.
 
-There is no implicit global faer execution pool or global faer thread setting, but this does not mean threadteam has no process level worker cache. Short or small operations can execute sequentially even with a team when parallel dispatch does not pay.
+There is no implicit global `colmat` execution pool or global `colmat` thread setting, but this does not mean threadteam has no process level worker cache. Short or small operations can execute sequentially even with a team when parallel dispatch does not pay.
 
 ## Migration pitfalls
 
-* **Storage and views:** `Mat` is owned, while matrix views borrow their storage. Do not assume an ndarray layout or a contiguous slice matches faer's owned layout. Copy by index or use an appropriate strided view and verify dimensions and strides.
+* **Storage and views:** `Mat` is owned, while matrix views borrow their storage. Do not assume an ndarray layout or a contiguous slice matches `colmat`'s owned layout. Copy by index or use an appropriate strided view and verify dimensions and strides.
 * **Parallelism:** `&a * &b` is sequential. Use `linalg::matmul::matmul` and a team when explicit parallel execution is needed. `Accum::Replace` overwrites the destination; `Accum::Add` accumulates.
-* **Ownership:** nalgebra operations may consume their inputs, while faer uses owned matrices and borrowed views. Check the method signature and preserve data needed later.
+* **Ownership:** nalgebra operations may consume their inputs, while `colmat` uses owned matrices and borrowed views. Check the method signature and preserve data needed later.
 * **Numerical results:** factorization signs, eigenvector phases, eigenvalue ordering, and error types can differ. Validate reconstruction and residuals rather than comparing factors element by element. The general eigenvalue ordering is unspecified.
 * **Thread budgets:** do not nest separate pools around a team call without a coordinated budget. Retain a pool for repeated work rather than acquiring one for each small operation.
-* **Feature and version matching:** a `threadteam` token must come from the compatible dependency version used by faer. The `rayon` feature alone does not provide `Par::Team`. See `faer/Cargo.toml` for the current feature definitions.
+* **Feature and version matching:** a `threadteam` token must come from the compatible dependency version used by `colmat`. The `rayon` feature alone does not provide `Par::Team`. See `faer/Cargo.toml` for the current feature definitions.
 
 ## Published measurements
 
 The [benchmark index](https://github.com/tensor4all/faer-benchmark/blob/main/result/INDEX.md) links published results and conditions. As one concrete example, the [Zen 5 large kernel report](https://github.com/tensor4all/faer-benchmark/blob/main/result/zen5-cpu/faer-kernels-large/0e15729ad011-0539947ffb75-mkl-timing-v2.md) measured `f64` row major 1024 by 1024 QR factorization on four participants on an AMD Ryzen AI 9 HX 470. The fork at commit `0e15729ad011` took 25.1275 ms, upstream at `0539947ffb75` took 74.1278 ms, and MKL 2026.1 took 20.9194 ms. In the same report, singular values took 189.915 ms for the fork, 189.863 ms upstream, and 121.591 ms with MKL.
 
-These are historical measurements of colmat 0.25.0, not the current release. The report labels the development host results provisional. It reports medians of process medians, with five calls per process and three process sets, after a 250 ms priming period; the vendor row uses a separate build and row major conversions inside the vendor API remain timed. Inputs were verified before timing. Hardware, shape, layout, thread count, versions, and measurement boundaries matter, so consult the full report and measure your own workload before drawing conclusions.
+These are historical measurements of `t4a-faer` 0.25.0, not the current release. The report labels the development host results provisional. It reports medians of process medians, with five calls per process and three process sets, after a 250 ms priming period; the vendor row uses a separate build and row major conversions inside the vendor API remain timed. Inputs were verified before timing. Hardware, shape, layout, thread count, versions, and measurement boundaries matter, so consult the full report and measure your own workload before drawing conclusions.

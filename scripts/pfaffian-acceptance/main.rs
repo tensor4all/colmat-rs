@@ -1,7 +1,7 @@
-use colmat::{Mat, Par, c64};
-use colmat::traits::{ComplexField, ext::*};
-use colmat::dyn_stack::{MemBuffer, MemStack};
-use colmat::linalg::pfaffian::{pfaffian, pfaffian_scratch};
+use faer::{Mat, Par, c64};
+use faer::traits::{ComplexField, ext::*};
+use faer::dyn_stack::{MemBuffer, MemStack};
+use faer::linalg::pfaffian::{pfaffian, pfaffian_scratch};
 use std::{hint::black_box, time::{Duration, Instant}};
 struct Lane;
 impl pulp::WithSimd for Lane {
@@ -39,7 +39,7 @@ fn run<T: ComplexField<Real=f64>>(a: Mat<T>, dtype: &str, width: usize, smoke: b
             }
         }
     };
-    if width == 0 { execute(Par::Seq); } else { colmat::team::with_team(width, execute); }
+    if width == 0 { execute(Par::Seq); } else { faer::team::with_team(width, execute); }
     let value = result.unwrap();
     assert!(value.real().is_finite() && value.imag().is_finite());
     let mut sorted = times;
