@@ -22,8 +22,12 @@ colmat = "0.34"
 - The API, the numerics and the caller-owned `threadteam` team contract are unchanged.
   Every other entry in this release was already pending before the rename and is listed
   below.
-- The repository, its issue references (`tensor4all/faer#NNN`) and the released tags up
-  to `faer-v0.33.0` keep their names.
+- Development moves to a new repository, `tensor4all/colmat-rs`, seeded from
+  `tensor4all/faer` with its history and tags. The old repository is archived as
+  `tensor4all/t4a-faer`; its issues and PRs stay there, and references of the form
+  `tensor4all/faer#NNN` point to it (GitHub redirects the old name). Each old issue has a
+  copy in `tensor4all/colmat-rs` that links back to it. The released tags up to
+  `faer-v0.33.0` keep their names.
 
 ## Performance
 
