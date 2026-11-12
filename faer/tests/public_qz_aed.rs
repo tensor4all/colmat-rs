@@ -233,3 +233,56 @@ fn complex_qz_small_active_block_window_keeps_accuracy() {
 	complex_qz_window_quality::<colmat::c64>(colmat::c64::new);
 	complex_qz_window_quality::<colmat::c32>(|re, im| colmat::c32::new(re as f32, im as f32));
 }
+
+extern "C" fn two_shifts(_n: usize, _active: usize) -> usize {
+	2
+}
+
+/// The multishift sweep's own workspace: with few shifts the chase block `nblock = nsr + itemp1`
+/// exceeds `2 * nsr`, and the sweep's `n x (ns + np)` temporaries did not fit the `n x 2 nsr` it
+/// reserved. On `4abe04d` the exact query panicked for complex QZ at n = 15 (c32, c64), 18 and 20
+/// (c32) with two shifts; the AED reservation of #117 happens to cover these sizes, so this pins
+/// the sweep's own bound.
+#[test]
+fn qz_two_shift_sweep_fits_the_queried_workspace() {
+	fn real<T: colmat::traits::RealField>(n: usize, threshold: usize, lift: fn(f64) -> T) {
+		let (a, b) = pencil(n);
+		let mut s = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)]));
+		let mut t = Mat::<T>::from_fn(n, n, |i, j| lift(b[(i, j)]));
+		let mut q = Mat::<T>::identity(n, n);
+		let mut z = Mat::<T>::identity(n, n);
+		let (mut ar, mut ai, mut be) = (Col::<T>::zeros(n), Col::<T>::zeros(n), Col::<T>::zeros(n));
+		let mut params = qz_params::<T>(None, Some(threshold));
+		params.recommended_shift_count = two_shifts;
+		let req = gevd::qz_real::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let mut memory = MemBuffer::new(req);
+		gevd::qz_real::hessenberg_to_qz(
+			s.as_mut(), t.as_mut(), Some(q.as_mut()), Some(z.as_mut()), ar.as_mut(), ai.as_mut(), be.as_mut(),
+			ComputeEigenvectors::Yes, Par::Seq, params, MemStack::new(&mut memory),
+		);
+		assert!(ar.is_all_finite() && ai.is_all_finite() && be.is_all_finite());
+	}
+	fn cplx<T: colmat::traits::ComplexField>(n: usize, threshold: usize, lift: fn(f64, f64) -> T) {
+		let (a, b) = pencil(n);
+		let mut s = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)], if i <= j { 0.01 * sample(i + 3, j) } else { 0.0 }));
+		let mut t = Mat::<T>::from_fn(n, n, |i, j| lift(b[(i, j)], 0.0));
+		let mut q = Mat::<T>::identity(n, n);
+		let mut z = Mat::<T>::identity(n, n);
+		let (mut al, mut be) = (Col::<T>::zeros(n), Col::<T>::zeros(n));
+		let mut params = qz_params::<T>(None, Some(threshold));
+		params.recommended_shift_count = two_shifts;
+		let req = gevd::qz_cplx::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let mut memory = MemBuffer::new(req);
+		gevd::qz_cplx::hessenberg_to_qz(
+			s.as_mut(), t.as_mut(), Some(q.as_mut()), Some(z.as_mut()), al.as_mut(), be.as_mut(),
+			ComputeEigenvectors::Yes, Par::Seq, params, MemStack::new(&mut memory),
+		);
+		assert!(al.is_all_finite() && be.is_all_finite());
+	}
+	for (n, threshold) in [(15, 15), (18, 15), (20, 20), (24, 15), (40, 15)] {
+		real::<f64>(n, threshold, |x| x);
+		real::<f32>(n, threshold, |x| x as f32);
+		cplx::<colmat::c64>(n, threshold, colmat::c64::new);
+		cplx::<colmat::c32>(n, threshold, |re, im| colmat::c32::new(re as f32, im as f32));
+	}
+}

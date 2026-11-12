@@ -1472,12 +1472,15 @@ fn hessenberg_to_qz_blocked_scratch<T: RealField>(
 		StackReq::all_of(&[
 			qc_sweep,
 			qc_sweep,
-			multishift_sweep_scratch::<T>(n, nsr),
+			multishift_sweep_scratch::<T>(n, nsr, nbr),
 		]),
 	])
 }
-fn multishift_sweep_scratch<T: RealField>(n: usize, ns: usize) -> StackReq {
-	linalg::temp_mat_scratch::<T>(n, 2 * ns)
+/// The sweep's temporaries are at most `n x nblock`: the chase updates take `ns + np <= nblock`
+/// rows or columns of `Q`, `Z`, `S`, `T` (`np` up to `nblock - ns`), and `nblock = nsr + itemp1`
+/// exceeds `2 * nsr` when the shift count is small (colmat-rs#117 follow-up).
+fn multishift_sweep_scratch<T: RealField>(n: usize, ns: usize, nblock: usize) -> StackReq {
+	linalg::temp_mat_scratch::<T>(n, Ord::max(2 * ns, nblock))
 }
 fn aed_scratch<T: RealField>(
 	n: usize,
