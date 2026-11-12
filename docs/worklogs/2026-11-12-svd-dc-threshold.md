@@ -194,8 +194,12 @@ The gates this record relies on are the campaign pair above and the local ones a
   re-measured. The reason is the same fact that makes the change safe: the route depends on
   `n = min(m, n)` alone (the bidiagonal is n-square whatever `m` is), and every tall/wide SVD cell in
   the campaign has `n` in {64, 256}, both of which are measured here in the square cells with the
-  same route. What is not covered is the `m`-dependent apply around the bidiagonal, which this change
-  does not touch. A decision probe (not a campaign) confirmed the direction at those shapes; that is
+  same route. That last clause is about the harness's suite definition, not something this repository
+  carries: the shape grid lives in `faer-benchmark`, and the suite it belongs to is the one both
+  `run.yaml`s pin by hash (`suite_sha256: aeb72f9b…`), so a reader can identify the version this
+  sentence is true of - but cannot re-derive the grid here, and it is labelled with the other
+  harness-only inputs for that reason. What is not covered is the `m`-dependent apply around the
+  bidiagonal, which this change does not touch. A decision probe (not a campaign) confirmed the direction at those shapes; that is
   weaker than a recorded cell and is called a probe, not evidence.
 - **What the tests do and do not pin.** `tests/route_at_the_gate.rs` reads the default from
   `Auto` and requires the default route, the QR-forced route (`usize::MAX`) and the recursion-forced
