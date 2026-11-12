@@ -9,6 +9,14 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   before checking for a width below two. An `n x 1` product then kept an `n`-element partial
   buffer per thread and added it back (#168). `with_width` now maps a width or a degree below two to
   `Par::Seq` first. Covered by `team_of_one`.
+- A dense product of `fx128` or `cx128` matrices panicked in every build except the crate's own unit
+  tests. The SIMD micro-kernels that `matmul` routes non-native scalars to refused them unless
+  `cfg!(test)` was set, so the in-crate tests took a path no user build takes (#174). The kernels now
+  accept any SIMD-capable scalar, and `matmul` routes only those to them. The `fx128` SIMD hooks
+  they read through were checked at the same time: `simd_load`/`simd_mask_load` deinterleave
+  `[hi, lo]` memory into high-part and low-part registers and the stores reinterleave, so lanes do
+  not mix elements (#173 called the `_raw` hooks, which move memory unconverted by contract). Both
+  are now covered by integration tests with nonzero low parts (`fx128_matmul`, `fx128_simd_hooks`).
 
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
