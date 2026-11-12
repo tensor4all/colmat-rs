@@ -6320,7 +6320,7 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
 
 /**
  * Creates a team handle of `threads` participants: the calling thread and `threads - 1` reserved
- * workers, the same convention as `faer::team::with_team`. Zero and one both mean sequential, and a
+ * workers, the same convention as `colmat::team::with_team`. Zero and one both mean sequential, and a
  * sequential handle reserves nothing.
  *
  * The handle **owns its pool**: the workers are built here, once, and every operation handed the
