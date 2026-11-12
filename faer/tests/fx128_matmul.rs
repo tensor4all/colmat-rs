@@ -82,7 +82,7 @@ enum Layout {
 	ColMajor,
 	/// row-major `dst` and `rhs`: `matmul_vertical` on the transposed problem
 	RowMajor,
-	/// row-major `lhs`, column-major `rhs`, strided `dst`: `matmul_horizontal`
+	/// row-major `lhs`, column-major `rhs`, `dst` with a column stride of `2m`: `matmul_horizontal`
 	Horizontal,
 }
 
@@ -145,7 +145,7 @@ fn check<T: ComplexField<Real = fx128>>(
 						},
 						Layout::Horizontal => {
 							lhs_s = row_major(lhs.as_ref());
-							// every other column of a wider matrix: neither row- nor column-major
+							// every other column of a wider matrix (column stride 2m): `lhs` row-major, `rhs` column-major routes to `matmul_horizontal`
 							dst_s = Mat::<T>::from_fn(m, 2 * n, |i, j| {
 								dst0[(i, j / 2)].clone()
 							});

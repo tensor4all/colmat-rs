@@ -84,7 +84,7 @@ mod matmul_vertical {
 			} = self;
 			// These kernels read and write through `SimdCtx`, whose loads and stores deinterleave
 			// and reinterleave a multi-part scalar such as `fx128` (#173), so any SIMD-capable
-			// scalar may use them; `matmul_imp` never routes one that is not (#174).
+			// scalar may use them; `matmul_imp` routes only SIMD-capable scalars here (#174).
 			if const { !T::SIMD_CAPABILITIES.is_simd() } {
 				unreachable!();
 			} else {
@@ -345,7 +345,7 @@ mod matmul_horizontal {
 		fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
 			// These kernels read and write through `SimdCtx`, whose loads and stores deinterleave
 			// and reinterleave a multi-part scalar such as `fx128` (#173), so any SIMD-capable
-			// scalar may use them; `matmul_imp` never routes one that is not (#174).
+			// scalar may use them; `matmul_imp` routes only SIMD-capable scalars here (#174).
 			if const { !T::SIMD_CAPABILITIES.is_simd() } {
 				unreachable!();
 			} else {
@@ -1561,7 +1561,6 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 				|| T::IS_NATIVE_F32
 				|| T::IS_NATIVE_C64
 				|| T::IS_NATIVE_C32)
-				&& T::SIMD_CAPABILITIES.is_simd()
 		} {
 			if let (Some(dst), Some(lhs)) =
 				(dst.rb_mut().try_as_col_major_mut(), lhs.try_as_col_major())
