@@ -13,14 +13,18 @@ against main at all.
 The candidate run built the branch at `a50d929`, a state that the review round then rewrote; that
 commit is **not** retained on any published ref, so nothing below can be re-derived by checking out
 what was measured. One statement replaces it, and only the reproducible half of it is claimed: every
-edit after the recording is a doc comment inside a `#[cfg(test)]` module - the branch is those
-commits, and
-`git diff 6e7e80f..HEAD -- faer/src` is 17 lines, all of them comments inside `#[cfg(test)]` modules
-(the DCHKBD case's doc comment, the `//` lines above its case list, and one comment in the route
-test; the test files themselves arrived in the recorded perf commit), so no line compiled into the
-library changed after the numbers were taken. The scope is that diff: it carries the branch from the
-recorded perf commit to the head, while the measured state before it is unretained, which is what the
-preceding paragraph says cannot be checked out. The command prints exactly the 17 lines. The command prints that diff; it is the check, not an assertion.
+edit after the recording is a doc comment inside a `#[cfg(test)]` module, so no line compiled into the
+library changed after the numbers were taken. The branch is those commits and the check is one
+command:
+
+```sh
+git diff 6e7e80f..HEAD -- faer/src     # 17 lines, all comments inside #[cfg(test)] modules
+```
+
+Those 17 are the DCHKBD case's doc comment, the `//` lines above its case list, and one comment in the
+route test; the test files themselves arrived in the recorded perf commit. The scope is that diff: it
+carries the branch from the recorded perf commit to the head, while the measured state before it is
+unretained, which is what the preceding paragraph says cannot be checked out.
 
 ### Not in this repository, and not evidence here
 
