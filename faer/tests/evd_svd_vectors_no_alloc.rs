@@ -13,14 +13,14 @@
 //! LAPACK validation runs it with `--ignored` and reports its counts. Drop the
 //! `ignore` when #56 lands.
 #![cfg(feature = "std")]
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::{
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::{
 	ComputeEigenvectors, self_adjoint_evd, self_adjoint_evd_scratch,
 };
-use faer::linalg::svd::{bidiagonal_svd, bidiagonal_svd_scratch};
-use faer::traits::ComplexField;
-use faer::{Mat, Par, ParShape, c64};
+use colmat::linalg::svd::{bidiagonal_svd, bidiagonal_svd_scratch};
+use colmat::traits::ComplexField;
+use colmat::{Mat, Par, ParShape, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};

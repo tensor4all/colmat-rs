@@ -91,8 +91,8 @@ impl<I: Index> SymbolicLu<I> {
 	///
 	/// # Examples
 	/// ```
-	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
-	/// use faer::sparse::linalg::{solvers::{SymbolicLu, Lu}, lu::LuSymbolicParams, SupernodalThreshold};
+	/// use colmat::{Par, sparse::{SparseColMat, Triplet}};
+	/// use colmat::sparse::linalg::{solvers::{SymbolicLu, Lu}, lu::LuSymbolicParams, SupernodalThreshold};
 	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
 	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
 	/// let symbolic = SymbolicLu::try_new_with_params(a.symbolic(), LuSymbolicParams {
@@ -124,8 +124,8 @@ impl<I: Index> SymbolicLu<I> {
 	///
 	/// # Examples
 	/// ```
-	/// use faer::{Par, perm::Perm, sparse::{SparseColMat, Triplet}};
-	/// use faer::sparse::linalg::solvers::{SymbolicLu, Lu};
+	/// use colmat::{Par, perm::Perm, sparse::{SparseColMat, Triplet}};
+	/// use colmat::sparse::linalg::solvers::{SymbolicLu, Lu};
 	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(2,2,&[
 	///     Triplet {row:0,col:0,val:2.0}, Triplet {row:1,col:1,val:3.0}])?;
 	/// let p = Perm::new_checked(vec![1,0].into_boxed_slice(),vec![1,0].into_boxed_slice(),2);
@@ -192,7 +192,7 @@ impl<I: Index, T: ComplexField> Lu<I, T> {
 
 	/// # Examples
 	/// ```
-	/// use faer::{Par, sparse::{SparseColMat, Triplet}};
+	/// use colmat::{Par, sparse::{SparseColMat, Triplet}};
 	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
 	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }])?;
 	/// let owner = a.sp_lu(Par::Seq)?;
@@ -856,7 +856,7 @@ mod tests {
 				n, n, &triplets,
 			)
 			.unwrap();
-			let rhs = faer::col::Col::from_fn(n, |i| b[i]);
+			let rhs = colmat::col::Col::from_fn(n, |i| b[i]);
 
 			let lu = mat.sp_lu(Par::Seq).expect("sp_lu factorization");
 			let x = lu.solve(&rhs, Par::Seq);

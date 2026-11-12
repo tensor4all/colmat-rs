@@ -8,11 +8,11 @@
 //! panics as on any insufficient scratch.
 mod common;
 use common::*;
-use faer::linalg::evd::{
+use colmat::linalg::evd::{
 	eigenvectors_from_schur_cplx, eigenvectors_from_schur_real,
 	eigenvectors_from_schur_scratch,
 };
-use faer::linalg::temp_mat_scratch;
+use colmat::linalg::temp_mat_scratch;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 const SIZES: [usize; 3] = [2, 8, 33];
@@ -192,10 +192,10 @@ fn range_scaled_complex_schur_phases() {
 	complex::<c64>([1.0, 1e300, 1e-300], c64::new);
 }
 
-type Call<T> = fn(MatRef<'_, T>, faer::MatMut<'_, T>, &mut MemStack);
+type Call<T> = fn(MatRef<'_, T>, colmat::MatMut<'_, T>, &mut MemStack);
 fn real_call<T: RealField>(
 	t: MatRef<'_, T>,
-	x: faer::MatMut<'_, T>,
+	x: colmat::MatMut<'_, T>,
 	stack: &mut MemStack,
 ) {
 	eigenvectors_from_schur_real(
@@ -210,7 +210,7 @@ fn real_call<T: RealField>(
 }
 fn complex_call<T: ComplexField>(
 	t: MatRef<'_, T>,
-	x: faer::MatMut<'_, T>,
+	x: colmat::MatMut<'_, T>,
 	stack: &mut MemStack,
 ) {
 	eigenvectors_from_schur_cplx(

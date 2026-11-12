@@ -3,7 +3,7 @@ use crate::internal_prelude::*;
 use crate::{Idx, IdxInc, TryReserveError, assert};
 use core::alloc::Layout;
 use dyn_stack::StackReq;
-use faer_traits::ComplexField;
+use colmat_traits::ComplexField;
 #[inline]
 pub(crate) fn align_for(size: usize, align: usize, needs_drop: bool) -> usize {
 	if needs_drop || !size.is_power_of_two() {
@@ -623,7 +623,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::Mat;
+	/// use colmat::Mat;
 	/// let mut matrix = Mat::<f64>::with_capacity(9, 3);
 	/// let rows = matrix.row_capacity();
 	/// let pointer = matrix.as_ptr();
@@ -644,7 +644,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::Mat;
+	/// use colmat::Mat;
 	/// let mut matrix = Mat::<f64>::with_capacity(3, 9);
 	/// let cols = matrix.col_capacity();
 	/// let pointer = matrix.as_ptr();

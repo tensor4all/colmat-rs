@@ -34,7 +34,7 @@
 //!
 //! ## example
 //! ```
-//! use faer::{Mat, Scale, mat};
+//! use colmat::{Mat, Scale, mat};
 //! let a = mat![
 //! 	[1.0, 5.0, 9.0], //
 //! 	[2.0, 6.0, 10.0],
@@ -76,7 +76,7 @@
 //! it is used by default for computing the determinant, and is generally the
 //! recommended method for solving a square linear system or computing the
 //! inverse of a matrix (although we generally recommend using a
-//! [`faer::linalg::solvers::Solve`](crate::linalg::solvers::Solve) instead of
+//! [`colmat::linalg::solvers::Solve`](crate::linalg::solvers::Solve) instead of
 //! computing the inverse explicitly)
 //!
 //! [an implementation for sparse matrices is also
@@ -162,11 +162,11 @@
 //! the calls that should use one:
 //!
 //! ```
-//! use faer::{Accum, Mat};
+//! use colmat::{Accum, Mat};
 //! let a = Mat::<f64>::from_fn(16, 16, |i, j| (i == j) as u8 as f64 + 0.5);
 //! let mut dst = Mat::<f64>::zeros(16, 16);
-//! faer::team::with_team(4, |par| {
-//!     faer::linalg::matmul::matmul(
+//! colmat::team::with_team(4, |par| {
+//!     colmat::linalg::matmul::matmul(
 //!         dst.as_mut(),
 //!         Accum::Replace,
 //!         a.as_ref(),
@@ -199,22 +199,22 @@
 //! budget wraps its work rather than handing a number to every call:
 //!
 //! ```
-//! use faer::dyn_stack::{MemBuffer, MemStack};
-//! use faer::{Mat, Par};
+//! use colmat::dyn_stack::{MemBuffer, MemStack};
+//! use colmat::{Mat, Par};
 //! let a = Mat::<f64>::from_fn(64, 64, |i, j| ((i * 7 + j * 13) % 11) as f64 + 0.5);
 //! let mut s = Mat::<f64>::zeros(64, 1);
-//! let mut mem = MemBuffer::new(faer::linalg::svd::svd_scratch::<f64>(
+//! let mut mem = MemBuffer::new(colmat::linalg::svd::svd_scratch::<f64>(
 //!     64,
 //!     64,
-//!     faer::linalg::svd::ComputeSvdVectors::No,
-//!     faer::linalg::svd::ComputeSvdVectors::No,
-//!     faer::ParShape::team(4),
+//!     colmat::linalg::svd::ComputeSvdVectors::No,
+//!     colmat::linalg::svd::ComputeSvdVectors::No,
+//!     colmat::ParShape::team(4),
 //!     Default::default(),
 //! ));
-//! faer::team::with_team(4, |par| {
+//! colmat::team::with_team(4, |par| {
 //!     // every faer call in here with `par` runs its regions on 4 participants: the calling
 //!     // thread and 3 reserved workers
-//!     faer::linalg::svd::svd(
+//!     colmat::linalg::svd::svd(
 //!         a.as_ref(),
 //!         s.as_mut().col_mut(0).as_diagonal_mut(),
 //!         None,
@@ -273,7 +273,7 @@ macro_rules! repeat_n {
 }
 use core::num::NonZeroUsize;
 use equator::{assert, debug_assert};
-use faer_traits::*;
+use colmat_traits::*;
 /// shorthand for `<_ as Auto::<T>>::auto()`
 #[macro_export]
 macro_rules! auto {
@@ -376,7 +376,7 @@ macro_rules! with_dim {
 ///
 /// # example
 /// ```
-/// use faer::{Mat, mat, unzip, zip};
+/// use colmat::{Mat, mat, unzip, zip};
 /// let nrows = 2;
 /// let ncols = 3;
 /// let a = mat![[1.0, 3.0, 5.0], [2.0, 4.0, 6.0]];
@@ -406,7 +406,7 @@ macro_rules! zip {
 ///
 /// # example
 /// ```
-/// use faer::{Mat, Zip, mat, unzip, zip};
+/// use colmat::{Mat, Zip, mat, unzip, zip};
 /// let nrows = 2;
 /// let ncols = 3;
 /// let a = mat![[1.0, 3.0, 5.0], [2.0, 4.0, 6.0]];
@@ -439,7 +439,7 @@ macro_rules! Zip {
 ///
 /// # example
 /// ```
-/// use faer::{Mat, mat, unzip, zip};
+/// use colmat::{Mat, mat, unzip, zip};
 /// let nrows = 2;
 /// let ncols = 3;
 /// let a = mat![[1.0, 3.0, 5.0], [2.0, 4.0, 6.0]];
@@ -479,7 +479,7 @@ macro_rules! __transpose_impl {
 /// creates a [`Mat`] containing the arguments.
 ///
 /// ```
-/// use faer::mat;
+/// use colmat::mat;
 /// let matrix = mat![
 /// 	[1.0, 5.0, 9.0], //
 /// 	[2.0, 6.0, 10.0],
@@ -529,7 +529,7 @@ macro_rules! mat {
 /// creates a [`col::Col`] containing the arguments
 ///
 /// ```
-/// use faer::col;
+/// use colmat::col;
 /// let col_vec = col![3.0, 5.0, 7.0, 9.0];
 /// assert_eq!(col_vec[0], 3.0);
 /// assert_eq!(col_vec[1], 5.0);
@@ -563,7 +563,7 @@ macro_rules! col {
 /// creates a [`row::Row`] containing the arguments
 ///
 /// ```
-/// use faer::row;
+/// use colmat::row;
 /// let row_vec = row![3.0, 5.0, 7.0, 9.0];
 /// assert_eq!(row_vec[0], 3.0);
 /// assert_eq!(row_vec[1], 5.0);
@@ -707,10 +707,10 @@ pub mod utils;
 pub use utils::team;
 /// native unsigned integer type
 pub trait Index: traits::IndexCore + traits::Index + seal::Seal {}
-impl<T: faer_traits::Index<Signed: seal::Seal> + seal::Seal> Index for T {}
+impl<T: colmat_traits::Index<Signed: seal::Seal> + seal::Seal> Index for T {}
 mod seal {
 	pub trait Seal {}
-	impl<T: faer_traits::Seal> Seal for T {}
+	impl<T: colmat_traits::Seal> Seal for T {}
 	impl Seal for crate::utils::bound::Dim<'_> {}
 	impl<I: crate::Index> Seal for crate::utils::bound::Idx<'_, I> {}
 	impl<I: crate::Index> Seal for crate::utils::bound::IdxInc<'_, I> {}
@@ -849,7 +849,7 @@ pub trait Shape:
 		)
 	}
 }
-impl<T: Send + Sync + Copy + core::fmt::Debug + faer_traits::Seal> Unbind<T>
+impl<T: Send + Sync + Copy + core::fmt::Debug + colmat_traits::Seal> Unbind<T>
 	for T
 {
 	#[inline(always)]
@@ -1020,7 +1020,7 @@ impl Conj {
 /// requirements, thresholds) use [`ParShape`] or [`Par::degree`].
 ///
 /// ```
-/// use faer::{Par, ParShape};
+/// use colmat::{Par, ParShape};
 /// // sizes are plain values
 /// fn is_copy<T: Copy>() {}
 /// is_copy::<ParShape>();
@@ -1035,21 +1035,21 @@ impl Conj {
 ///
 /// ```compile_fail
 /// fn is_copy<T: Copy>() {}
-/// is_copy::<faer::Par<'static>>();
+/// is_copy::<colmat::Par<'static>>();
 /// ```
 ///
 /// Not `Clone`:
 ///
 /// ```compile_fail
 /// fn is_clone<T: Clone>() {}
-/// is_clone::<faer::Par<'static>>();
+/// is_clone::<colmat::Par<'static>>();
 /// ```
 ///
 /// A phase that takes the parallelism consumes it:
 ///
 /// ```compile_fail
-/// fn phase(_: faer::Par<'_>) {}
-/// let par = faer::Par::Seq;
+/// fn phase(_: colmat::Par<'_>) {}
+/// let par = colmat::Par::Seq;
 /// phase(par);
 /// phase(par);
 /// ```
@@ -1057,15 +1057,15 @@ impl Conj {
 /// Concurrent children cannot both use the parent:
 ///
 /// ```compile_fail
-/// fn phase(_: faer::Par<'_>) {}
-/// let par = faer::Par::Seq;
-/// faer::utils::thread::join_raw(|_| phase(par), |_| phase(par), faer::Par::Seq);
+/// fn phase(_: colmat::Par<'_>) {}
+/// let par = colmat::Par::Seq;
+/// colmat::utils::thread::join_raw(|_| phase(par), |_| phase(par), colmat::Par::Seq);
 /// ```
 ///
 /// A nested child cannot also take its borrowed parent:
 ///
 /// ```compile_fail,E0505
-/// use faer::Par;
+/// use colmat::Par;
 ///
 /// fn nested_work(_child: Par<'_>, _parent: Par<'_>) {}
 ///
@@ -1235,9 +1235,9 @@ mod internal_prelude {
 	pub(crate) use crate::utils::bound::{Array, Dim, Idx, IdxInc, MaybeIdx};
 	pub(crate) use crate::utils::simd::SimdCtx;
 	pub(crate) use crate::{Auto, NonExhaustive, Side, Spec};
-	pub use faer_traits::ext::*;
-	pub use faer_traits::math_utils::*;
-	pub use faer_traits::{
+	pub use colmat_traits::ext::*;
+	pub use colmat_traits::math_utils::*;
+	pub use colmat_traits::{
 		ComplexField, ComplexImpl, ComplexImplConj, Conjugate, Index,
 		IndexCore, Real, RealField, SignedIndex, SimdArch, Symbolic,
 	};
@@ -1438,7 +1438,7 @@ mod into_range {
 }
 mod sort;
 pub extern crate dyn_stack;
-pub extern crate faer_traits as traits;
+pub extern crate colmat_traits as traits;
 #[doc(hidden)]
 pub extern crate generativity;
 pub extern crate num_complex as complex;
@@ -1447,7 +1447,7 @@ pub extern crate num_complex as complex;
 pub extern crate rand;
 pub extern crate reborrow;
 
-extern crate self as faer;
+extern crate self as colmat;
 
 #[macro_export]
 #[doc(hidden)]

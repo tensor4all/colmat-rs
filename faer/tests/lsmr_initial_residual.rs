@@ -1,7 +1,7 @@
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::matrix_free::{InitialGuessStatus, lsmr::*};
-use faer::traits::{ComplexField, math_utils::from_f64};
-use faer::{Mat, Par, c32, c64};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::matrix_free::{InitialGuessStatus, lsmr::*};
+use colmat::traits::{ComplexField, math_utils::from_f64};
+use colmat::{Mat, Par, c32, c64};
 fn check<T: ComplexField>(tolerance: f64, value: fn(f64, f64) -> T) {
 	let a = Mat::<T>::from_fn(4, 4, |i, j| {
 		value(

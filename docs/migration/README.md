@@ -1,9 +1,9 @@
-# Migrating to t4a-faer for HPC dense linear algebra
+# Migrating to colmat for HPC dense linear algebra
 
-`t4a-faer` provides dense matrix types, factorizations, solves, and matrix products in Rust.
+`colmat` provides dense matrix types, factorizations, solves, and matrix products in Rust.
 Choose a guide by the library you already use. The tables map mathematical operations, not binary interfaces.
 
-| Source ecosystem or construct | t4a-faer equivalent |
+| Source ecosystem or construct | colmat equivalent |
 | --- | --- |
 | [C++: Eigen and BLAS](cpp.md) | `Mat`, `MatRef`, `MatMut`, factorization objects, and `matmul` |
 | [Fortran: LAPACK and BLAS](fortran.md) | Factor and solve routines with explicit scratch, or owning factorization objects |
@@ -19,18 +19,21 @@ Choose a guide by the library you already use. The tables map mathematical opera
 
 ## Dependency and upstream API differences
 
-The package is named `t4a-faer`; its Rust library name is `faer`.
+The package and the Rust library are both named `colmat` (renamed from `t4a-faer` 0.33.0,
+whose library was `faer`; the [0.34.0 changelog
+section](../../CHANGELOG.md#colmat-0340-tensor4all-fork-with-colmat-traits-0250) records what
+moved).
 In a consuming project's `Cargo.toml`, use:
 
 ```toml
 [dependencies]
-faer = { package = "t4a-faer", version = "0.28" }
+colmat = "0.34"
 ```
 
 These examples use the default features, which include `std` and `threadteam`.
-Without `threadteam`, there is no `Par::Team` or `faer::team` module.
-The examples build a `threadteam::Pool` directly, so add `threadteam` alongside the faer
-dependency, at the version faer itself resolves: `Par::Team` carries a `threadteam::TeamExec`, and
+Without `threadteam`, there is no `Par::Team` or `colmat::team` module.
+The examples build a `threadteam::Pool` directly, so add `threadteam` alongside the `colmat`
+dependency, at the version `colmat` itself resolves: `Par::Team` carries a `threadteam::TeamExec`, and
 two threadteam minors are two distinct types.
 
 Upstream faer exposed process wide parallelism controls backed by a global Rayon pool.
@@ -38,7 +41,7 @@ This fork removes `set_global_parallelism`, `get_global_parallelism`, and `Par::
 Its factorization and solve methods take a trailing `Par`, including calls such as
 `a.partial_piv_lu(par)` and `lu.solve(&b, par)`. Do not copy those signatures from upstream documentation.
 The [API migration history](../par-team-migration.md) records these changes.
-Import `faer::linalg::solvers::Solve` to call the solver trait methods.
+Import `colmat::linalg::solvers::Solve` to call the solver trait methods.
 
 ## Parallel regions
 
@@ -52,7 +55,7 @@ There is no implicit global pool selection inside a faer operation.
 Threadteam may reuse cached workers, which is different from choosing a global execution team.
 The [parallelism section](../../README.md#parallelism) shows the same construction.
 
-`faer::team::with_team(width, |par| ...)` is the one-off route: it builds a pool, reserves its
+`colmat::team::with_team(width, |par| ...)` is the one-off route: it builds a pool, reserves its
 members, runs one closure, and releases them. Use it for a single call, or for a script that runs a
 single operation. The Rust guide gives its cost per call beside a team the caller holds.
 
@@ -75,12 +78,12 @@ The type system protects a token's authority, not the total number of teams an a
 ## Complete example: sequential, an owned team, and nested solves
 
 The complete source is [`faer/examples/migration_overview.rs`](../../faer/examples/migration_overview.rs).
-Run it with `cargo run -p t4a-faer --example migration_overview -j8` from the repository root.
+Run it with `cargo run -p colmat --example migration_overview -j8` from the repository root.
 The documentation check requires this code block to match that source.
 
 ```rust
-use faer::linalg::solvers::Solve;
-use faer::{Mat, Par, mat};
+use colmat::linalg::solvers::Solve;
+use colmat::{Mat, Par, mat};
 
 fn solve_checked(a: &Mat<f64>, b: &Mat<f64>, mut par: Par<'_>) {
 	let lu = a.partial_piv_lu(par.reborrow());
@@ -128,7 +131,7 @@ hand out overlapping authority. Pass only the child token, as in the example abo
 This ownership rule applies to `Par::Seq` as well as `Par::Team`.
 
 ```compile_fail,E0505
-use faer::Par;
+use colmat::Par;
 
 fn nested_work(_child: Par<'_>, _parent: Par<'_>) {}
 

@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::solvers::{
+use colmat::linalg::solvers::{
 	SelfAdjointGeneralizedEigen, SelfAdjointGevdError,
 };
 
@@ -184,7 +184,7 @@ macro_rules! suite {
 						.self_adjoint_generalized_eigenvalues(&b, Par::Seq)
 						.unwrap();
 					for width in [1, 2, 4, 8] {
-						faer::team::with_team(width, |mut par| {
+						colmat::team::with_team(width, |mut par| {
 							let team = a
 								.self_adjoint_generalized_eigen(
 									&b,
@@ -244,7 +244,7 @@ suite!(complex, c64, c64::new);
 #[cfg(feature = "threadteam")]
 #[test]
 fn team_is_actually_used() {
-	use faer::utils::team::stats;
+	use colmat::utils::team::stats;
 	let n = 256;
 	let x = Mat::from_fn(n, n, |i, j| sample(i, j));
 	let y = Mat::from_fn(n, n, |i, j| sample(i + 71, j + 13));
@@ -253,7 +253,7 @@ fn team_is_actually_used() {
 	let b = Mat::from_fn(n, n, |i, j| {
 		gram[(i, j)] / n as f64 + if i == j { 1.0 } else { 0.0 }
 	});
-	faer::team::with_team(8, |par| {
+	colmat::team::with_team(8, |par| {
 		stats::enable(true);
 		let _ = stats::take();
 		let eig = a.self_adjoint_generalized_eigen(&b, par).unwrap();

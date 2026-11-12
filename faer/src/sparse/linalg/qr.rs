@@ -2130,9 +2130,9 @@ impl<I: Index> SymbolicQr<I> {
 	///
 	/// # Examples
 	/// ```
-	/// use faer::sparse::{SparseColMat, Triplet};
-	/// use faer::sparse::linalg::qr::{factorize_symbolic_qr, QrSymbolicParams, SymbolicQrRaw};
-	/// use faer::sparse::linalg::SupernodalThreshold;
+	/// use colmat::sparse::{SparseColMat, Triplet};
+	/// use colmat::sparse::linalg::qr::{factorize_symbolic_qr, QrSymbolicParams, SymbolicQrRaw};
+	/// use colmat::sparse::linalg::SupernodalThreshold;
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 	/// let a = SparseColMat::<usize, f64>::try_new_from_triplets(
 	///     1, 1, &[Triplet { row: 0, col: 0, val: 2.0 }],
@@ -2393,8 +2393,8 @@ pub fn factorize_symbolic_qr<I: Index>(
 /// the matrix shape is unsupported by this factorization.
 /// # Examples
 /// ```
-/// use faer::{perm::Perm, sparse::{SparseColMat, Triplet}};
-/// use faer::sparse::linalg::qr::{factorize_symbolic_qr_with_column_ordering, QrSymbolicParams};
+/// use colmat::{perm::Perm, sparse::{SparseColMat, Triplet}};
+/// use colmat::sparse::linalg::qr::{factorize_symbolic_qr_with_column_ordering, QrSymbolicParams};
 /// let a = SparseColMat::<usize, f64>::try_new_from_triplets(2, 2, &[
 ///     Triplet { row: 0, col: 0, val: 2.0 }, Triplet { row: 1, col: 1, val: 3.0 }])?;
 /// let p = Perm::new_checked(vec![1,0].into_boxed_slice(), vec![1,0].into_boxed_slice(), 2);

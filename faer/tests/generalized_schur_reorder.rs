@@ -1,7 +1,7 @@
 mod common;
 use common::*;
-use faer::MatMut;
-use faer::linalg::gevd;
+use colmat::MatMut;
+use colmat::linalg::gevd;
 fn scaled_close<T: ComplexField>(
 	got: MatRef<'_, T>,
 	expected: MatRef<'_, T>,
@@ -460,7 +460,7 @@ fn c64_failure_modes() {
 
 #[test]
 fn overflowing_stripe_restores_all_factors() {
-	let mut s = faer::mat![
+	let mut s = colmat::mat![
 		[1.0f64, 0.5, 1.7e308],
 		[0.0, 2.0, 1.7e308],
 		[0.0, 0.0, 3.0]
@@ -535,7 +535,7 @@ fn team_case<T: ComplexField>(
 	)
 	.unwrap();
 	for threads in [2, 4] {
-		faer::team::with_team(threads, |par| {
+		colmat::team::with_team(threads, |par| {
 			let mut a = original.clone();
 			let mut b = identity.clone();
 			let mut u = identity.clone();

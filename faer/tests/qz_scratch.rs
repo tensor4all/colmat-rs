@@ -1,7 +1,7 @@
 //! Exact public scratch for real QZ, including rounded and recursive AED windows.
 mod common;
 use common::*;
-use faer::linalg::gevd::{self, ComputeEigenvectors};
+use colmat::linalg::gevd::{self, ComputeEigenvectors};
 extern "C" fn maximum_window(n: usize, _active: usize) -> usize {
 	let w = n.saturating_sub(3) / 3;
 	w + w % 2
@@ -103,7 +103,7 @@ fn check<T: RealField>(sizes: &[usize], mut par: Par) {
 					zero()
 				}
 			});
-			let mut params: gevd::GeneralizedSchurParams = faer::auto!(T);
+			let mut params: gevd::GeneralizedSchurParams = colmat::auto!(T);
 			// Force a small blocked problem to exercise Sylvester scratch as well
 			// as the ordinary and recursive maximum-window paths.
 			if n == 18 {
@@ -208,5 +208,5 @@ fn f64_recursive_qz_scratch() {
 #[cfg(feature = "threadteam")]
 #[test]
 fn dedicated_team_qz_scratch() {
-	faer::team::with_team(2, |par| check::<f64>(&[78], par));
+	colmat::team::with_team(2, |par| check::<f64>(&[78], par));
 }

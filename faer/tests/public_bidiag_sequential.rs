@@ -4,12 +4,12 @@
 //! `A = Hl B Hr^H` only held when `rayon` was compiled in. The library does build
 //! without it (`--no-default-features --features std,linalg`), so this file pins the
 //! contract for that configuration. It runs under any feature set; run it as
-//! `cargo test -p t4a-faer --no-default-features --features std,linalg --test public_bidiag_sequential`
+//! `cargo test -p colmat --no-default-features --features std,linalg --test public_bidiag_sequential`
 //! to exercise the path the bug lived in.
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::householder as hh;
-use faer::linalg::svd::bidiag;
-use faer::{Conj, Mat, Par};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::householder as hh;
+use colmat::linalg::svd::bidiag;
+use colmat::{Conj, Mat, Par};
 use reborrow::*;
 
 /// `A - U B V^H`, with `B` the bidiagonal part of the factorized `UV`.

@@ -4,7 +4,7 @@ use crate::{ContiguousFwd, Idx, IdxInc};
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 use equator::assert;
-use faer_traits::Real;
+use colmat_traits::Real;
 use generativity::Guard;
 /// see [`super::ColRef`]
 pub struct Ref<'a, T, Rows = usize, RStride = isize> {

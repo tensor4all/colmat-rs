@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 use core::ffi::c_void;
-use faer::dyn_stack::StackReq;
-use faer::{c32, c64, cx128, fx128};
-trait RealField: faer::traits::RealField + Copy + 'static {}
-impl<T: faer::traits::RealField + Copy + 'static> RealField for T {}
-trait ComplexField: faer::traits::ComplexField + Copy + 'static {}
-impl<T: faer::traits::ComplexField + Copy + 'static> ComplexField for T {}
+use colmat::dyn_stack::StackReq;
+use colmat::{c32, c64, cx128, fx128};
+trait RealField: colmat::traits::RealField + Copy + 'static {}
+impl<T: colmat::traits::RealField + Copy + 'static> RealField for T {}
+trait ComplexField: colmat::traits::ComplexField + Copy + 'static {}
+impl<T: colmat::traits::ComplexField + Copy + 'static> ComplexField for T {}
 type AsIs<T> = T;
 #[derive(Copy, Clone)]
 pub enum Never {}
@@ -115,8 +115,8 @@ pub struct MemAlloc {
 	pub len_bytes: usize,
 }
 impl MemAlloc {
-	fn faer(self) -> &'static mut faer::dyn_stack::MemStack {
-		faer::dyn_stack::MemStack::new(
+	fn faer(self) -> &'static mut colmat::dyn_stack::MemStack {
+		colmat::dyn_stack::MemStack::new(
 			SliceMut {
 				ptr: self.ptr,
 				len: self.len_bytes,
@@ -126,23 +126,23 @@ impl MemAlloc {
 	}
 }
 impl Conj {
-	fn faer(self) -> faer::Conj {
+	fn faer(self) -> colmat::Conj {
 		match self {
-			Conj::No => faer::Conj::No,
-			Conj::Yes => faer::Conj::Yes,
+			Conj::No => colmat::Conj::No,
+			Conj::Yes => colmat::Conj::Yes,
 		}
 	}
 }
 impl Block {
-	fn faer(self) -> faer::linalg::matmul::triangular::BlockStructure {
+	fn faer(self) -> colmat::linalg::matmul::triangular::BlockStructure {
 		match self {
-			Block::Rectangular => faer::linalg::matmul::triangular::BlockStructure::Rectangular,
-			Block::TriangularLower => faer::linalg::matmul::triangular::BlockStructure::TriangularLower,
-			Block::TriangularUpper => faer::linalg::matmul::triangular::BlockStructure::TriangularUpper,
-			Block::StrictTriangularLower => faer::linalg::matmul::triangular::BlockStructure::StrictTriangularLower,
-			Block::StrictTriangularUpper => faer::linalg::matmul::triangular::BlockStructure::StrictTriangularUpper,
-			Block::UnitTriangularLower => faer::linalg::matmul::triangular::BlockStructure::UnitTriangularLower,
-			Block::UnitTriangularUpper => faer::linalg::matmul::triangular::BlockStructure::UnitTriangularUpper,
+			Block::Rectangular => colmat::linalg::matmul::triangular::BlockStructure::Rectangular,
+			Block::TriangularLower => colmat::linalg::matmul::triangular::BlockStructure::TriangularLower,
+			Block::TriangularUpper => colmat::linalg::matmul::triangular::BlockStructure::TriangularUpper,
+			Block::StrictTriangularLower => colmat::linalg::matmul::triangular::BlockStructure::StrictTriangularLower,
+			Block::StrictTriangularUpper => colmat::linalg::matmul::triangular::BlockStructure::StrictTriangularUpper,
+			Block::UnitTriangularLower => colmat::linalg::matmul::triangular::BlockStructure::UnitTriangularLower,
+			Block::UnitTriangularUpper => colmat::linalg::matmul::triangular::BlockStructure::UnitTriangularUpper,
 		}
 	}
 }
@@ -153,9 +153,9 @@ fn real<T: RealField>(x: *const Real) -> T {
 	unsafe { (x as *const T).read() }
 }
 impl MatRef {
-	fn faer<'a, T>(self) -> faer::MatRef<'a, T> {
+	fn faer<'a, T>(self) -> colmat::MatRef<'a, T> {
 		unsafe {
-			faer::MatRef::from_raw_parts(
+			colmat::MatRef::from_raw_parts(
 				self.ptr as *const T,
 				self.nrows,
 				self.ncols,
@@ -166,9 +166,9 @@ impl MatRef {
 	}
 }
 impl MatMut {
-	fn faer<'a, T>(self) -> faer::MatMut<'a, T> {
+	fn faer<'a, T>(self) -> colmat::MatMut<'a, T> {
 		unsafe {
-			faer::MatMut::from_raw_parts_mut(
+			colmat::MatMut::from_raw_parts_mut(
 				self.ptr as *mut T,
 				self.nrows,
 				self.ncols,
@@ -180,9 +180,9 @@ impl MatMut {
 }
 #[allow(dead_code)]
 impl VecRef {
-	fn diag<'a, T>(self) -> faer::diag::DiagRef<'a, T> {
+	fn diag<'a, T>(self) -> colmat::diag::DiagRef<'a, T> {
 		unsafe {
-			faer::diag::DiagRef::from_raw_parts(
+			colmat::diag::DiagRef::from_raw_parts(
 				self.ptr as *const T,
 				self.len,
 				self.stride,
@@ -190,9 +190,9 @@ impl VecRef {
 		}
 	}
 
-	fn col<'a, T>(self) -> faer::col::ColRef<'a, T> {
+	fn col<'a, T>(self) -> colmat::col::ColRef<'a, T> {
 		unsafe {
-			faer::col::ColRef::from_raw_parts(
+			colmat::col::ColRef::from_raw_parts(
 				self.ptr as *const T,
 				self.len,
 				self.stride,
@@ -200,9 +200,9 @@ impl VecRef {
 		}
 	}
 
-	fn row<'a, T>(self) -> faer::row::RowRef<'a, T> {
+	fn row<'a, T>(self) -> colmat::row::RowRef<'a, T> {
 		unsafe {
-			faer::row::RowRef::from_raw_parts(
+			colmat::row::RowRef::from_raw_parts(
 				self.ptr as *const T,
 				self.len,
 				self.stride,
@@ -212,9 +212,9 @@ impl VecRef {
 }
 #[allow(dead_code)]
 impl VecMut {
-	fn diag<'a, T>(self) -> faer::diag::DiagMut<'a, T> {
+	fn diag<'a, T>(self) -> colmat::diag::DiagMut<'a, T> {
 		unsafe {
-			faer::diag::DiagMut::from_raw_parts_mut(
+			colmat::diag::DiagMut::from_raw_parts_mut(
 				self.ptr as *mut T,
 				self.len,
 				self.stride,
@@ -222,9 +222,9 @@ impl VecMut {
 		}
 	}
 
-	fn col<'a, T>(self) -> faer::col::ColMut<'a, T> {
+	fn col<'a, T>(self) -> colmat::col::ColMut<'a, T> {
 		unsafe {
-			faer::col::ColMut::from_raw_parts_mut(
+			colmat::col::ColMut::from_raw_parts_mut(
 				self.ptr as *mut T,
 				self.len,
 				self.stride,
@@ -232,9 +232,9 @@ impl VecMut {
 		}
 	}
 
-	fn row<'a, T>(self) -> faer::row::RowMut<'a, T> {
+	fn row<'a, T>(self) -> colmat::row::RowMut<'a, T> {
 		unsafe {
-			faer::row::RowMut::from_raw_parts_mut(
+			colmat::row::RowMut::from_raw_parts_mut(
 				self.ptr as *mut T,
 				self.len,
 				self.stride,
@@ -261,10 +261,10 @@ impl SliceMut {
 	}
 }
 impl Accum {
-	fn faer(self) -> faer::Accum {
+	fn faer(self) -> colmat::Accum {
 		match self {
-			Accum::Replace => faer::Accum::Replace,
-			Accum::Add => faer::Accum::Add,
+			Accum::Replace => colmat::Accum::Replace,
+			Accum::Add => colmat::Accum::Add,
 		}
 	}
 }
@@ -294,10 +294,10 @@ impl Drop for InCall {
 }
 impl Team {
 	/// the shape of the team, for the workspace queries (`*_scratch`) that never execute work
-	fn shape(team: *const Team) -> faer::ParShape {
+	fn shape(team: *const Team) -> colmat::ParShape {
 		match unsafe { team.as_ref() } {
-			None => faer::ParShape::Seq,
-			Some(team) => faer::ParShape::team(team.threads),
+			None => colmat::ParShape::Seq,
+			Some(team) => colmat::ParShape::team(team.threads),
 		}
 	}
 
@@ -347,15 +347,15 @@ impl Team {
 	/// out of the team between calls. The mutex is what makes the pool that travels safe: a call on a
 	/// handle another thread is using waits for it to hand the pool back. A call nested in another call
 	/// (see [`InCall`]) never reaches the pool, so it takes no lock.
-	fn with_par<R>(&self, f: impl FnOnce(faer::Par<'_>) -> R) -> R {
+	fn with_par<R>(&self, f: impl FnOnce(colmat::Par<'_>) -> R) -> R {
 		// a call made from inside another call (a C callback calling back into this API) cannot have the
 		// pool: it runs sequentially, where waiting for the mutex this thread holds would never end
 		let Some(_in_call) = InCall::enter() else {
-			return f(faer::Par::Seq);
+			return f(colmat::Par::Seq);
 		};
 		let mut held = self.pool.lock().unwrap_or_else(|e| e.into_inner());
 		let Some(pool) = held.take() else {
-			return f(faer::Par::Seq);
+			return f(colmat::Par::Seq);
 		};
 		let team = match pool.into_team(self.threads) {
 			Ok(team) => team,
@@ -369,7 +369,7 @@ impl Team {
 		};
 		let r = {
 			let mut exec = team.exec(self.threads);
-			exec.team(|token| f(faer::Par::Team(token)))
+			exec.team(|token| f(colmat::Par::Team(token)))
 				.ok()
 				.expect("a team token for the handle's own team")
 		};
@@ -378,13 +378,13 @@ impl Team {
 	}
 }
 /// Runs `f` inside the team `team` names, and leaves it again before returning: the scoped token
-/// `faer::Par` never outlives this call, so a handle stays the only thing C holds.
+/// `colmat::Par` never outlives this call, so a handle stays the only thing C holds.
 fn with_team_par<R>(
 	team: *const Team,
-	f: impl FnOnce(faer::Par<'_>) -> R,
+	f: impl FnOnce(colmat::Par<'_>) -> R,
 ) -> R {
 	match unsafe { team.as_ref() } {
-		None => f(faer::Par::Seq),
+		None => f(colmat::Par::Seq),
 		Some(team) => team.with_par(f),
 	}
 }
@@ -537,7 +537,7 @@ macro_rules! cparams {
 
 		funcs!({
 			pub fn $name<T>() -> $name {
-				let default: $path = faer::auto!(T);
+				let default: $path = colmat::auto!(T);
 				$name {
 					$($field: default.$field.into(),)*
 				}
@@ -546,7 +546,7 @@ macro_rules! cparams {
 
 		impl $name {
 			#[allow(dead_code)]
-			fn faer<T: ComplexField>(self) -> faer::Spec<$path, T> {
+			fn faer<T: ComplexField>(self) -> colmat::Spec<$path, T> {
 				<$path>::from(self).into()
 			}
 		}
@@ -556,7 +556,7 @@ macro_rules! cparams {
 			fn from(value: $name) -> $path {
 				$path {
 					$($field: value.$field.into(),)*
-					..faer::auto!(f32)
+					..colmat::auto!(f32)
 				}
 			}
 		}
@@ -573,7 +573,7 @@ macro_rules! cparams {
 #[cfg(feature = "linalg")]
 pub mod linalg {
 	use super::*;
-	use faer::linalg as la;
+	use colmat::linalg as la;
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum ComputeSvdVectors {
@@ -665,14 +665,14 @@ pub mod linalg {
 		}
 	}
 	cerr!({
-		#[ok(faer::linalg::cholesky::llt::factor::LltInfo)]
-		#[err(faer::linalg::cholesky::llt::factor::LltError)]
+		#[ok(colmat::linalg::cholesky::llt::factor::LltInfo)]
+		#[err(colmat::linalg::cholesky::llt::factor::LltError)]
 		pub enum LltStatus {
 			Ok { dynamic_regularization_count: usize },
 			NonPositivePivot { index: usize },
 		}
-		#[ok(faer::linalg::cholesky::llt_pivoting::factor::PivLltInfo)]
-		#[err(faer::linalg::cholesky::llt::factor::LltError)]
+		#[ok(colmat::linalg::cholesky::llt_pivoting::factor::PivLltInfo)]
+		#[err(colmat::linalg::cholesky::llt::factor::LltError)]
 		pub enum PivLltStatus {
 			Ok {
 				rank: usize,
@@ -682,33 +682,33 @@ pub mod linalg {
 				index: usize,
 			},
 		}
-		#[ok(faer::linalg::cholesky::ldlt::factor::LdltInfo)]
-		#[err(faer::linalg::cholesky::ldlt::factor::LdltError)]
+		#[ok(colmat::linalg::cholesky::ldlt::factor::LdltInfo)]
+		#[err(colmat::linalg::cholesky::ldlt::factor::LdltError)]
 		pub enum LdltStatus {
 			Ok { dynamic_regularization_count: usize },
 			ZeroPivot { index: usize },
 		}
-		#[ok(faer::linalg::cholesky::lblt::factor::LbltInfo)]
+		#[ok(colmat::linalg::cholesky::lblt::factor::LbltInfo)]
 		#[err(Never)]
 		pub enum LbltStatus {
 			Ok { transposition_count: usize },
 		}
-		#[ok(faer::linalg::qr::no_pivoting::factor::QrInfo)]
+		#[ok(colmat::linalg::qr::no_pivoting::factor::QrInfo)]
 		#[err(Never)]
 		pub enum QrStatus {
 			Ok { rank: usize },
 		}
-		#[ok(faer::linalg::qr::col_pivoting::factor::ColPivQrInfo)]
+		#[ok(colmat::linalg::qr::col_pivoting::factor::ColPivQrInfo)]
 		#[err(Never)]
 		pub enum ColPivQrStatus {
 			Ok { transposition_count: usize },
 		}
-		#[ok(faer::linalg::lu::partial_pivoting::factor::PartialPivLuInfo)]
+		#[ok(colmat::linalg::lu::partial_pivoting::factor::PartialPivLuInfo)]
 		#[err(Never)]
 		pub enum PartialPivLuStatus {
 			Ok { transposition_count: usize },
 		}
-		#[ok(faer::linalg::lu::full_pivoting::factor::FullPivLuInfo)]
+		#[ok(colmat::linalg::lu::full_pivoting::factor::FullPivLuInfo)]
 		#[err(Never)]
 		pub enum FullPivLuStatus {
 			Ok { transposition_count: usize },
@@ -763,68 +763,68 @@ pub mod linalg {
 		}
 	}
 	cparams!({
-		#[repr(faer::linalg::cholesky::llt::factor::LltParams)]
+		#[repr(colmat::linalg::cholesky::llt::factor::LltParams)]
 		pub struct LltParams {
 			recursion_threshold: usize,
 			block_size: usize,
 		}
-		#[repr(faer::linalg::cholesky::llt_pivoting::factor::PivLltParams)]
+		#[repr(colmat::linalg::cholesky::llt_pivoting::factor::PivLltParams)]
 		pub struct PivLltParams {
 			block_size: usize,
 		}
-		#[repr(faer::linalg::cholesky::ldlt::factor::LdltParams)]
+		#[repr(colmat::linalg::cholesky::ldlt::factor::LdltParams)]
 		pub struct LdltParams {
 			recursion_threshold: usize,
 			block_size: usize,
 		}
-		#[repr(faer::linalg::cholesky::lblt::factor::LbltParams)]
+		#[repr(colmat::linalg::cholesky::lblt::factor::LbltParams)]
 		pub struct LbltParams {
 			pivoting: PivotingStrategy,
 			par_threshold: usize,
 			block_size: usize,
 		}
-		#[repr(faer::linalg::qr::no_pivoting::factor::QrParams)]
+		#[repr(colmat::linalg::qr::no_pivoting::factor::QrParams)]
 		pub struct QrParams {
 			blocking_threshold: usize,
 		}
-		#[repr(faer::linalg::qr::col_pivoting::factor::ColPivQrParams)]
+		#[repr(colmat::linalg::qr::col_pivoting::factor::ColPivQrParams)]
 		pub struct ColPivQrParams {
 			blocking_threshold: usize,
 			par_threshold: usize,
 		}
-		#[repr(faer::linalg::lu::partial_pivoting::factor::PartialPivLuParams)]
+		#[repr(colmat::linalg::lu::partial_pivoting::factor::PartialPivLuParams)]
 		pub struct PartialPivLuParams {
 			recursion_threshold: usize,
 			block_size: usize,
 			par_threshold: usize,
 		}
-		#[repr(faer::linalg::lu::full_pivoting::factor::FullPivLuParams)]
+		#[repr(colmat::linalg::lu::full_pivoting::factor::FullPivLuParams)]
 		pub struct FullPivLuParams {
 			par_threshold: usize,
 		}
-		#[repr(faer::linalg::svd::bidiag::BidiagParams)]
+		#[repr(colmat::linalg::svd::bidiag::BidiagParams)]
 		pub struct BidiagParams {
 			par_threshold: usize,
 		}
-		#[repr(faer::linalg::evd::tridiag::TridiagParams)]
+		#[repr(colmat::linalg::evd::tridiag::TridiagParams)]
 		pub struct TridiagParams {
 			par_threshold: usize,
 		}
-		#[repr(faer::linalg::evd::hessenberg::HessenbergParams)]
+		#[repr(colmat::linalg::evd::hessenberg::HessenbergParams)]
 		pub struct HessenbergParams {
 			par_threshold: usize,
 			blocking_threshold: usize,
 		}
-		#[repr(faer::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams)]
+		#[repr(colmat::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams)]
 		pub struct GeneralizedHessenbergParams {
 			block_size: usize,
 			blocking_threshold: usize,
 		}
-		#[repr(faer::linalg::evd::EvdFromSchurParams)]
+		#[repr(colmat::linalg::evd::EvdFromSchurParams)]
 		pub struct EvdFromSchurParams {
 			recursion_threshold: usize,
 		}
-		#[repr(faer::linalg::evd::schur::SchurParams)]
+		#[repr(colmat::linalg::evd::schur::SchurParams)]
 		pub struct SchurParams {
 			recommended_shift_count: extern "C" fn(
 				matrix_dimension: usize,
@@ -837,7 +837,7 @@ pub mod linalg {
 			blocking_threshold: usize,
 			nibble_threshold: usize,
 		}
-		#[repr(faer::linalg::gevd::GeneralizedSchurParams)]
+		#[repr(colmat::linalg::gevd::GeneralizedSchurParams)]
 		pub struct GeneralizedSchurParams {
 			relative_cost_estimate_of_shift_chase_to_matmul:
 				extern "C" fn(
@@ -855,25 +855,25 @@ pub mod linalg {
 			blocking_threshold: usize,
 			nibble_threshold: usize,
 		}
-		#[repr(faer::linalg::svd::SvdParams)]
+		#[repr(colmat::linalg::svd::SvdParams)]
 		pub struct SvdParams {
 			bidiag: BidiagParams,
 			qr: QrParams,
 			recursion_threshold: usize,
 			qr_ratio_threshold: f64,
 		}
-		#[repr(faer::linalg::evd::SelfAdjointEvdParams)]
+		#[repr(colmat::linalg::evd::SelfAdjointEvdParams)]
 		pub struct SelfAdjointEvdParams {
 			tridiag: TridiagParams,
 			recursion_threshold: usize,
 		}
-		#[repr(faer::linalg::evd::EvdParams)]
+		#[repr(colmat::linalg::evd::EvdParams)]
 		pub struct EvdParams {
 			hessenberg: HessenbergParams,
 			schur: SchurParams,
 			evd_from_schur: EvdFromSchurParams,
 		}
-		#[repr(faer::linalg::gevd::GevdParams)]
+		#[repr(colmat::linalg::gevd::GevdParams)]
 		pub struct GevdParams {
 			hessenberg: GeneralizedHessenbergParams,
 			schur: GeneralizedSchurParams,
@@ -902,14 +902,14 @@ pub mod linalg {
 		#[allow(dead_code)]
 		fn faer<T: ComplexField>(
 			self,
-		) -> faer::Spec<la::gevd::GevdFromSchurParams, T> {
+		) -> colmat::Spec<la::gevd::GevdFromSchurParams, T> {
 			<la::gevd::GevdFromSchurParams>::from(self).into()
 		}
 	}
 	impl From<GevdFromSchurParams> for la::gevd::GevdFromSchurParams {
 		#[allow(unused_variables)]
 		fn from(value: GevdFromSchurParams) -> la::gevd::GevdFromSchurParams {
-			la::gevd::GevdFromSchurParams { ..faer::auto!(f32) }
+			la::gevd::GevdFromSchurParams { ..colmat::auto!(f32) }
 		}
 	}
 	impl From<la::gevd::GevdFromSchurParams> for GevdFromSchurParams {
@@ -929,9 +929,9 @@ pub mod linalg {
 	impl LltRegularization {
 		fn faer<T: RealField>(
 			self,
-		) -> faer::linalg::cholesky::llt::factor::LltRegularization<T> {
+		) -> colmat::linalg::cholesky::llt::factor::LltRegularization<T> {
 			{
-				faer::linalg::cholesky::llt::factor::LltRegularization {
+				colmat::linalg::cholesky::llt::factor::LltRegularization {
 					dynamic_regularization_delta: real(
 						self.dynamic_regularization_delta,
 					),
@@ -956,9 +956,9 @@ pub mod linalg {
 	impl LdltRegularization {
 		fn faer<'a, T: RealField>(
 			self,
-		) -> faer::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T> {
+		) -> colmat::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T> {
 			{
-				faer::linalg::cholesky::ldlt::factor::LdltRegularization {
+				colmat::linalg::cholesky::ldlt::factor::LdltRegularization {
 					dynamic_regularization_delta: real(
 						self.dynamic_regularization_delta,
 					),
@@ -1280,7 +1280,7 @@ pub mod linalg {
 			with_team_par(team, |mut par| {
 				la::cholesky::llt_pivoting::solve::solve_in_place_with_conj(
 					L.faer::<T>(),
-					faer::perm::PermRef::<I>::new_unchecked(
+					colmat::perm::PermRef::<I>::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1310,7 +1310,7 @@ pub mod linalg {
 				la::cholesky::llt_pivoting::reconstruct::reconstruct(
 					A.faer::<T>(),
 					L.faer(),
-					faer::perm::PermRef::<I>::new_unchecked(
+					colmat::perm::PermRef::<I>::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1339,7 +1339,7 @@ pub mod linalg {
 				la::cholesky::llt_pivoting::inverse::inverse(
 					A_inv.faer::<T>(),
 					L.faer(),
-					faer::perm::PermRef::<I>::new_unchecked(
+					colmat::perm::PermRef::<I>::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1521,7 +1521,7 @@ pub mod linalg {
 					diag.diag(),
 					subdiag.diag(),
 					A_conj.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1555,7 +1555,7 @@ pub mod linalg {
 					L.faer(),
 					diag.diag(),
 					subdiag.diag(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1588,7 +1588,7 @@ pub mod linalg {
 					L.faer(),
 					diag.diag(),
 					subdiag.diag(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -1986,7 +1986,7 @@ pub mod linalg {
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2025,7 +2025,7 @@ pub mod linalg {
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2069,7 +2069,7 @@ pub mod linalg {
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2111,7 +2111,7 @@ pub mod linalg {
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2149,7 +2149,7 @@ pub mod linalg {
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2221,7 +2221,7 @@ pub mod linalg {
 				la::lu::partial_pivoting::solve::solve_in_place_with_conj::<I, T>(
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2261,7 +2261,7 @@ pub mod linalg {
 				>(
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2299,7 +2299,7 @@ pub mod linalg {
 					A.faer(),
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2333,7 +2333,7 @@ pub mod linalg {
 					A.faer(),
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						perm_fwd.slice(),
 						perm_bwd.slice(),
 						Ord::min(perm_fwd.len, perm_bwd.len),
@@ -2410,12 +2410,12 @@ pub mod linalg {
 				la::lu::full_pivoting::solve::solve_in_place_with_conj::<I, T>(
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						row_perm_fwd.slice(),
 						row_perm_bwd.slice(),
 						Ord::min(row_perm_fwd.len, row_perm_bwd.len),
 					),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						col_perm_fwd.slice(),
 						col_perm_bwd.slice(),
 						Ord::min(col_perm_fwd.len, col_perm_bwd.len),
@@ -2453,12 +2453,12 @@ pub mod linalg {
 				>(
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						row_perm_fwd.slice(),
 						row_perm_bwd.slice(),
 						Ord::min(row_perm_fwd.len, row_perm_bwd.len),
 					),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						col_perm_fwd.slice(),
 						col_perm_bwd.slice(),
 						Ord::min(col_perm_fwd.len, col_perm_bwd.len),
@@ -2498,12 +2498,12 @@ pub mod linalg {
 					A.faer(),
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						row_perm_fwd.slice(),
 						row_perm_bwd.slice(),
 						Ord::min(row_perm_fwd.len, row_perm_bwd.len),
 					),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						col_perm_fwd.slice(),
 						col_perm_bwd.slice(),
 						Ord::min(col_perm_fwd.len, col_perm_bwd.len),
@@ -2539,12 +2539,12 @@ pub mod linalg {
 					A.faer(),
 					L.faer(),
 					U.faer(),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						row_perm_fwd.slice(),
 						row_perm_bwd.slice(),
 						Ord::min(row_perm_fwd.len, row_perm_bwd.len),
 					),
-					faer::perm::PermRef::new_unchecked(
+					colmat::perm::PermRef::new_unchecked(
 						col_perm_fwd.slice(),
 						col_perm_bwd.slice(),
 						Ord::min(col_perm_fwd.len, col_perm_bwd.len),
@@ -2661,8 +2661,8 @@ pub mod linalg {
 			params: EvdParams,
 		) -> EvdStatus {
 			with_team_par(team, |mut par| {
-				type R = <T as faer::traits::ComplexField>::Real;
-				if const { <T as faer::traits::ComplexField>::IS_REAL } {
+				type R = <T as colmat::traits::ComplexField>::Real;
+				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
 					let UL = if UL.ncols == 0 { None } else { Some(UL.faer()) };
 					let UR = if UR.ncols == 0 { None } else { Some(UR.faer()) };
 					la::evd::evd_real::<R>(
@@ -2722,8 +2722,8 @@ pub mod linalg {
 			params: GevdParams,
 		) -> GevdStatus {
 			with_team_par(team, |mut par| {
-				type R = <T as faer::traits::ComplexField>::Real;
-				if const { <T as faer::traits::ComplexField>::IS_REAL } {
+				type R = <T as colmat::traits::ComplexField>::Real;
+				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
 					let UL = if UL.ncols == 0 { None } else { Some(UL.faer()) };
 					let UR = if UR.ncols == 0 { None } else { Some(UR.faer()) };
 					la::gevd::gevd_real::<R>(
@@ -2774,7 +2774,7 @@ pub unsafe extern "C" fn libfaer_v0_23_alloc(
 	}
 }
 /// Creates a team handle of `threads` participants: the calling thread and `threads - 1` reserved
-/// workers, the same convention as `faer::team::with_team`. Zero and one both mean sequential, and a
+/// workers, the same convention as `colmat::team::with_team`. Zero and one both mean sequential, and a
 /// sequential handle reserves nothing.
 ///
 /// The handle **owns its pool**: the workers are built here, once, and every operation handed the
@@ -2947,7 +2947,7 @@ mod tests {
 	use super::*;
 	use crate::linalg as la;
 
-	/// The affinity mask of the calling thread. A team built by `faer::team::with_team` places its
+	/// The affinity mask of the calling thread. A team built by `colmat::team::with_team` places its
 	/// leader on the one CPU no member takes, and the mask comes back when the team is dropped
 	/// (threadteam 0.5, Linux), so a mask that still names a single CPU after a call is the
 	/// observable form of "the call did not leave the team".
@@ -2962,7 +2962,7 @@ mod tests {
 	}
 
 	/// `(a * b)` on `n` x `n` f64 matrices, through the C entry point.
-	fn matmul(c: &mut faer::Mat<f64>, a: &faer::Mat<f64>, b: &faer::Mat<f64>, team: *const Team) {
+	fn matmul(c: &mut colmat::Mat<f64>, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>, team: *const Team) {
 		let alpha = 1.0f64;
 		let c = MatMut {
 			ptr: c.as_ptr_mut() as *mut c_void,
@@ -2985,7 +2985,7 @@ mod tests {
 	}
 
 	impl MatRef {
-		fn of<T>(m: &faer::Mat<T>) -> MatRef {
+		fn of<T>(m: &colmat::Mat<T>) -> MatRef {
 			MatRef {
 				ptr: m.as_ptr() as *const c_void,
 				nrows: m.nrows(),
@@ -2997,20 +2997,20 @@ mod tests {
 	}
 
 	/// The sequential product, from the Rust API.
-	fn want(n: usize, a: &faer::Mat<f64>, b: &faer::Mat<f64>) -> faer::Mat<f64> {
-		let mut c = faer::Mat::<f64>::zeros(n, n);
-		faer::linalg::matmul::matmul(
+	fn want(n: usize, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>) -> colmat::Mat<f64> {
+		let mut c = colmat::Mat::<f64>::zeros(n, n);
+		colmat::linalg::matmul::matmul(
 			c.as_mut(),
-			faer::Accum::Replace,
+			colmat::Accum::Replace,
 			a.as_ref(),
 			b.as_ref(),
 			1.0,
-			faer::Par::Seq,
+			colmat::Par::Seq,
 		);
 		c
 	}
 
-	fn close(x: &faer::Mat<f64>, y: &faer::Mat<f64>) -> bool {
+	fn close(x: &colmat::Mat<f64>, y: &colmat::Mat<f64>) -> bool {
 		let (n, m) = (x.nrows(), x.ncols());
 		(0..n).all(|i| (0..m).all(|j| (x[(i, j)] - y[(i, j)]).abs() <= 1e-10 * (1.0 + x[(i, j)].abs())))
 	}
@@ -3063,18 +3063,18 @@ mod tests {
 	fn the_team_handle_is_entered_per_call_and_left_again() {
 		let _turn = TEAM_TURN.lock().unwrap_or_else(|e| e.into_inner());
 		let n = 512;
-		let a = faer::Mat::<f64>::from_fn(n, n, |i, j| ((i * 31 + j * 7) % 13) as f64 - 6.0);
-		let b = faer::Mat::<f64>::from_fn(n, n, |i, j| ((i * 5 + j * 11) % 17) as f64 - 8.0);
+		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 31 + j * 7) % 13) as f64 - 6.0);
+		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 5 + j * 11) % 17) as f64 - 8.0);
 		let expected = want(n, &a, &b);
 
 		// (a) no team: the sequential product, and no region on a team
-		let mut got = faer::Mat::<f64>::zeros(n, n);
+		let mut got = colmat::Mat::<f64>::zeros(n, n);
 		let before = mask();
-		faer::team::stats::enable(true);
-		let _ = faer::team::stats::take();
+		colmat::team::stats::enable(true);
+		let _ = colmat::team::stats::take();
 		matmul(&mut got, &a, &b, core::ptr::null());
-		let serial = faer::team::stats::take();
-		faer::team::stats::enable(false);
+		let serial = colmat::team::stats::take();
+		colmat::team::stats::enable(false);
 		assert!(close(&expected, &got), "a null handle must give the sequential product");
 		assert_eq!(mask(), before, "a null handle must not touch the calling thread");
 		let teamless = serial.run.iter().skip(2).sum::<usize>()
@@ -3090,7 +3090,7 @@ mod tests {
 		let width = cpus.clamp(2, 4);
 		let placed = {
 			let before = mask();
-			let inside = faer::team::with_team(width, |_| mask());
+			let inside = colmat::team::with_team(width, |_| mask());
 			assert_eq!(mask(), before, "a dropped team must hand the mask back");
 			inside.is_some() && inside != before
 		};
@@ -3107,12 +3107,12 @@ mod tests {
 		let team = unsafe { libfaer_v0_23_team_create(width) };
 		assert!(!team.is_null());
 		let before = mask();
-		let mut got = faer::Mat::<f64>::zeros(n, n);
-		faer::team::stats::enable(true);
-		let _ = faer::team::stats::take();
+		let mut got = colmat::Mat::<f64>::zeros(n, n);
+		colmat::team::stats::enable(true);
+		let _ = colmat::team::stats::take();
 		matmul(&mut got, &a, &b, team);
-		let parallel = faer::team::stats::take();
-		faer::team::stats::enable(false);
+		let parallel = colmat::team::stats::take();
+		colmat::team::stats::enable(false);
 		assert!(close(&expected, &got), "a team handle must give the sequential product");
 		let on_team = parallel.run.iter().skip(2).sum::<usize>()
 			+ parallel.split.iter().skip(2).sum::<usize>()
@@ -3129,13 +3129,13 @@ mod tests {
 
 		// a narrower width on the same handle, and a destroy of a null handle
 		unsafe { libfaer_v0_23_team_set_threads(team, 1) };
-		let mut got = faer::Mat::<f64>::zeros(n, n);
+		let mut got = colmat::Mat::<f64>::zeros(n, n);
 		let before = mask();
-		faer::team::stats::enable(true);
-		let _ = faer::team::stats::take();
+		colmat::team::stats::enable(true);
+		let _ = colmat::team::stats::take();
 		matmul(&mut got, &a, &b, team);
-		let one = faer::team::stats::take();
-		faer::team::stats::enable(false);
+		let one = colmat::team::stats::take();
+		colmat::team::stats::enable(false);
 		assert!(close(&expected, &got), "a one-participant team must give the same product");
 		assert_eq!(
 			one.run.iter().skip(2).sum::<usize>() + one.split.iter().skip(2).sum::<usize>() + one.gemm_tiled + one.gemm_team_kernel,
@@ -3198,7 +3198,7 @@ mod tests {
 		assert_eq!(mask(), before, "a scratch query must not enter a team");
 
 		// a factorization on exactly the queried buffer, with the same team
-		let mut a = faer::Mat::<f64>::from_fn(n, n, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
+		let mut a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
 		let mut row_fwd = vec![0u32; n];
 		let mut row_bwd = vec![0u32; n];
 		let (mut col_fwd, mut col_bwd) = (vec![0u32; n], vec![0u32; n]);
@@ -3336,10 +3336,10 @@ mod tests {
 		let _turn = TEAM_TURN.lock().unwrap_or_else(|e| e.into_inner());
 		let width = cpus().clamp(2, 4);
 		let n = 96;
-		let a = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 			((i * 31 + j * 7) % 13) as f64 - 6.0
 		});
-		let b = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 			((i * 5 + j * 11) % 17) as f64 - 8.0
 		});
 		let expected = want(n, &a, &b);
@@ -3349,7 +3349,7 @@ mod tests {
 		let (a2, b2) = (a.clone(), b.clone());
 		std::thread::spawn(move || {
 			let team = addr as *const Team;
-			let mut inner_c = faer::Mat::<f64>::zeros(n, n);
+			let mut inner_c = colmat::Mat::<f64>::zeros(n, n);
 			let inner_degree = with_team_par(team, |_| {
 				// the callback: the same handle, from the thread its caller is already using
 				matmul(&mut inner_c, &a2, &b2, team);
@@ -3362,7 +3362,7 @@ mod tests {
 			.unwrap_or_else(|e| {
 				panic!("a call nested in another call on the same handle never returned ({e:?}): it waited for the pool its caller holds")
 			});
-		let mut outer_c = faer::Mat::<f64>::zeros(n, n);
+		let mut outer_c = colmat::Mat::<f64>::zeros(n, n);
 		matmul(&mut outer_c, &a, &b, team);
 		unsafe { libfaer_v0_23_team_destroy(team) };
 		assert_eq!(
@@ -3404,13 +3404,13 @@ mod tests {
 				OFF_THREAD.store(true, SeqCst);
 			}
 			let n = 24;
-			let a = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+			let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 				((i * 3 + j) % 7) as f64 - 3.0
 			});
-			let b = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+			let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 				((i + 2 * j) % 5) as f64 - 2.0
 			});
-			let mut c = faer::Mat::<f64>::zeros(n, n);
+			let mut c = colmat::Mat::<f64>::zeros(n, n);
 			matmul(&mut c, &a, &b, HANDLE.load(SeqCst) as *const Team);
 			if !close(&want(n, &a, &b), &c) {
 				WRONG.store(true, SeqCst);
@@ -3428,7 +3428,7 @@ mod tests {
 			std::thread::spawn(move || {
 				CALLER.store(tid(), SeqCst);
 				let n = 160usize;
-				let a = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+				let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 					(((i * 37 + j * 11) % 23) as f64 - 11.0) / 7.0
 				});
 				let params = unsafe { la::libfaer_v0_23_EvdParams_f64() }
@@ -3509,7 +3509,7 @@ mod tests {
 
 	/// faer#333: a handle reused for N calls pays for its pool once, so the calls after the first cost
 	/// what one reservation costs. The reference is what the handle replaced, measured in the same
-	/// run on the same matrices: `faer::team::with_team` per call, which is what every C call ran on
+	/// run on the same matrices: `colmat::team::with_team` per call, which is what every C call ran on
 	/// `origin/main` (it builds a pool of shared workers from threadteam's cache, reserves it and
 	/// drops it again). The first call of each shape is excluded: for the handle it is threadteam's
 	/// first acquisition of the pool (thousands of allocations, the members' own state), for the
@@ -3523,13 +3523,13 @@ mod tests {
 		let width = cpus().clamp(2, 4);
 		let n = 64;
 		const CALLS: usize = 8;
-		let a = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 			((i * 31 + j * 7) % 13) as f64 - 6.0
 		});
-		let b = faer::Mat::<f64>::from_fn(n, n, |i, j| {
+		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
 			((i * 5 + j * 11) % 17) as f64 - 8.0
 		});
-		let mut c = faer::Mat::<f64>::zeros(n, n);
+		let mut c = colmat::Mat::<f64>::zeros(n, n);
 
 		// one handle, CALLS calls through the C entry point
 		let team = unsafe { libfaer_v0_23_team_create(width) };
@@ -3545,10 +3545,10 @@ mod tests {
 		let mut per_call = [0usize; CALLS];
 		for slot in &mut per_call {
 			alloc_probe::reset();
-			faer::team::with_team(width, |par| {
-				faer::linalg::matmul::matmul(
+			colmat::team::with_team(width, |par| {
+				colmat::linalg::matmul::matmul(
 					c.as_mut(),
-					faer::Accum::Replace,
+					colmat::Accum::Replace,
 					a.as_ref(),
 					b.as_ref(),
 					1.0,

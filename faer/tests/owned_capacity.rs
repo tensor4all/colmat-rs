@@ -1,6 +1,6 @@
-use faer::diag::Diag;
-use faer::traits::ComplexField;
-use faer::{Col, Mat, Row, c32, c64};
+use colmat::diag::Diag;
+use colmat::traits::ComplexField;
+use colmat::{Col, Mat, Row, c32, c64};
 use std::sync::Mutex;
 
 fn native_capacity<T: ComplexField + Copy>(value: T, fill: T) {
@@ -93,8 +93,8 @@ fn empty_and_zero_extent_capacities() {
 
 #[test]
 fn typed_shapes_preserve_capacities() {
-	faer::with_dim!(m, 3);
-	faer::with_dim!(n, 4);
+	colmat::with_dim!(m, 3);
+	colmat::with_dim!(n, 4);
 	let mut a = Mat::<f64>::with_capacity(17, 19);
 	a.resize_with(3, 4, |_, _| 2.0);
 	let capacities = (a.row_capacity(), a.col_capacity());

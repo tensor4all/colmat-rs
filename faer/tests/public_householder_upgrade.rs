@@ -1,4 +1,4 @@
-//! Public contract of `faer::linalg::householder::upgrade_householder_factor` when the square
+//! Public contract of `colmat::linalg::householder::upgrade_householder_factor` when the square
 //! factor spans several target blocks (tensor4all/faer#265).
 //!
 //! The call takes an `n x n` factor whose diagonal holds the reflectors' `tau` (the denominators)
@@ -12,11 +12,11 @@
 //! blocks used as a column offset, so a child could be cut through a block: the 9-column,
 //! `block_size = 2` call of the issue left two coefficients zero and wrote one between blocks.
 
-use faer::linalg::householder::upgrade_householder_factor;
-use faer::{Mat, Par, c32, c64};
+use colmat::linalg::householder::upgrade_householder_factor;
+use colmat::{Mat, Par, c32, c64};
 
 trait Scalar:
-	faer_traits::ComplexField + Copy + PartialEq + core::fmt::Debug
+	colmat_traits::ComplexField + Copy + PartialEq + core::fmt::Debug
 {
 	const EPS: f64;
 	fn new(re: f64, im: f64) -> Self;
@@ -322,7 +322,7 @@ fn several_blocks_reject_a_previous_size_that_does_not_divide() {
 #[cfg(feature = "threadteam")]
 #[test]
 fn several_blocks_on_a_team() {
-	use faer::utils::team::stats;
+	use colmat::utils::team::stats;
 	// `(m, n, block_size, prev_block_size, dispatch)`
 	const TEAM_CASES: &[(usize, usize, usize, usize, bool)] = &[
 		(4096, 9, 2, 1, false),
@@ -350,7 +350,7 @@ fn several_blocks_on_a_team() {
 	}
 	let mut failures = Vec::new();
 	for width in [2, 4] {
-		faer::team::with_team(width, |mut par| {
+		colmat::team::with_team(width, |mut par| {
 			stats::enable(true);
 			all::<f32>(par.reborrow(), width, &mut failures);
 			all::<f64>(par.reborrow(), width, &mut failures);

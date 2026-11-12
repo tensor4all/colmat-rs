@@ -1,9 +1,9 @@
 //! The public real-QZ workspace query has to cover the deflation window the
 //! kernel is allowed to use, not only the unrounded `(n - 3) / 3`.
 
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::gevd::{self, ComputeEigenvectors};
-use faer::{Col, Mat, Par, ParShape};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::gevd::{self, ComputeEigenvectors};
+use colmat::{Col, Mat, Par, ParShape};
 
 extern "C" fn window(_: usize, _: usize) -> usize {
 	32
@@ -42,7 +42,7 @@ fn scratch_query_covers_the_requested_deflation_window() {
 		let mut ar = Col::<f64>::zeros(n);
 		let mut ai = Col::<f64>::zeros(n);
 		let mut beta = Col::<f64>::zeros(n);
-		let mut params: gevd::GeneralizedSchurParams = faer::auto!(f64);
+		let mut params: gevd::GeneralizedSchurParams = colmat::auto!(f64);
 		params.recommended_deflation_window = window;
 
 		let req = gevd::qz_real::hessenberg_to_qz_scratch::<f64>(

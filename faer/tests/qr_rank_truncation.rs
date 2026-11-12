@@ -9,12 +9,12 @@
 //!   permutation it reproduces bit for bit;
 //! - `rel_tol` is measured against the first diagonal entry, not the previous one;
 //! - a NaN or an infinity never turns into a truncated rank.
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::qr::col_pivoting::factor::{
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::qr::col_pivoting::factor::{
 	self as cpqr, ColPivQrInfo, ColPivQrParams,
 };
-use faer::traits::ComplexField;
-use faer::{Auto, Mat, MatRef, Par, c32, c64};
+use colmat::traits::ComplexField;
+use colmat::{Auto, Mat, MatRef, Par, c32, c64};
 
 trait Entry: ComplexField + Copy {
 	fn pair(re: f64, im: f64) -> Self;
@@ -214,7 +214,7 @@ fn inactive_options_change_no_bit() {
 				assert_eq!(base.info.rank, size);
 			};
 			if par_on_team {
-				faer::team::with_team(4, run);
+				colmat::team::with_team(4, run);
 			} else {
 				run(Par::Seq);
 			}
@@ -257,7 +257,7 @@ fn check_rank<T: Entry>(rel_tol: f64) {
 			);
 		}
 		// the same answer on a team, where the trailing updates are split
-		let q = faer::team::with_team(4, |par| {
+		let q = colmat::team::with_team(4, |par| {
 			factor(a.as_ref(), par, params::<T>(None, None, Some(rel_tol)))
 		});
 		assert_eq!(q.info.rank, r, "{m}x{n} rank {r} on a team");
@@ -288,7 +288,7 @@ fn check_max_rank<T: Entry>() {
 		let whole = factor(a.as_ref(), Par::Seq, params::<T>(None, None, None));
 		for par_on_team in [false, true] {
 			let cut = if par_on_team {
-				faer::team::with_team(4, |par| {
+				colmat::team::with_team(4, |par| {
 					factor(a.as_ref(), par, params::<T>(Some(r), None, None))
 				})
 			} else {

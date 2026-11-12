@@ -49,19 +49,19 @@ jobs:
         timeout-minutes: 60 # the hosted arm64 runners are slower than the x86_64 ones
         run: scripts/run-lapack-validation.sh --limit-scale 3
       - name: Validate recursive QZ workspace bounds
-        run: cargo test -p t4a-faer --test qz_scratch recursive -- --ignored 2>&1 | tee target/lapack-validation/qz-recursive.log
+        run: cargo test -p colmat --test qz_scratch recursive -- --ignored 2>&1 | tee target/lapack-validation/qz-recursive.log
       - name: Summarize known and new failures
         if: always()
         run: python3 scripts/summarize-lapack-failures.py --output target/lapack-validation | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Strict-triangle matmul tests (recorded failing on macOS arm64 in the first run)
         if: always()
-        run: cargo test --locked -p t4a-faer --lib strict_triangle
+        run: cargo test --locked -p colmat --lib strict_triangle
       - name: gemm fallback allocation (#58, known until #56)
         if: always()
         run: |
           # Ignored off x86_64 because the `gemm` crate allocates per call; a failure here is the
           # known defect and is reported, not fatal. A pass means #56 landed: drop the `ignore`.
-          if cargo test --locked -p t4a-faer --test evd_svd_vectors_no_alloc -- --ignored 2>&1 | tee alloc.log; then
+          if cargo test --locked -p colmat --test evd_svd_vectors_no_alloc -- --ignored 2>&1 | tee alloc.log; then
             echo "::warning title=#58 passes on ${{ matrix.os }}::evd_svd_vectors_no_alloc passes off x86_64; drop its ignore (#58, #56)."
           else
             echo "::warning title=#58 known on ${{ matrix.os }}::the gemm crate fallback still allocates per call (#58, #56)."

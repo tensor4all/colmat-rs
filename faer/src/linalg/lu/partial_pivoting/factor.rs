@@ -22,7 +22,7 @@ pub(crate) fn swap_elems<T: ComplexField>(
 #[inline(always)]
 fn first_of_max<T: ComplexField, S: pulp::Simd>(
 	simd: &SimdCtx<'_, T, S>,
-	val: faer_traits::RealReg<T::SimdVec<S>>,
+	val: colmat_traits::RealReg<T::SimdVec<S>>,
 	idx: T::SimdIndex<S>,
 ) -> usize {
 	let best = simd.reduce_max_real(val);
@@ -64,15 +64,15 @@ fn leaf_step_simd<T: ComplexField>(
 			let inc = simd.isplat(T::Index::truncate(lanes));
 			let iota = T::simd_iota(&simd.0);
 			let indices = simd.indices();
-			let mut best_val = faer_traits::RealReg(simd.zero());
+			let mut best_val = colmat_traits::RealReg(simd.zero());
 			let mut best_idx = simd.izero();
 			let track = |x: T::SimdVec<S>,
 			             idx: T::SimdIndex<S>,
-			             best_val: &mut faer_traits::RealReg<T::SimdVec<S>>,
+			             best_val: &mut colmat_traits::RealReg<T::SimdVec<S>>,
 			             best_idx: &mut T::SimdIndex<S>| {
 				let v = simd.abs1(x);
 				let better = (*simd).gt(v, *best_val);
-				*best_val = faer_traits::RealReg(simd.select(better, v.0, best_val.0));
+				*best_val = colmat_traits::RealReg(simd.select(better, v.0, best_val.0));
 				*best_idx = simd.iselect(better, idx, *best_idx);
 			};
 			// `x - l * u` in one fused multiply-add: the rounding of the scalar leaf's rank one

@@ -7,7 +7,7 @@ signatures have moved.
 
 | Upstream faer | This fork |
 | --- | --- |
-| `faer = "0.2x"` in `Cargo.toml` | `faer = { package = "t4a-faer", version = "0.32" }`; the library name is still `faer` (`faer/Cargo.toml:17`). |
+| `faer = "0.2x"` in `Cargo.toml` | `colmat = "0.34"`; package and library are both `colmat` (`faer/Cargo.toml:2`, `:18`). |
 | `faer::get_global_parallelism()` / `set_global_parallelism(..)` | Removed. Every call that runs work takes a trailing `Par` (`docs/par-team-migration.md:94`); `Par::Seq` is the sequential one. |
 | `Par::Rayon(n)` | Removed. `Par` has `Seq` and `Team` only (`faer/src/lib.rs:1070`). |
 | `faer::get_global_parallelism().degree()` | `par.degree()`, or `ParShape` for a workspace query (`faer/src/lib.rs:1117`, `:1141`). |
@@ -19,7 +19,7 @@ signatures have moved.
 | `svd_scratch::<T>(m, n, .., par)` | The scratch functions take `ParShape`, not `Par` (`faer/src/linalg/svd/mod.rs:677`). Pass `par.shape()`. |
 | `&a * &b` | Still compiles, and runs sequentially: the operators cannot take a `Par` (`docs/par-team-migration.md:110`). |
 | `Mat`, `MatRef`, `MatMut`, `mat!`, `Side`, `Accum`, `Conj` | Unchanged in name and role (`faer/src/lib.rs:933`, `:946`, `:954`, `:494`). |
-| `faer::linalg::solvers::Solve` | Unchanged, and still needs importing (`faer/src/linalg/solvers.rs:115`). |
+| `colmat::linalg::solvers::Solve` | Unchanged, and still needs importing (`faer/src/linalg/solvers.rs:115`). |
 
 ## What it takes to port a call site
 
@@ -28,7 +28,7 @@ signatures have moved.
    `compute_thin_Q`. A call that only reads a factor (`lu.L()`, `svd.U()`) does not.
 2. **Replace the global setting with a team.** Build a `threadteam::Pool` once, turn it into a team
    with `pool.into_team(width)`, and take a token per call inside `Exec::team(|t| ...)`; or use
-   `faer::team::with_team(width, |par| ...)` for one call (`faer/src/utils/team.rs:97`).
+   `colmat::team::with_team(width, |par| ...)` for one call (`faer/src/utils/team.rs:97`).
 3. **Pass `par.shape()` to scratch queries.** `ParShape` is `Copy` and carries the width without the
    authority to run (`faer/src/lib.rs:1089`).
 4. **Fix the reuse of one `par`.** `Par` is neither `Copy` nor `Clone`

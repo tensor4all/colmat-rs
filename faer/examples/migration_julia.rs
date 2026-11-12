@@ -1,7 +1,7 @@
-use faer::linalg::matmul::dot::inner_prod;
-use faer::linalg::matmul::matmul;
-use faer::linalg::solvers::{DenseSolveCore, Solve, SvdError};
-use faer::{Accum, Conj, Mat, Par, Side, c64, col, mat};
+use colmat::linalg::matmul::dot::inner_prod;
+use colmat::linalg::matmul::matmul;
+use colmat::linalg::solvers::{DenseSolveCore, Solve, SvdError};
+use colmat::{Accum, Conj, Mat, Par, Side, c64, col, mat};
 
 fn main() -> Result<(), SvdError> {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];

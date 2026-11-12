@@ -1,14 +1,29 @@
-# Unreleased
+# colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
-Changes since `t4a-faer` 0.32.0 (tag `faer-v0.32.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
+Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
 
-## Behaviour change: `norm_max` propagates NaN
+## Breaking: the crate is renamed to `colmat`
 
-- `norm_max` (`MatRef`/`ColRef`/`RowRef::norm_max`, `linalg::reductions::norm_max`) now returns NaN when any entry is NaN, and for a
-  complex entry when either its real or its imaginary part is NaN. It used to skip NaN entries: it returned the largest finite magnitude, and 0
-  for an all-NaN input. `norm_l1` and `norm_l2` already returned NaN, and LAPACK's `xLANGE('M')` and Julia's `norm(x, Inf)` behave the same way.
-  An empty matrix still returns 0. Code that relied on NaN being skipped, for example `norm_max() < tol` as a test that holds for a matrix with
-  NaN entries, now sees NaN, and every comparison with NaN is false (#316).
+The package `t4a-faer` is `colmat` from this release, and `t4a-faer-traits` is
+`colmat-traits`. The library target moves with the package: `[lib] name = "faer"` is
+`"colmat"`, and `"faer_traits"` is `"colmat_traits"`, so callers write
+`use colmat::...`.
+
+```toml
+# before
+faer = { package = "t4a-faer", version = "0.33" }
+# after
+colmat = "0.34"
+```
+
+- `t4a-faer` 0.33.0 stays published and is not yanked, so a crate that pins it keeps
+  resolving. Nothing is published under the old name that re-exports `colmat`: this is a
+  rename, not a compatibility layer.
+- The API, the numerics and the caller-owned `threadteam` team contract are unchanged.
+  Every other entry in this release was already pending before the rename and is listed
+  below.
+- The repository, its issue references (`tensor4all/faer#NNN`) and the released tags up
+  to `faer-v0.33.0` keep their names.
 
 ## Performance
 
@@ -30,6 +45,22 @@ Changes since `t4a-faer` 0.32.0 (tag `faer-v0.32.0`). Numbers are tensor4all/fae
   also ends in), while the eigenvalues and the right eigenvectors were right. The rotations that chase that zero to the bottom were
   applied to the rows of `Q` instead of its columns. Whether a pencil reaches that branch depends on rounding, so the same input could fail on
   x86-64 with AVX2 and pass on aarch64 (#324).
+
+# t4a-faer 0.33.0 (tensor4all fork; with t4a-faer-traits 0.24.3)
+
+Published 2026-11-08 from tag `faer-v0.33.0`; recorded here after the fact, because
+that release commit moved only the version in `faer/Cargo.toml` and `Cargo.lock`
+and left these entries under an "Unreleased" heading. It shipped:
+
+## Behaviour change: `norm_max` propagates NaN
+
+- `norm_max` (`MatRef`/`ColRef`/`RowRef::norm_max`, `linalg::reductions::norm_max`) now returns NaN when any entry is NaN, and for a
+  complex entry when either its real or its imaginary part is NaN. It used to skip NaN entries: it returned the largest finite magnitude, and 0
+  for an all-NaN input. `norm_l1` and `norm_l2` already returned NaN, and LAPACK's `xLANGE('M')` and Julia's `norm(x, Inf)` behave the same way.
+  An empty matrix still returns 0. Code that relied on NaN being skipped, for example `norm_max() < tol` as a test that holds for a matrix with
+  NaN entries, now sees NaN, and every comparison with NaN is false (#316).
+
+## Correctness
 
 - `stats::col_mean` and `stats::col_varm` wrote their results in reverse order when the input had a negative row stride (for example
   `mat.reverse_rows()`), and `row_mean`/`row_varm` did the same for a negative column stride (`mat.reverse_cols()`). Both `NanHandling` modes

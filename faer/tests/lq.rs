@@ -1,10 +1,10 @@
 //! Public contract of the packed LQ factorization and its factor extraction:
 //! exact scratch queries, every output mode, reused output buffers, views, and
 //! `Par::Seq` against a two-thread team.
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
-use faer::{Auto, Mat, Par, ParShape, c32, c64};
-use faer::traits::ComplexField;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
+use colmat::{Auto, Mat, Par, ParShape, c32, c64};
+use colmat::traits::ComplexField;
 mod common;
 use common::*;
 
@@ -245,7 +245,7 @@ fn team_agrees<T: ComplexField>(m: usize, n: usize) {
 		Par::Seq,
 		MemStack::new(&mut q_mem),
 	);
-	faer::team::with_team(2, |mut par: Par<'_>| {
+	colmat::team::with_team(2, |mut par: Par<'_>| {
 		let (packed_team, coeff_team) = pack(a.as_ref(), block_size, par.reborrow());
 		let mut q_team = Mat::<T>::zeros(k, n);
 		let mut mem = MemBuffer::new(unitary::unitary_scratch::<T>(
@@ -326,7 +326,7 @@ fn team_agrees_ill_conditioned<T: ComplexField<Real = f64>>(m: usize, n: usize) 
 	};
 	let a_norm = a.norm_l2();
 	let (q_seq, r_seq, o_seq) = factors(Par::Seq);
-	let (q_team, r_team, o_team) = faer::team::with_team(2, |par| factors(par));
+	let (q_team, r_team, o_team) = colmat::team::with_team(2, |par| factors(par));
 	let tag = format!("{m}x{n}");
 	for (residual, defect, run) in [(r_seq, o_seq, "seq"), (r_team, o_team, "team")] {
 		assert!(residual <= 1e-12 * a_norm, "{tag} {run}: |A - LQ| = {residual:e}");

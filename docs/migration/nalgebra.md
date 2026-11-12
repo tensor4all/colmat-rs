@@ -23,7 +23,7 @@ changes is ownership, dimensions and the parallel argument.
 | `svd.u`, `svd.v_t`, `svd.singular_values` | `svd.U()`, `svd.V()`, `svd.S()` (`faer/src/linalg/solvers.rs:1604`, `:1609`, `:1614`). `V()` is `V`, not `V^T`: `A = U S V^H`. |
 | `SymmetricEigen::new(m)` | `m.self_adjoint_eigen(Side::Lower, par)` (`faer/src/linalg/solvers.rs:479`). |
 | `Schur::new(m)` | No owning wrapper. The public entry points are Hessenberg and real/complex Schur routines; see `faer/src/linalg/evd/schur/`. |
-| `Hessenberg::new(m)` | `faer::linalg::evd::hessenberg` (`faer/src/linalg/evd/hessenberg.rs:567`). |
+| `Hessenberg::new(m)` | `colmat::linalg::evd::hessenberg` (`faer/src/linalg/evd/hessenberg.rs:567`). |
 | `m.norm()` (Frobenius) | `m.norm_l2()` (`faer/src/mat/matref.rs:1669`). |
 | `m.determinant()` | `m.determinant(par)` (`faer/src/mat/matref.rs:1718`). |
 
@@ -49,9 +49,9 @@ changes is ownership, dimensions and the parallel argument.
   `rank` in its in-place info.
 - **Traits instead of inherent methods.** `solve` and `solve_lstsq` come from the `Solve` and
   `SolveLstsq` traits (`faer/src/linalg/solvers.rs:115`, `:819`); import them:
-  `use faer::linalg::solvers::{Solve, SolveLstsq};`.
+  `use colmat::linalg::solvers::{Solve, SolveLstsq};`.
 - **Genericity is over `ComplexField`, not `RealField`.** A nalgebra generic function bounded by
-  `RealField` does not port directly; the faer bound is `faer::traits::ComplexField`, and
+  `RealField` does not port directly; the faer bound is `colmat::traits::ComplexField`, and
   `ComplexField::Real` replaces nalgebra's `RealField::RealField`. Autodiff scalars are not supported.
 - **Views and `Copy`.** `MatRef` is `Copy`; an owned `Mat` is not, and cloning one allocates.
 

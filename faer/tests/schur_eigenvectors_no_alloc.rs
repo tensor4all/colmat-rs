@@ -14,8 +14,8 @@
 #![cfg(feature = "std")]
 mod common;
 use common::*;
-use faer::MatMut;
-use faer::linalg::evd::{
+use colmat::MatMut;
+use colmat::linalg::evd::{
 	eigenvectors_from_schur_cplx, eigenvectors_from_schur_real,
 	eigenvectors_from_schur_scratch,
 };

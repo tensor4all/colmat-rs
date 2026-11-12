@@ -14,17 +14,17 @@
 //! Each test checks the columns that are eigenvectors of the pencil: finite
 //! entries, a nonzero column, `||beta*A*v - alpha*B*v||` small for right
 //! vectors and `||beta*A^H*y - conj(alpha)*B^H*y||` small for left vectors.
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{GevdParams, gevd_cplx, gevd_real, gevd_scratch};
-use faer::linalg::matmul::matmul;
-use faer::traits::ext::*;
-use faer::traits::math_utils::{
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{GevdParams, gevd_cplx, gevd_real, gevd_scratch};
+use colmat::linalg::matmul::matmul;
+use colmat::traits::ext::*;
+use colmat::traits::math_utils::{
 	abs, conj, eps, from_f64, from_real, one, real, zero,
 };
-use faer::traits::{ComplexField, RealField};
-use faer::{Accum, Col, Mat, Par, ParShape, Spec, c32, c64};
+use colmat::traits::{ComplexField, RealField};
+use colmat::{Accum, Col, Mat, Par, ParShape, Spec, c32, c64};
 
 fn pair(yes: bool) -> ComputeEigenvectors {
 	if yes {
@@ -38,7 +38,7 @@ fn pair(yes: bool) -> ComputeEigenvectors {
 fn residual_right_real(
 	a: &Mat<f64>,
 	b: &Mat<f64>,
-	v: faer::ColRef<'_, f64>,
+	v: colmat::ColRef<'_, f64>,
 	alpha: f64,
 	beta: f64,
 ) -> f64 {
@@ -69,7 +69,7 @@ fn residual_right_real(
 fn residual_left_real(
 	a: &Mat<f64>,
 	b: &Mat<f64>,
-	y: faer::ColRef<'_, f64>,
+	y: colmat::ColRef<'_, f64>,
 	alpha: f64,
 	beta: f64,
 ) -> f64 {
@@ -100,7 +100,7 @@ fn residual_left_real(
 fn residual_right_cplx(
 	a: &Mat<c64>,
 	b: &Mat<c64>,
-	v: faer::ColRef<'_, c64>,
+	v: colmat::ColRef<'_, c64>,
 	alpha: c64,
 	beta: c64,
 ) -> f64 {
@@ -132,7 +132,7 @@ fn residual_right_cplx(
 fn residual_left_cplx(
 	a: &Mat<c64>,
 	b: &Mat<c64>,
-	y: faer::ColRef<'_, c64>,
+	y: colmat::ColRef<'_, c64>,
 	alpha: c64,
 	beta: c64,
 ) -> f64 {
@@ -531,7 +531,7 @@ fn tolerance<R: RealField>() -> R {
 fn residual_left_real_generic<R: RealField>(
 	a: &Mat<R>,
 	b: &Mat<R>,
-	y: faer::ColRef<'_, R>,
+	y: colmat::ColRef<'_, R>,
 	alpha: R,
 	beta: R,
 ) -> R {
@@ -565,7 +565,7 @@ fn residual_left_real_generic<R: RealField>(
 fn residual_left_generic<C: ComplexField>(
 	a: &Mat<C>,
 	b: &Mat<C>,
-	y: faer::ColRef<'_, C>,
+	y: colmat::ColRef<'_, C>,
 	alpha: C,
 	beta: C,
 ) -> C::Real {

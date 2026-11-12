@@ -1,4 +1,4 @@
-t4a-faer is a fork of faer.
+colmat (published as t4a-faer up to 0.33.0) is a fork of faer.
 
 Upstream project
   faer
@@ -47,8 +47,9 @@ programs ask for credit rather than imposing a license condition, and no Fortran
 is translated: `faer/COPYING.BLAS.NETLIB` carries that credit and the quoted
 notice, so the `license` expression stays as it is.
 
-The packages published from this repository are the temporary tensor4all fork
-names `t4a-faer` and `t4a-faer-traits`, so that downstream crates can depend on
-fork content through crates.io, where a `git` dependency cannot be published.
+The packages published from this repository are `colmat` and `colmat-traits`
+(published as `t4a-faer` and `t4a-faer-traits` up to 0.33.0), so that downstream
+crates can depend on fork content through crates.io, where a `git` dependency
+cannot be published.
 Each published package carries a `LICENSE` copy; `faer` additionally carries the
 COPYING files above.

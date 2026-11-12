@@ -30,19 +30,19 @@ const WIDTH: usize = 4;
 
 /// `c = a * a` on `team`, and whether every entry matches the sequential product.
 fn product_is_right(team: *const Team) -> bool {
-	let a = faer::Mat::<f64>::from_fn(N, N, |i, j| {
+	let a = colmat::Mat::<f64>::from_fn(N, N, |i, j| {
 		((i * 7 + j * 3) % 11) as f64 - 5.0
 	});
-	let mut want = faer::Mat::<f64>::zeros(N, N);
-	faer::linalg::matmul::matmul(
+	let mut want = colmat::Mat::<f64>::zeros(N, N);
+	colmat::linalg::matmul::matmul(
 		want.as_mut(),
-		faer::Accum::Replace,
+		colmat::Accum::Replace,
 		a.as_ref(),
 		a.as_ref(),
 		1.0,
-		faer::Par::Seq,
+		colmat::Par::Seq,
 	);
-	let mut c = faer::Mat::<f64>::zeros(N, N);
+	let mut c = colmat::Mat::<f64>::zeros(N, N);
 	let alpha = 1.0f64;
 	let a_ref = MatRef {
 		ptr: a.as_ptr() as *const c_void,

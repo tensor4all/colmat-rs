@@ -1,8 +1,8 @@
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::EvdError;
-use faer::linalg::lu::partial_pivoting::{factor, solve};
-use faer::linalg::matmul::matmul;
-use faer::{Accum, Mat, MatRef, Par, Side, mat};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::EvdError;
+use colmat::linalg::lu::partial_pivoting::{factor, solve};
+use colmat::linalg::matmul::matmul;
+use colmat::{Accum, Mat, MatRef, Par, Side, mat};
 
 fn main() -> Result<(), EvdError> {
 	// Two logical rows, two columns, lda = 3. Padding is not matrix data.

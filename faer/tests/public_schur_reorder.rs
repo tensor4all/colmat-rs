@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::evd::*;
+use colmat::linalg::evd::*;
 
 fn real<T: RealField>() {
 	for n in SIZES {
@@ -114,7 +114,7 @@ fn rejected_swap_preserves_last_successful_state() {
 	let small = 2.0f64.powi(-100);
 	let middle = 2.0f64.powi(-50);
 	let large = 2.0f64.powi(100);
-	let original = faer::mat![
+	let original = colmat::mat![
 		[0.0, small, large, large * 0.3],
 		[-1.0 / small, 0.0, -large * 0.7, large * 0.4],
 		[0.0, 0.0, 0.0, middle],
@@ -144,7 +144,7 @@ fn rejection_keeps_earlier_successful_swaps() {
 	let small = 2.0f64.powi(-100);
 	let middle = 2.0f64.powi(-50);
 	let large = 2.0f64.powi(100);
-	let pairs = faer::mat![
+	let pairs = colmat::mat![
 		[0.0, small, large, large * 0.3],
 		[-1.0 / small, 0.0, -large * 0.7, large * 0.4],
 		[0.0, 0.0, 0.0, middle],
@@ -257,7 +257,7 @@ fn stable_or_rejected<T: RealField>(
 fn reviewer_2x1_and_mirrored_1x2_swaps_are_accepted_and_stable() {
 	let b = f64::from_bits(0x16687E92154EF7A9);
 	let k = f64::from_bits(0x6974E718D7D7625D);
-	let t = faer::mat![
+	let t = colmat::mat![
 		[0.0, b, k],
 		[-k, 0.0, -3.0000000000000014e199],
 		[0.0, 0.0, 0.0],
@@ -265,7 +265,7 @@ fn reviewer_2x1_and_mirrored_1x2_swaps_are_accepted_and_stable() {
 	assert!(stable_or_rejected(&t, 0, 2, 0));
 	// The mirrored 1x2 swap. Row 2 is the pair's second row, so the moving
 	// block starts at row 1.
-	let t = faer::mat![
+	let t = colmat::mat![
 		[0.0, -3.0000000000000014e199, k],
 		[0.0, 0.0, b],
 		[0.0, -k, 0.0],
@@ -356,10 +356,10 @@ fn overflowing_swap_is_rejected_unchanged() {
 #[test]
 fn standardization_of_extreme_pair_stays_orthogonal() {
 	let t =
-		faer::mat![[0.0, 1e308, 0.0], [-1e154, 0.0, -1e289], [0.0, 0.0, 0.0]];
+		colmat::mat![[0.0, 1e308, 0.0], [-1e154, 0.0, -1e289], [0.0, 0.0, 0.0]];
 	assert!(stable_or_rejected(&t, 0, 2, 0));
 	let t =
-		faer::mat![[0.0f32, 3e38, 0.0], [-1e19, 0.0, -1e34], [0.0, 0.0, 0.0]];
+		colmat::mat![[0.0f32, 3e38, 0.0], [-1e19, 0.0, -1e34], [0.0, 0.0, 0.0]];
 	assert!(stable_or_rejected(&t, 0, 2, 0));
 }
 

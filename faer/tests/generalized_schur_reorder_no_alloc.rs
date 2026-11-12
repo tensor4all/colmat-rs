@@ -2,8 +2,8 @@
 #![cfg(feature = "std")]
 mod common;
 use common::*;
-use faer::MatMut;
-use faer::linalg::gevd;
+use colmat::MatMut;
+use colmat::linalg::gevd;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};

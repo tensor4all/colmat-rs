@@ -1,6 +1,6 @@
 use super::LINEAR_IMPL_THRESHOLD;
 use crate::internal_prelude::*;
-use faer_traits::RealReg;
+use colmat_traits::RealReg;
 use num_complex::Complex;
 #[inline(always)]
 fn norm_max_simd<'N, T: ComplexField>(
@@ -82,8 +82,8 @@ fn norm_max_simd_pairwise_cols<T: ComplexField>(
 ///
 /// NaN propagates: if any entry (or either part of a complex entry) is NaN,
 /// the result is NaN, as with `norm_l1` and `norm_l2` and as in LAPACK's
-/// `xLANGE('M')`; `t4a-faer` 0.32.0 and earlier skipped NaN entries. An empty
-/// matrix returns zero.
+/// `xLANGE('M')`. `colmat` 0.34.0 and `t4a-faer` 0.33.0 propagate NaN;
+/// `t4a-faer` 0.32.0 and earlier skipped them. An empty matrix returns zero.
 pub fn norm_max<T: ComplexField>(mut mat: MatRef<'_, T>) -> T::Real {
 	if mat.ncols() > 1 && mat.col_stride().unsigned_abs() == 1 {
 		mat = mat.transpose();

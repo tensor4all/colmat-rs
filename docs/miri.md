@@ -1,15 +1,15 @@
 # Miri
 
-Miri runs weekly (`.github/workflows/miri.yml`) over `cargo miri test -p t4a-faer-traits --lib` and
+Miri runs weekly (`.github/workflows/miri.yml`) over `cargo miri test -p colmat-traits --lib` and
 files an issue labelled `miri-failure` when it fails; run it locally with
-`cargo +nightly miri test -p t4a-faer-traits --lib` (add `rustup component add --toolchain nightly miri
+`cargo +nightly miri test -p colmat-traits --lib` (add `rustup component add --toolchain nightly miri
 rust-src` once).
 
-The main `t4a-faer` crate is not in the lane yet, and the reason is budget and test selection rather
+The main `colmat` crate is not in the lane yet, and the reason is budget and test selection rather
 than a capability limit. On an aarch64 host (2026-11-08, `miri 0.1.0 (daf2e5e18b)`, nightly) the crate
 builds under Miri in about 20 s and its kernel tests do run:
 
-- `cargo +nightly miri test -p t4a-faer --lib linalg::mat_ops::test::test_matrix_add -- --exact`
+- `cargo +nightly miri test -p colmat --lib linalg::mat_ops::test::test_matrix_add -- --exact`
   — 1 passed, 0.84 s;
 - the same command for `linalg::mat_ops::test::test_matmul_col_row` — 1 passed, 0.84 s.
 

@@ -1,6 +1,6 @@
 use super::LINEAR_IMPL_THRESHOLD;
 use crate::internal_prelude::*;
-use faer_traits::RealReg;
+use colmat_traits::RealReg;
 use num_complex::Complex;
 #[inline(always)]
 fn norm_l2_simd<'N, T: ComplexField>(

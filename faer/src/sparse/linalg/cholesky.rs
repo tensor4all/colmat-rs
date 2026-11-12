@@ -12,15 +12,15 @@
 //! # example (low level api)
 //! simplicial:
 //! ```
-//! fn simplicial_cholesky() -> Result<(), faer::sparse::FaerError> {
-//! 	use faer::Par;
-//! 	use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-//! 	use faer::linalg::cholesky::ldlt::factor::LdltRegularization;
-//! 	use faer::linalg::cholesky::llt::factor::LltRegularization;
-//! 	use faer::reborrow::*;
-//! 	use faer::sparse::linalg::amd;
-//! 	use faer::sparse::linalg::cholesky::simplicial;
-//! 	use faer::sparse::{CreationError, SparseColMat, SymbolicSparseColMat, Triplet};
+//! fn simplicial_cholesky() -> Result<(), colmat::sparse::FaerError> {
+//! 	use colmat::Par;
+//! 	use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+//! 	use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
+//! 	use colmat::linalg::cholesky::llt::factor::LltRegularization;
+//! 	use colmat::reborrow::*;
+//! 	use colmat::sparse::linalg::amd;
+//! 	use colmat::sparse::linalg::cholesky::simplicial;
+//! 	use colmat::sparse::{CreationError, SparseColMat, SymbolicSparseColMat, Triplet};
 //! 	use rand::prelude::*;
 //! 	// the simplicial cholesky api takes an upper triangular matrix as input, to be
 //! 	// interpreted as self-adjoint.
@@ -44,7 +44,7 @@
 //! 		Err(CreationError::Generic(err)) => Err(err),
 //! 		Err(CreationError::OutOfBounds { .. }) => panic!(),
 //! 	}?;
-//! 	let mut A = faer::sparse::ops::add(A_upper.rb(), A_upper.to_row_major()?.rb().transpose())?;
+//! 	let mut A = colmat::sparse::ops::add(A_upper.rb(), A_upper.to_row_major()?.rb().transpose())?;
 //! 	for i in 0..dim {
 //! 		A[(i, i)] /= 2.0;
 //! 	}
@@ -56,8 +56,8 @@
 //! 	let mut sol = Vec::new();
 //! 	sol.try_reserve_exact(dim)?;
 //! 	sol.resize(dim, 0.0f64);
-//! 	let rhs = faer::MatRef::from_column_major_slice(&rhs, dim, 1);
-//! 	let mut sol = faer::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
+//! 	let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
+//! 	let mut sol = colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
 //! 	// optional: fill reducing permutation
 //! 	let (perm, perm_inv) = {
 //! 		let mut perm = Vec::new();
@@ -76,7 +76,7 @@
 //! 		)?;
 //! 		(perm, perm_inv)
 //! 	};
-//! 	let perm = unsafe { faer::perm::PermRef::new_unchecked(&perm, &perm_inv, dim) };
+//! 	let perm = unsafe { colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim) };
 //! 	let A_perm_upper = {
 //! 		let mut A_perm_col_ptrs = Vec::new();
 //! 		let mut A_perm_row_indices = Vec::new();
@@ -87,17 +87,17 @@
 //! 		A_perm_row_indices.resize(A_nnz, 0usize);
 //! 		A_perm_values.try_reserve_exact(A_nnz)?;
 //! 		A_perm_values.resize(A_nnz, 0.0f64);
-//! 		let mut mem = MemBuffer::try_new(faer::sparse::utils::permute_self_adjoint_scratch::<
+//! 		let mut mem = MemBuffer::try_new(colmat::sparse::utils::permute_self_adjoint_scratch::<
 //! 			usize,
 //! 		>(dim))?;
-//! 		faer::sparse::utils::permute_self_adjoint_to_unsorted(
+//! 		colmat::sparse::utils::permute_self_adjoint_to_unsorted(
 //! 			&mut A_perm_values,
 //! 			&mut A_perm_col_ptrs,
 //! 			&mut A_perm_row_indices,
 //! 			A_upper.rb(),
 //! 			perm,
-//! 			faer::Side::Upper,
-//! 			faer::Side::Upper,
+//! 			colmat::Side::Upper,
+//! 			colmat::Side::Upper,
 //! 			MemStack::new(&mut mem),
 //! 		);
 //! 		SparseColMat::<usize, f64>::new(
@@ -145,7 +145,7 @@
 //! 	let mut mem = MemBuffer::try_new(StackReq::all_of(&[
 //! 		simplicial::factorize_simplicial_numeric_llt_scratch::<usize, f64>(dim),
 //! 		simplicial::factorize_simplicial_numeric_ldlt_scratch::<usize, f64>(dim),
-//! 		faer::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
+//! 		colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
 //! 		symbolic.solve_in_place_scratch::<f64>(dim),
 //! 	]))?;
 //! 	let stack = MemStack::new(&mut mem);
@@ -166,9 +166,9 @@
 //! 		};
 //! 		let llt = simplicial::SimplicialLltRef::<'_, usize, f64>::new(&symbolic, &L_values);
 //! 		sol.copy_from(rhs);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		llt.solve_in_place_with_conj(faer::Conj::No, sol.rb_mut(), faer::Par::Seq, stack);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//! 		llt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
 //! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
 //! 	}
 //! 	// numerical ldlt factorization
@@ -185,9 +185,9 @@
 //! 		);
 //! 		let ldlt = simplicial::SimplicialLdltRef::<'_, usize, f64>::new(&symbolic, &L_values);
 //! 		sol.copy_from(rhs);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		ldlt.solve_in_place_with_conj(faer::Conj::No, sol.rb_mut(), faer::Par::Seq, stack);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//! 		ldlt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
 //! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
 //! 	}
 //! 	Ok(())
@@ -196,14 +196,14 @@
 //! ```
 //! supernodal:
 //! ```
-//! fn supernodal_cholesky() -> Result<(), faer::sparse::FaerError> {
-//! 	use faer::Par;
-//! 	use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-//! 	use faer::linalg::cholesky::ldlt::factor::LdltRegularization;
-//! 	use faer::reborrow::*;
-//! 	use faer::sparse::linalg::amd;
-//! 	use faer::sparse::linalg::cholesky::{simplicial, supernodal};
-//! 	use faer::sparse::{
+//! fn supernodal_cholesky() -> Result<(), colmat::sparse::FaerError> {
+//! 	use colmat::Par;
+//! 	use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+//! 	use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
+//! 	use colmat::reborrow::*;
+//! 	use colmat::sparse::linalg::amd;
+//! 	use colmat::sparse::linalg::cholesky::{simplicial, supernodal};
+//! 	use colmat::sparse::{
 //! 		CreationError, SparseColMat, SymbolicSparseColMat, Triplet,
 //! 	};
 //! 	use rand::prelude::*;
@@ -240,7 +240,7 @@
 //! 		Err(CreationError::Generic(err)) => Err(err),
 //! 		Err(CreationError::OutOfBounds { .. }) => panic!(),
 //! 	}?;
-//! 	let mut A = faer::sparse::ops::add(
+//! 	let mut A = colmat::sparse::ops::add(
 //! 		A_lower.rb(),
 //! 		A_lower.to_row_major()?.rb().transpose(),
 //! 	)?;
@@ -255,9 +255,9 @@
 //! 	let mut sol = Vec::new();
 //! 	sol.try_reserve_exact(dim)?;
 //! 	sol.resize(dim, 0.0f64);
-//! 	let rhs = faer::MatRef::from_column_major_slice(&rhs, dim, 1);
+//! 	let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
 //! 	let mut sol =
-//! 		faer::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
+//! 		colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
 //! 	// optional: fill reducing permutation
 //! 	let (perm, perm_inv) = {
 //! 		let mut perm = Vec::new();
@@ -278,7 +278,7 @@
 //! 		(perm, perm_inv)
 //! 	};
 //! 	let perm = unsafe {
-//! 		faer::perm::PermRef::new_unchecked(&perm, &perm_inv, dim)
+//! 		colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim)
 //! 	};
 //! 	let A_perm_lower = {
 //! 		let mut A_perm_col_ptrs = Vec::new();
@@ -291,16 +291,16 @@
 //! 		A_perm_values.try_reserve_exact(A_nnz)?;
 //! 		A_perm_values.resize(A_nnz, 0.0f64);
 //! 		let mut mem = MemBuffer::try_new(
-//! 			faer::sparse::utils::permute_self_adjoint_scratch::<usize>(dim),
+//! 			colmat::sparse::utils::permute_self_adjoint_scratch::<usize>(dim),
 //! 		)?;
-//! 		faer::sparse::utils::permute_self_adjoint_to_unsorted(
+//! 		colmat::sparse::utils::permute_self_adjoint_to_unsorted(
 //! 			&mut A_perm_values,
 //! 			&mut A_perm_col_ptrs,
 //! 			&mut A_perm_row_indices,
 //! 			A_lower.rb(),
 //! 			perm,
-//! 			faer::Side::Lower,
-//! 			faer::Side::Lower,
+//! 			colmat::Side::Lower,
+//! 			colmat::Side::Lower,
 //! 			MemStack::new(&mut mem),
 //! 		);
 //! 		SparseColMat::<usize, f64>::new(
@@ -348,7 +348,7 @@
 //! 			unsafe { simplicial::EliminationTreeRef::from_inner(&etree) },
 //! 			&col_counts,
 //! 			stack,
-//! 			faer::sparse::linalg::SymbolicSupernodalParams {
+//! 			colmat::sparse::linalg::SymbolicSupernodalParams {
 //! 				relax: Some(&[(usize::MAX, 1.0)]),
 //! 			},
 //! 		)?
@@ -359,17 +359,17 @@
 //! 			supernodal::factorize_supernodal_numeric_llt_scratch::<
 //! 				usize,
 //! 				f64,
-//! 			>(&symbolic, faer::ParShape::Seq, Default::default()),
+//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
 //! 			supernodal::factorize_supernodal_numeric_ldlt_scratch::<
 //! 				usize,
 //! 				f64,
-//! 			>(&symbolic, faer::ParShape::Seq, Default::default()),
+//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
 //! 			supernodal::factorize_supernodal_numeric_intranode_lblt_scratch::<
 //! 				usize,
 //! 				f64,
-//! 			>(&symbolic, faer::ParShape::Seq, Default::default()),
-//! 			faer::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
-//! 			symbolic.solve_in_place_scratch::<f64>(dim, faer::ParShape::Seq),
+//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
+//! 			colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
+//! 			symbolic.solve_in_place_scratch::<f64>(dim, colmat::ParShape::Seq),
 //! 		]))?;
 //! 	let stack = MemStack::new(&mut mem);
 //! 	// llt skipped since a is not positive-definite
@@ -383,7 +383,7 @@
 //! 			A_perm_lower.rb(),
 //! 			LdltRegularization::default(),
 //! 			&symbolic,
-//! 			faer::Par::Seq,
+//! 			colmat::Par::Seq,
 //! 			stack,
 //! 			Default::default(),
 //! 		);
@@ -391,14 +391,14 @@
 //! 			&symbolic, &L_values,
 //! 		);
 //! 		sol.copy_from(rhs);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
 //! 		ldlt.solve_in_place_with_conj(
-//! 			faer::Conj::No,
+//! 			colmat::Conj::No,
 //! 			sol.rb_mut(),
-//! 			faer::Par::Seq,
+//! 			colmat::Par::Seq,
 //! 			stack,
 //! 		);
-//! 		faer::perm::permute_rows_in_place(
+//! 		colmat::perm::permute_rows_in_place(
 //! 			sol.rb_mut(),
 //! 			perm.inverse(),
 //! 			stack,
@@ -426,12 +426,12 @@
 //! 			&mut pivot_perm_inv,
 //! 			A_perm_lower.rb(),
 //! 			&symbolic,
-//! 			faer::Par::Seq,
+//! 			colmat::Par::Seq,
 //! 			stack,
 //! 			Default::default(),
 //! 		);
 //! 		let piv_perm = unsafe {
-//! 			faer::perm::PermRef::new_unchecked(
+//! 			colmat::perm::PermRef::new_unchecked(
 //! 				&pivot_perm,
 //! 				&pivot_perm_inv,
 //! 				dim,
@@ -443,21 +443,21 @@
 //! 			);
 //! 		sol.copy_from(rhs);
 //! 		// we can merge these two permutations if we want to be optimal
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		faer::perm::permute_rows_in_place(sol.rb_mut(), piv_perm, stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), piv_perm, stack);
 //! 		lblt.solve_in_place_no_numeric_permute_with_conj(
-//! 			faer::Conj::No,
+//! 			colmat::Conj::No,
 //! 			sol.rb_mut(),
-//! 			faer::Par::Seq,
+//! 			colmat::Par::Seq,
 //! 			stack,
 //! 		);
 //! 		// we can also merge these two permutations if we want to be optimal
-//! 		faer::perm::permute_rows_in_place(
+//! 		colmat::perm::permute_rows_in_place(
 //! 			sol.rb_mut(),
 //! 			piv_perm.inverse(),
 //! 			stack,
 //! 		);
-//! 		faer::perm::permute_rows_in_place(
+//! 		colmat::perm::permute_rows_in_place(
 //! 			sol.rb_mut(),
 //! 			perm.inverse(),
 //! 			stack,

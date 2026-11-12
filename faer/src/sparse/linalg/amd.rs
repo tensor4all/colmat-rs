@@ -1024,11 +1024,11 @@ mod tests {
 
 	#[test]
 	fn test_gh_258() {
-		use faer::Side;
-		use faer::sparse::linalg::cholesky::{
+		use colmat::Side;
+		use colmat::sparse::linalg::cholesky::{
 			SymmetricOrdering, factorize_symbolic_cholesky,
 		};
-		use faer::sparse::{SparseColMat, Triplet};
+		use colmat::sparse::{SparseColMat, Triplet};
 		use std::fs::read_to_string;
 
 		let data =

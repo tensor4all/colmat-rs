@@ -18,13 +18,13 @@
 //! QZ used to underflow to `alpha = beta = 0`, the power-of-two exactness of
 //! the prescaling, the pairs whose scaling back would underflow or overflow,
 //! and `c64` and `f32`.
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{
 	GevdError, GevdParams, gevd_cplx, gevd_real, gevd_scratch,
 };
-use faer::{Mat, Par, ParShape, Spec, c64};
+use colmat::{Mat, Par, ParShape, Spec, c64};
 
 /// A fixed pseudo-random value in `[-1, 1)`.
 fn sample(i: usize, j: usize, seed: u64) -> f64 {
@@ -645,7 +645,7 @@ fn scaled_pencil_opposite_scales_keep_the_pair() {
 /// eigenvalues at a tiny `s` must agree with `s = 1`.
 #[test]
 fn scaled_pencil_tiny_c64_f32() {
-	use faer::linalg::gevd::gevd_cplx;
+	use colmat::linalg::gevd::gevd_cplx;
 	let (a, b) = one_pair();
 	let n = a.nrows();
 	let lambda_c64 = |s: f64| -> (bool, Vec<c64>, Vec<c64>) {

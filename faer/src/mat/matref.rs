@@ -5,7 +5,7 @@ use crate::row::RowRef;
 use crate::utils::bound::{Dim, Partition};
 use crate::{ContiguousFwd, Idx, IdxInc};
 use equator::{assert, debug_assert};
-use faer_traits::Real;
+use colmat_traits::Real;
 use generativity::Guard;
 /// see [`super::MatRef`]
 pub struct Ref<
@@ -196,7 +196,7 @@ impl<'a, T, Rows: Shape, Cols: Shape> MatRef<'a, T, Rows, Cols> {
 	///
 	/// # example
 	/// ```
-	/// use faer::{MatRef, mat};
+	/// use colmat::{MatRef, mat};
 	/// let slice = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0_f64];
 	/// let view = MatRef::from_column_major_slice(&slice, 3, 2);
 	/// let expected = mat![[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]];
@@ -262,7 +262,7 @@ impl<'a, T, Rows: Shape, Cols: Shape> MatRef<'a, T, Rows, Cols> {
 	///
 	/// # example
 	/// ```
-	/// use faer::{MatRef, mat};
+	/// use colmat::{MatRef, mat};
 	/// let slice = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0_f64];
 	/// let view = MatRef::from_row_major_slice(&slice, 3, 2);
 	/// let expected = mat![[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]];
@@ -329,7 +329,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// # example
 	///
 	/// ```
-	/// use faer::{MatRef, mat};
+	/// use colmat::{MatRef, mat};
 	/// // row major matrix with 2 rows, 3 columns, with a column at the end that we want to skip.
 	/// // the row stride is the pointer offset from the address of 1.0 to the address of 4.0,
 	/// // which is 4
@@ -601,7 +601,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 	/// let view = matrix.as_ref();
 	/// let transpose = view.transpose();
@@ -701,7 +701,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 	/// let view = matrix.as_ref();
 	/// let reversed_rows = view.reverse_rows();
@@ -733,7 +733,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 	/// let view = matrix.as_ref();
 	/// let reversed_cols = view.reverse_cols();
@@ -766,7 +766,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 	/// let view = matrix.as_ref();
 	/// let reversed = view.reverse_rows_and_cols();
@@ -792,7 +792,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![
 	/// 	[1.0, 5.0, 9.0], //
 	/// 	[2.0, 6.0, 10.0],
@@ -852,7 +852,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![
 	/// 	[1.0, 5.0, 9.0], //
 	/// 	[2.0, 6.0, 10.0],
@@ -901,7 +901,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	///
 	/// # example
 	/// ```
-	/// use faer::mat;
+	/// use colmat::mat;
 	/// let matrix = mat![
 	/// 	[1.0, 5.0, 9.0], //
 	/// 	[2.0, 6.0, 10.0],
@@ -1753,8 +1753,8 @@ impl<
 	/// # example
 	///
 	/// ```
-	/// use faer::linalg::kron::kron;
-	/// use faer::{Mat, mat};
+	/// use colmat::linalg::kron::kron;
+	/// use colmat::{Mat, mat};
 	/// let a = mat![[1.0, 2.0], [3.0, 4.0]];
 	/// let b = mat![[0.0, 5.0], [6.0, 7.0]];
 	/// let c = mat![
@@ -2039,7 +2039,7 @@ impl<'a, T: RealField, Rows: Shape, Cols: Shape> MatRef<'a, T, Rows, Cols> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::{Mat, mat};
+	/// use colmat::{Mat, mat};
 	/// let m = mat![[1.0, 5.0, 3.0], [4.0, 2.0, 9.0], [7.0, 8.0, 6.0],];
 	/// assert_eq!(m.max(), Some(9.0));
 	/// let empty: Mat<f64> = Mat::new();
@@ -2059,7 +2059,7 @@ impl<'a, T: RealField, Rows: Shape, Cols: Shape> MatRef<'a, T, Rows, Cols> {
 	/// # Examples
 	///
 	/// ```
-	/// use faer::{Mat, mat};
+	/// use colmat::{Mat, mat};
 	/// let m = mat![[1.0, 5.0, 3.0], [4.0, 2.0, 9.0], [7.0, 8.0, 6.0],];
 	/// assert_eq!(m.min(), Some(1.0));
 	/// let empty: Mat<f64> = Mat::new();

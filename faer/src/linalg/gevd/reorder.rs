@@ -7,7 +7,7 @@ use equator::assert;
 ///
 /// # Examples
 /// ```
-/// use faer::linalg::gevd::SchurReorderError;
+/// use colmat::linalg::gevd::SchurReorderError;
 /// let error = SchurReorderError { position: 2 };
 /// assert_eq!(error.position, 2); // row at which reordering stopped
 /// ```
@@ -73,7 +73,7 @@ fn real_swap_scratch<T: ComplexField>(n1: usize, n2: usize) -> StackReq {
 ///
 /// # Examples
 /// ```
-/// use faer::linalg::gevd::reorder_schur_scratch;
+/// use colmat::linalg::gevd::reorder_schur_scratch;
 /// assert_eq!(reorder_schur_scratch::<f64>(0).size_bytes(), 0);
 /// assert!(reorder_schur_scratch::<f64>(4).size_bytes() > 0);
 /// ```
@@ -636,10 +636,10 @@ fn move_block<T: ComplexField>(
 ///
 /// # Examples
 /// ```
-/// use faer::{mat, Mat, Par};
-/// use faer::dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::gevd::{reorder_schur_real, reorder_schur_scratch};
-/// # fn main() -> Result<(), faer::linalg::gevd::SchurReorderError> {
+/// use colmat::{mat, Mat, Par};
+/// use colmat::dyn_stack::{MemBuffer, MemStack};
+/// use colmat::linalg::gevd::{reorder_schur_real, reorder_schur_scratch};
+/// # fn main() -> Result<(), colmat::linalg::gevd::SchurReorderError> {
 /// let mut s = mat![[1.0, 0.0], [0.0, 3.0]];
 /// let original = s.clone();
 /// let mut t = Mat::<f64>::identity(2, 2);
@@ -698,10 +698,10 @@ pub fn reorder_schur_real<T: RealField>(
 ///
 /// # Examples
 /// ```
-/// use faer::{c64, mat, Mat, Par};
-/// use faer::dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::gevd::{reorder_schur_cplx, reorder_schur_scratch};
-/// # fn main() -> Result<(), faer::linalg::gevd::SchurReorderError> {
+/// use colmat::{c64, mat, Mat, Par};
+/// use colmat::dyn_stack::{MemBuffer, MemStack};
+/// use colmat::linalg::gevd::{reorder_schur_cplx, reorder_schur_scratch};
+/// # fn main() -> Result<(), colmat::linalg::gevd::SchurReorderError> {
 /// let mut s = mat![[c64::new(1.0, 1.0), c64::new(0.0, 0.0)],
 ///                  [c64::new(0.0, 0.0), c64::new(3.0, -1.0)]];
 /// let original = s.clone();

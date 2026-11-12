@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::evd::*;
+use colmat::linalg::evd::*;
 
 fn real<T: RealField>() {
 	for n in SIZES {
@@ -117,9 +117,9 @@ fn reconstruction_and_spectrum() {
 }
 #[test]
 fn accumulator_empty_and_nonfinite() {
-	let mut h = faer::mat![[1.0f64, 2.0], [-3.0, 4.0]];
+	let mut h = colmat::mat![[1.0f64, 2.0], [-3.0, 4.0]];
 	let original = h.clone();
-	let mut z = faer::mat![[0.0, 1.0], [1.0, 0.0]];
+	let mut z = colmat::mat![[0.0, 1.0], [1.0, 0.0]];
 	let initial = z.clone();
 	let (mut wr, mut wi) = (Col::zeros(2), Col::zeros(2));
 	let mut mem = MemBuffer::new(hessenberg_schur_scratch::<f64>(

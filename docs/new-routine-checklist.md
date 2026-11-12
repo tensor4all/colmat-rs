@@ -139,14 +139,14 @@ the same change. Never add an entry without an issue.
 ## 8. Verification commands
 
 ```sh
-cargo test -p t4a-faer --lib                         # unit tests
-cargo test -p t4a-faer --test <integration-name>     # new integration test
-cargo test -p t4a-faer                               # lib + integration + doc tests
-cargo build -p t4a-faer --no-default-features --features std
+cargo test -p colmat --lib                         # unit tests
+cargo test -p colmat --test <integration-name>     # new integration test
+cargo test -p colmat                               # lib + integration + doc tests
+cargo build -p colmat --no-default-features --features std
 ( cd faer-no-std-test && cargo run --profile nostd )
 cargo test --doc --workspace -j8 -- --test-threads=4
 python3 scripts/check-migration-examples.py          # if a migration example changed
-cargo package -p t4a-faer --no-verify --list         # packaging still works
+cargo package -p colmat --no-verify --list         # packaging still works
 python3 scripts/test-lapack-validation.py            # runner selection logic
 scripts/run-lapack-validation.sh                     # new/changed numerical family
 ```

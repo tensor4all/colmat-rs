@@ -3,7 +3,7 @@ use crate::internal_prelude::*;
 use alloc::vec;
 use alloc::vec::Vec;
 use dyn_stack::MemBuffer;
-use faer_traits::ComplexConj;
+use colmat_traits::ComplexConj;
 pub use linalg::cholesky::ldlt::factor::LdltError;
 pub use linalg::cholesky::llt::factor::LltError;
 pub use linalg::evd::EvdError;

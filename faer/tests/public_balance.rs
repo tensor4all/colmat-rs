@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::evd::*;
+use colmat::linalg::evd::*;
 
 fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 	for n in SIZES {
@@ -131,7 +131,7 @@ fn eigenvalues_and_right_eigenvectors_survive_balancing() {
 			MemStack::new(&mut mem),
 		)
 		.unwrap();
-		let mut values = faer::diag::Diag::zeros(n);
+		let mut values = colmat::diag::Diag::zeros(n);
 		let mut x = Mat::zeros(n, n);
 		let mut mem = MemBuffer::new(evd_scratch::<c64>(
 			n,
@@ -163,7 +163,7 @@ fn eigenvalues_and_right_eigenvectors_survive_balancing() {
 }
 #[test]
 fn nonfinite_does_not_mutate_and_extreme_input_terminates() {
-	let mut a = faer::mat![[1.0f64, f64::INFINITY], [2.0, 3.0]];
+	let mut a = colmat::mat![[1.0f64, f64::INFINITY], [2.0, 3.0]];
 	let before = a.clone();
 	let (mut p, mut s) = ([9; 2], [3.0; 2]);
 	let mut mem = MemBuffer::new(balance_scratch());
@@ -180,7 +180,7 @@ fn nonfinite_does_not_mutate_and_extreme_input_terminates() {
 	assert_eq!(a, before);
 	assert_eq!(p, [9; 2]);
 	assert_eq!(s, [3.0; 2]);
-	let mut a = faer::mat![[1.0, 1e300], [1e-300, 2.0]];
+	let mut a = colmat::mat![[1.0, 1e300], [1e-300, 2.0]];
 	balance_in_place(
 		a.as_mut(),
 		&mut p,
@@ -192,7 +192,7 @@ fn nonfinite_does_not_mutate_and_extreme_input_terminates() {
 	assert!(a.as_ref().is_all_finite());
 	// LAPACK 3.5+ includes the diagonal in its norm test, avoiding
 	// overbalancing when the matrix is already dominated by that diagonal.
-	let mut a = faer::mat![[1e30, 1e10], [1e-10, 2e30]];
+	let mut a = colmat::mat![[1e30, 1e10], [1e-10, 2e30]];
 	let before = a.clone();
 	balance_in_place(
 		a.as_mut(),
@@ -232,7 +232,7 @@ fn run_job(
 fn jobs_select_the_permutation_and_the_scaling() {
 	// an upper triangular matrix: the permutation can isolate both ends, and the
 	// entries are graded enough that the scaling step accepts a factor
-	let a = faer::mat![[1.0, 1024.0, 0.0], [0.0, 2.0, 512.0], [0.0, 0.0, 4.0],];
+	let a = colmat::mat![[1.0, 1024.0, 0.0], [0.0, 2.0, 512.0], [0.0, 0.0, 4.0],];
 	let n = a.nrows();
 
 	// `N`: nothing is touched, and the metadata is the identity

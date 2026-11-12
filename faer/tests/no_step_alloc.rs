@@ -5,10 +5,10 @@
 //! the matrices and the scratch are built outside the counted interval, and the check that the
 //! regions did dispatch reads the team counters after it.
 #![cfg(all(feature = "std", feature = "threadteam"))]
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::utils::cost::ParThreshold;
-use faer::utils::team::stats;
-use faer::{Auto, Mat, Par};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::utils::cost::ParThreshold;
+use colmat::utils::team::stats;
+use colmat::{Auto, Mat, Par};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
@@ -68,10 +68,10 @@ fn sample(m: usize, n: usize, seed: u64) -> Mat<f64> {
 // one test function: the counter is process wide, so nothing else may run while it counts
 #[test]
 fn parallel_regions_allocate_nothing() {
-	use faer::linalg::cholesky::lblt::factor as lblt;
-	use faer::linalg::lu::full_pivoting::factor as flu;
+	use colmat::linalg::cholesky::lblt::factor as lblt;
+	use colmat::linalg::lu::full_pivoting::factor as flu;
 	for width in [4usize, 8, 70] {
-		faer::team::with_team(width, |mut par: Par<'_>| {
+		colmat::team::with_team(width, |mut par: Par<'_>| {
 			// full pivoting LU: the per-step pivot search (`for_each` over column blocks)
 			let n = 96;
 			let a0 = sample(n, n, 1);
@@ -89,7 +89,7 @@ fn parallel_regions_allocate_nothing() {
 			// partial pivoting LU at a 2 KiB column stride: the `U` panel solves stage their right
 			// hand sides in a per-thread buffer, which grows during the warm-up and is reused after
 			{
-				use faer::linalg::lu::partial_pivoting::factor as plu;
+				use colmat::linalg::lu::partial_pivoting::factor as plu;
 				let n = 256;
 				let a0 = sample(n, n, 4);
 				let mut a = a0.clone();
@@ -109,7 +109,7 @@ fn parallel_regions_allocate_nothing() {
 			let x = sample(n, n, 2);
 			let s0 = &x + x.transpose();
 			let mut s = s0.clone();
-			let mut sub = faer::diag::Diag::<f64>::zeros(n);
+			let mut sub = colmat::diag::Diag::<f64>::zeros(n);
 			let params = lblt::LbltParams {
 				pivoting: lblt::PivotingStrategy::Full,
 				par_threshold: ParThreshold::Fixed(0),
@@ -129,9 +129,9 @@ fn parallel_regions_allocate_nothing() {
 			// Pfaffian: the complete call, including its internally partitioned column updates.
 			let x = sample(258, 258, 171);
 			let a0 = &x - x.transpose();
-			let mut mem = MemBuffer::new(faer::linalg::pfaffian::pfaffian_scratch::<f64>(258));
+			let mut mem = MemBuffer::new(colmat::linalg::pfaffian::pfaffian_scratch::<f64>(258));
 			let (allocs, parallel) = counted(|| {
-				let value = faer::linalg::pfaffian::pfaffian(
+				let value = colmat::linalg::pfaffian::pfaffian(
 					a0.as_ref(), par.reborrow(), MemStack::new(&mut mem),
 				).unwrap();
 				assert!(value.is_finite());
@@ -151,7 +151,7 @@ fn parallel_regions_allocate_nothing() {
 					let b = sample(k, n, 32);
 					let mut c = sample(m, n, 33);
 					let (allocs, parallel) = counted(|| {
-						faer::linalg::matmul::matmul(c.as_mut(), faer::Accum::Replace, a.as_ref(), b.as_ref(), 1.0, par.reborrow());
+						colmat::linalg::matmul::matmul(c.as_mut(), colmat::Accum::Replace, a.as_ref(), b.as_ref(), 1.0, par.reborrow());
 					});
 					assert!(parallel > 0, "matmul {m}x{n}x{k}, width {width}: no parallel region");
 					assert_eq!(allocs, 0, "matmul {m}x{n}x{k}, width {width}");
@@ -162,7 +162,7 @@ fn parallel_regions_allocate_nothing() {
 			let mut left = vec![0usize; 4];
 			let mut right = vec![0usize; 4];
 			let (allocs, parallel) = counted(|| {
-				faer::utils::thread::join_sized(
+				colmat::utils::thread::join_sized(
 					par.reborrow(),
 					width / 2,
 					|_| left.iter_mut().for_each(|x| *x += 1),

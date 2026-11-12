@@ -8,11 +8,11 @@
 //!   block (the Schur complement for full pivoting, the permuted input for partial pivoting);
 //! - `rel_tol` is measured against the first pivot, not the previous one;
 //! - a NaN or an infinity never turns into a truncated rank.
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lu::full_pivoting::factor::{self as flu, FullPivLuParams};
-use faer::linalg::lu::partial_pivoting::factor::{self as plu, PartialPivLuParams};
-use faer::traits::ComplexField;
-use faer::{Auto, Mat, MatRef, Par, c32, c64};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lu::full_pivoting::factor::{self as flu, FullPivLuParams};
+use colmat::linalg::lu::partial_pivoting::factor::{self as plu, PartialPivLuParams};
+use colmat::traits::ComplexField;
+use colmat::{Auto, Mat, MatRef, Par, c32, c64};
 
 trait Entry: ComplexField + Copy {
 	fn pair(re: f64, im: f64) -> Self;
@@ -217,7 +217,7 @@ fn no_option_is_the_previous_factorization() {
 	let mut seq = Par::Seq;
 	let (p_seq, f_seq) = (digest(&mut seq, false), digest(&mut seq, true));
 	let (p_team, f_team) =
-		faer::team::with_team(4, |mut par| (digest(&mut par, false), digest(&mut par, true)));
+		colmat::team::with_team(4, |mut par| (digest(&mut par, false), digest(&mut par, true)));
 	#[cfg(target_arch = "aarch64")]
 	{
 		assert_eq!(p_seq, GOLDEN_PLU_SEQ, "partial pivoting, Par::Seq");
@@ -270,7 +270,7 @@ fn inactive_options_change_no_bit() {
 				}
 			};
 			if par_on_team {
-				faer::team::with_team(4, run);
+				colmat::team::with_team(4, run);
 			} else {
 				run(Par::Seq);
 			}
@@ -296,7 +296,7 @@ fn check_rank<T: Entry>(rel_tol: f64) {
 				assert!(f.lu[(i, j)].modulus() <= 2f64.sqrt() * rel_tol * pivot0);
 			}
 		}
-		let p = faer::team::with_team(4, |par| partial(a.as_ref(), par, pparams::<T>(None, None, Some(rel_tol))));
+		let p = colmat::team::with_team(4, |par| partial(a.as_ref(), par, pparams::<T>(None, None, Some(rel_tol))));
 		assert_eq!(p.info.rank, r, "partial pivoting {m}x{n} rank {r}");
 		let zero = |_: usize, _: usize| T::pair(0.0, 0.0);
 		// `L[:, :r] U[:r, :]` reproduces the row-permuted input up to the rejected Schur
@@ -346,7 +346,7 @@ fn check_max_rank<T: Entry>() {
 		let whole = partial(a.as_ref(), Par::Seq, pparams::<T>(None, None, None));
 		for par_on_team in [false, true] {
 			let cut = if par_on_team {
-				faer::team::with_team(4, |par| partial(a.as_ref(), par, pparams::<T>(Some(r), None, None)))
+				colmat::team::with_team(4, |par| partial(a.as_ref(), par, pparams::<T>(Some(r), None, None)))
 			} else {
 				partial(a.as_ref(), Par::Seq, pparams::<T>(Some(r), None, None))
 			};

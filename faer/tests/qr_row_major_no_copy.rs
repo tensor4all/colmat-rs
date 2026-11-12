@@ -10,10 +10,10 @@
 //! `qr_in_place_scratch`, a view whose strides are both not 1), where the same
 //! counter must see it.
 #![cfg(feature = "std")]
-use faer::dyn_stack::{MemBuffer, MemStack, StackReq};
-use faer::linalg::qr::no_pivoting::factor as qr;
-use faer::linalg::temp_mat_scratch;
-use faer::{MatMut, Par};
+use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+use colmat::linalg::qr::no_pivoting::factor as qr;
+use colmat::linalg::temp_mat_scratch;
+use colmat::{MatMut, Par};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
@@ -149,5 +149,5 @@ fn row_major_qr_does_not_copy_the_matrix() {
 	keeps_copy(128, 128, (128, 1), Some(small), Par::Seq, "small stack");
 	keeps_copy(128, 128, (256, 2), None, Par::Seq, "neither stride 1");
 	#[cfg(feature = "threadteam")]
-	faer::team::with_team(4, |par| keeps_copy(128, 128, (128, 1), None, par, "team"));
+	colmat::team::with_team(4, |par| keeps_copy(128, 128, (128, 1), None, par, "team"));
 }

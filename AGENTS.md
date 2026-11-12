@@ -39,14 +39,19 @@ file-layout and test-placement overrides to the shared rules.
 * `PATCHSET.md` is the experiment ledger. Record what each experiment does, its
   status, and the tensor4all issue it serves. Keep it current in the same change
   that adds or drops an experiment.
-* Keep the rename mechanical so upstream rebases stay cheap:
-  * package name `t4a-faer` / `t4a-faer-traits`;
-  * `[lib] name = "faer"` / `"faer_traits"`, and dependency keys unchanged, so
-    downstream `use faer::...` and `use faer_traits::...` are untouched;
-  * `faer-ffi` is in the workspace and builds the C API (cbindgen build); its parallel boundary is
-    a caller-owned team handle, never a `Par` by value (tensor4all/faer#98);
-  * each crate directory keeps a `LICENSE` copy so the published archive ships
-    the MIT text (`license-file` plus `license` makes Cargo warn).
+* One name end to end: package `colmat` / `colmat-traits` and `[lib] name =
+  `colmat` / `colmat_traits`, so downstream writes `use colmat::...` with no
+  `package` alias. Renamed from `t4a-faer` 0.33.0 (whose library was `faer`);
+  do not reintroduce an alias or a shim crate. `faer-macros` keeps its name
+  (published under upstream's crates.io name) and `faer-ffi` keeps its name
+  (the C API crate mirrors upstream's).
+* Keep the rename mechanical so upstream rebases stay cheap: apply
+  `sed -E 's/\bfaer_traits::/colmat_traits::/g; s/\bfaer::/colmat::/g'` to the
+  incoming tree before resolving a sync. Every other rename hunk is text.
+* `faer-ffi` is in the workspace and builds the C API (cbindgen build); its parallel boundary is
+  a caller-owned team handle, never a `Par` by value (tensor4all/faer#98).
+* Each crate directory keeps a `LICENSE` copy so the published archive ships
+  the MIT text (`license-file` plus `license` makes Cargo warn).
 * Do not carry unrelated formatting churn or dependency bumps. Every extra diff
   is a rebase cost against upstream.
 * Upstream remote is Codeberg (`git remote add upstream

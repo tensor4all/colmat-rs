@@ -14,13 +14,13 @@
 //!   permutation, the same transposition count, and factors and solutions that
 //!   agree to the tolerances stated at [`check_agreement`].
 #![cfg(feature = "std")]
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::lu::partial_pivoting::{factor as plu, solve as plu_solve};
-use faer::perm::PermRef;
-use faer::prelude::{Reborrow, ReborrowMut};
-use faer::traits::ComplexField;
-use faer::traits::math_utils::zero;
-use faer::{Mat, MatMut, MatRef, Par, c64};
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::lu::partial_pivoting::{factor as plu, solve as plu_solve};
+use colmat::perm::PermRef;
+use colmat::prelude::{Reborrow, ReborrowMut};
+use colmat::traits::ComplexField;
+use colmat::traits::math_utils::zero;
+use colmat::{Mat, MatMut, MatRef, Par, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
@@ -206,7 +206,7 @@ fn row_major_partial_piv_lu_does_not_copy_the_matrix() {
 	};
 	run(Par::Seq, false);
 	#[cfg(feature = "threadteam")]
-	faer::team::with_team(4, |par| run(par, true));
+	colmat::team::with_team(4, |par| run(par, true));
 }
 
 trait Entry: ComplexField + Copy {
@@ -522,7 +522,7 @@ fn agreement<T: Entry>(dtype: &str) {
 			Par::Seq,
 		);
 		#[cfg(feature = "threadteam")]
-		faer::team::with_team(4, |par| {
+		colmat::team::with_team(4, |par| {
 			check_agreement(
 				&format!("{dtype} {name} team4"),
 				a.as_ref(),

@@ -25,11 +25,11 @@
 //!
 //! For a cluster the reference finds semisimple, our vectors must also span it:
 //! the smallest singular value of the normalized real basis exceeds `sqrt(eps)`.
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::evd::ComputeEigenvectors;
-use faer::linalg::gevd::{GevdParams, gevd_real, gevd_scratch};
-use faer::{Mat, MatRef, Par, ParShape, Spec, c64};
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::evd::ComputeEigenvectors;
+use colmat::linalg::gevd::{GevdParams, gevd_real, gevd_scratch};
+use colmat::{Mat, MatRef, Par, ParShape, Spec, c64};
 
 const THRESH: f64 = 20.0;
 

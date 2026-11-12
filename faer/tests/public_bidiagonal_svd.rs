@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use faer::linalg::svd::*;
+use colmat::linalg::svd::*;
 
 fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 	for n in SIZES {
@@ -35,7 +35,7 @@ fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 				});
 				let mut d = original_d;
 				let (mut u, mut v) = (Mat::zeros(n, n), Mat::zeros(n, n));
-				let mut params = faer::Spec::<SvdParams, T>::default();
+				let mut params = colmat::Spec::<SvdParams, T>::default();
 				params.recursion_threshold = 8;
 				let mut mem = MemBuffer::new(bidiagonal_svd_scratch::<T>(
 					n,

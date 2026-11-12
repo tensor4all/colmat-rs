@@ -29,8 +29,8 @@ pub enum InitialGuessStatus {
 ///
 /// ```
 /// use core::ops::ControlFlow;
-/// use faer::{Mat, Par, matrix_free::{conjugate_gradient as cg, IdentityPrecond}};
-/// use faer::dyn_stack::{MemBuffer, MemStack};
+/// use colmat::{Mat, Par, matrix_free::{conjugate_gradient as cg, IdentityPrecond}};
+/// use colmat::dyn_stack::{MemBuffer, MemStack};
 /// let a = Mat::<f64>::from_fn(2, 2, |i, j| if i == j { (i + 1) as f64 } else { 0.0 });
 /// let b = Mat::<f64>::from_fn(2, 1, |_, _| 1.0);
 /// let mut x = Mat::<f64>::zeros(2, 1);

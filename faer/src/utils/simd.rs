@@ -1,7 +1,7 @@
 use super::bound::{Dim, Idx};
 use crate::internal_prelude::*;
 use core::marker::PhantomData;
-use faer_traits::SimdCapabilities;
+use colmat_traits::SimdCapabilities;
 use pulp::Simd;
 pub struct SimdCtx<'N, T: ComplexField, S: Simd> {
 	pub ctx: T::SimdCtx<S>,
@@ -36,7 +36,7 @@ impl<T: ComplexField, S: Simd> Clone for SimdCtx<'_, T, S> {
 	}
 }
 impl<T: ComplexField, S: Simd> core::ops::Deref for SimdCtx<'_, T, S> {
-	type Target = faer_traits::SimdCtx<T, S>;
+	type Target = colmat_traits::SimdCtx<T, S>;
 
 	#[inline(always)]
 	fn deref(&self) -> &Self::Target {

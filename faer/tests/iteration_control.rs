@@ -1,11 +1,11 @@
 use core::ops::ControlFlow;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::matrix_free::{
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::matrix_free::{
 	IdentityPrecond, InitialGuessStatus, bicgstab as bi,
 	conjugate_gradient as cg, lsmr as ls,
 };
-use faer::traits::{ComplexField, math_utils::from_f64};
-use faer::{Mat, Par, c32, c64};
+use colmat::traits::{ComplexField, math_utils::from_f64};
+use colmat::{Mat, Par, c32, c64};
 
 fn check<T: ComplexField>(tol: f64, value: fn(f64, f64) -> T) {
 	let a = Mat::<T>::from_fn(4, 4, |i, j| {
@@ -32,7 +32,7 @@ fn check<T: ComplexField>(tol: f64, value: fn(f64, f64) -> T) {
 		let mut x = Mat::<T>::zeros(4, 1);
 		let mut calls = 0;
 		let mut observed = Mat::<T>::zeros(4, 1);
-		let callback = |v: faer::MatRef<'_, T>| {
+		let callback = |v: colmat::MatRef<'_, T>| {
 			calls += 1;
 			observed.copy_from(v);
 			ControlFlow::Break(())
@@ -200,7 +200,7 @@ fn initial_convergence_does_not_call_stop_callback() {
 		for solver in 0..3 {
 			let mut x = b.clone();
 			let mut calls = 0;
-			let callback = |_: faer::MatRef<'_, f64>| {
+			let callback = |_: colmat::MatRef<'_, f64>| {
 				calls += 1;
 				ControlFlow::Break(())
 			};

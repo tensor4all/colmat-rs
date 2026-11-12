@@ -7,9 +7,9 @@ use crate::perm::{swap_cols_idx, swap_rows_idx};
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let mut a = faer::mat![[f64::NAN]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let mut a = colmat::mat![[f64::NAN]];
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// assert_eq!(
 /// 	balance_in_place(
@@ -33,9 +33,9 @@ pub enum BalanceError {
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let a = faer::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let a = colmat::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
 /// // scaling alone leaves the permutation at the identity
 /// let (mut perm, mut scale) = ([0; 2], [0.0; 2]);
 /// let mut mem = MemBuffer::new(balance_scratch());
@@ -67,7 +67,7 @@ pub enum BalanceJob {
 ///
 /// # Examples
 /// ```
-/// assert_eq!(faer::linalg::evd::balance_scratch().size_bytes(), 0);
+/// assert_eq!(colmat::linalg::evd::balance_scratch().size_bytes(), 0);
 /// ```
 pub fn balance_scratch() -> StackReq {
 	StackReq::EMPTY
@@ -99,9 +99,9 @@ pub fn balance_scratch() -> StackReq {
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let mut a = faer::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let mut a = colmat::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
 /// let (mut perm, mut scale) = ([0; 2], [0.0; 2]);
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// let active = balance_in_place(
@@ -159,9 +159,9 @@ pub fn balance_in_place<T: ComplexField>(
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let mut a = faer::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let mut a = colmat::mat![[1.0f64, 1024.0], [1.0 / 1024.0, 2.0]];
 /// let original = a.clone();
 /// let (mut perm, mut scale) = ([0; 2], [0.0; 2]);
 /// let mut mem = MemBuffer::new(balance_scratch());
@@ -321,7 +321,7 @@ pub fn balance_in_place_with<T: ComplexField>(
 /// # Examples
 /// ```
 /// let _buffer = dyn_stack::MemBuffer::new(
-/// 	faer::linalg::evd::balance_eigenvectors_scratch::<f64>(3),
+/// 	colmat::linalg::evd::balance_eigenvectors_scratch::<f64>(3),
 /// );
 /// ```
 pub fn balance_eigenvectors_scratch<T: ComplexField>(dim: usize) -> StackReq {
@@ -340,9 +340,9 @@ pub fn balance_eigenvectors_scratch<T: ComplexField>(dim: usize) -> StackReq {
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::Par;
-/// use faer::linalg::evd::*;
-/// let mut x = faer::mat![[1.0f64], [2.0]];
+/// use colmat::Par;
+/// use colmat::linalg::evd::*;
+/// let mut x = colmat::mat![[1.0f64], [2.0]];
 /// let mut mem = MemBuffer::new(balance_eigenvectors_scratch::<f64>(2));
 /// balance_eigenvectors_in_place(
 /// 	x.as_mut(),
@@ -351,7 +351,7 @@ pub fn balance_eigenvectors_scratch<T: ComplexField>(dim: usize) -> StackReq {
 /// 	Par::Seq,
 /// 	MemStack::new(&mut mem),
 /// );
-/// assert_eq!(x, faer::mat![[1.0], [2.0]]);
+/// assert_eq!(x, colmat::mat![[1.0], [2.0]]);
 /// ```
 pub fn balance_eigenvectors_in_place<T: ComplexField>(
 	mut x: MatMut<'_, T>,

@@ -18,7 +18,7 @@ env:
 
 jobs:
   miri:
-    name: cargo miri (-p t4a-faer-traits --lib)
+    name: cargo miri (-p colmat-traits --lib)
     runs-on: ubuntu-latest
     timeout-minutes: 120
     # `rust-toolchain.toml` outranks the toolchain the step below installs, so without this every
@@ -46,7 +46,7 @@ jobs:
         # Shorter than the job timeout (120) so a hung run still reaches the notification step.
         timeout-minutes: 60
         continue-on-error: true
-        run: cargo miri test -p t4a-faer-traits --lib
+        run: cargo miri test -p colmat-traits --lib
 
       # A `continue-on-error` step reports conclusion=success, so `failure()` never fires here.
       # Reach the step with **always()** and judge `steps.run.outcome` ourselves: a failed setup or a
@@ -74,11 +74,11 @@ jobs:
             --json number --limit 1 --jq '.[0].number // empty')
           body=$(mktemp)
           {
-            echo 'Miri (`cargo miri test -p t4a-faer-traits --lib`) が main で失敗しました。'
+            echo 'Miri (`cargo miri test -p colmat-traits --lib`) が main で失敗しました。'
             echo
             echo "- commit: \`${SHA}\`"
             echo "- 実行: \`${RUN_URL}\`"
-            echo '- 再現: `cargo +nightly miri test -p t4a-faer-traits --lib`'
+            echo '- 再現: `cargo +nightly miri test -p colmat-traits --lib`'
             echo
             echo '通常の `cargo test` では検出できない UB（provenance、aliasing、uninit）はこのレーンだけが見ます。'
           } > "$body"
@@ -88,7 +88,7 @@ jobs:
           else
             # Do not swallow a failure: if this cannot file the issue, the step goes red.
             gh issue create -R "$GITHUB_REPOSITORY" \
-              --title "miri: t4a-faer-traits --lib fails on main" \
+              --title "miri: colmat-traits --lib fails on main" \
               --label miri-failure \
               --body-file "$body"
           fi

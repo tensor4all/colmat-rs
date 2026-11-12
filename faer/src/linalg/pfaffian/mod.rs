@@ -26,8 +26,8 @@ use pulp::Simd;
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack, StackReq};
-/// use faer::linalg::pfaffian::{PfaffianError, pfaffian};
-/// use faer::{Mat, Par};
+/// use colmat::linalg::pfaffian::{PfaffianError, pfaffian};
+/// use colmat::{Mat, Par};
 /// let a = Mat::<f64>::zeros(3, 3);
 /// let mut memory = MemBuffer::new(StackReq::EMPTY);
 /// let result = pfaffian(a.as_ref(), Par::Seq, MemStack::new(&mut memory));
@@ -68,7 +68,7 @@ impl core::error::Error for PfaffianError {}
 /// # Examples
 /// ```
 /// use dyn_stack::MemBuffer;
-/// use faer::linalg::pfaffian::pfaffian_scratch;
+/// use colmat::linalg::pfaffian::pfaffian_scratch;
 /// let memory = MemBuffer::new(pfaffian_scratch::<f64>(4));
 /// assert!(!memory.is_empty());
 /// ```
@@ -125,13 +125,13 @@ const PANEL: usize = 24;
 /// # Examples
 /// ```
 /// use dyn_stack::{MemBuffer, MemStack};
-/// use faer::linalg::pfaffian::{pfaffian, pfaffian_scratch};
-/// use faer::{Par, mat};
+/// use colmat::linalg::pfaffian::{pfaffian, pfaffian_scratch};
+/// use colmat::{Par, mat};
 /// let a = mat![[0.0, -3.0], [3.0, 0.0]];
 /// let mut memory = MemBuffer::new(pfaffian_scratch::<f64>(2));
 /// let p = pfaffian(a.as_ref(), Par::Seq, MemStack::new(&mut memory))?;
 /// assert_eq!(p, -3.0);
-/// # Ok::<(), faer::linalg::pfaffian::PfaffianError>(())
+/// # Ok::<(), colmat::linalg::pfaffian::PfaffianError>(())
 /// ```
 pub fn pfaffian<T: ComplexField>(
 	a: MatRef<'_, T>,
@@ -735,7 +735,7 @@ fn utu2pfa<T: ComplexField>(pivots: ColMut<'_, T>) -> T {
 mod tests {
 	use super::*;
 	use crate::assert;
-	use faer_traits::{cx128, fx128};
+	use colmat_traits::{cx128, fx128};
 
 	/// `slots` is how many tile scratch slots the caller offers, which is what
 	/// caps the trailing update's split; `usize::MAX` offers the whole triangle.

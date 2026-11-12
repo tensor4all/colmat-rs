@@ -10,7 +10,7 @@ use crate::{Conj, ContiguousFwd, Par, Shape};
 use core::mem::MaybeUninit;
 use dyn_stack::{MemBuffer, MemStack};
 use equator::assert;
-use faer_traits::{ByRef, ComplexField, Conjugate};
+use colmat_traits::{ByRef, ComplexField, Conjugate};
 use pulp::Simd;
 use reborrow::*;
 const NANO_GEMM_THRESHOLD: usize = 16 * 16 * 16;
@@ -603,7 +603,7 @@ mod matmul_horizontal {
 /// dot product
 pub mod dot {
 	use super::*;
-	use faer_traits::SimdArch;
+	use colmat_traits::SimdArch;
 	/// returns `lhs * rhs`, implicitly conjugating the operands if needed
 	pub fn inner_prod<K: Shape, T: ComplexField>(
 		lhs: RowRef<T, K>,
@@ -758,7 +758,7 @@ pub mod dot {
 mod matvec_rowmajor {
 	use super::*;
 	use crate::col::ColMut;
-	use faer_traits::SimdArch;
+	use colmat_traits::SimdArch;
 	pub fn matvec<'M, 'K, T: ComplexField>(
 		dst: ColMut<'_, T, Dim<'M>>,
 		beta: Accum,
@@ -937,7 +937,7 @@ mod matvec_colmajor {
 		f(MemStack::new(&mut MemBuffer::new(req)))
 	}
 
-	use faer_traits::SimdArch;
+	use colmat_traits::SimdArch;
 	pub fn matvec<'M, 'K, T: ComplexField>(
 		dst: ColMut<'_, T, Dim<'M>, ContiguousFwd>,
 		beta: Accum,
@@ -1895,8 +1895,8 @@ fn matmul_uninit_imp<T: ComplexField>(
 ///
 /// ```
 /// use core::mem::MaybeUninit;
-/// use faer::linalg::matmul::matmul_with_conj_uninit;
-/// use faer::{mat, Conj, MatUninitMut, Par};
+/// use colmat::linalg::matmul::matmul_with_conj_uninit;
+/// use colmat::{mat, Conj, MatUninitMut, Par};
 ///
 /// let lhs = mat![[1.0_f64, 2.0], [3.0, 4.0]];
 /// let rhs = mat![[5.0_f64, 6.0], [7.0, 8.0]];
@@ -1968,8 +1968,8 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// # Example
 ///
 /// ```
-/// use faer::linalg::matmul::matmul;
-/// use faer::{Accum, Conj, Mat, Par, mat, unzip, zip};
+/// use colmat::linalg::matmul::matmul;
+/// use colmat::{Accum, Conj, Mat, Par, mat, unzip, zip};
 /// let lhs = mat![[0.0, 2.0], [1.0, 3.0]];
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
@@ -2053,8 +2053,8 @@ pub fn matmul<
 /// # example
 ///
 /// ```
-/// use faer::linalg::matmul::matmul_with_conj;
-/// use faer::{Accum, Conj, Mat, Par, mat, unzip, zip};
+/// use colmat::linalg::matmul::matmul_with_conj;
+/// use colmat::{Accum, Conj, Mat, Par, mat, unzip, zip};
 /// let lhs = mat![[0.0, 2.0], [1.0, 3.0]];
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);

@@ -6,11 +6,11 @@
 //! counts every allocation **of the counting thread** while the call runs; the
 //! matrices and the scratch are built outside the counted interval.
 #![cfg(feature = "std")]
-use faer::diag::Diag;
-use faer::dyn_stack::{MemBuffer, MemStack};
-use faer::linalg::svd::{ComputeSvdVectors, svd, svd_scratch};
-use faer::traits::ComplexField;
-use faer::{Auto, Mat, Par, ParShape, c32, c64};
+use colmat::diag::Diag;
+use colmat::dyn_stack::{MemBuffer, MemStack};
+use colmat::linalg::svd::{ComputeSvdVectors, svd, svd_scratch};
+use colmat::traits::ComplexField;
+use colmat::{Auto, Mat, Par, ParShape, c32, c64};
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -70,7 +70,7 @@ static GLOBAL: Counting = Counting;
 /// warm-up call.
 fn values_only_allocations<T: ComplexField>(a: &Mat<T>) -> usize {
 	let (m, n) = a.shape();
-	let params = <faer::linalg::svd::SvdParams as Auto<T>>::auto().into();
+	let params = <colmat::linalg::svd::SvdParams as Auto<T>>::auto().into();
 	let mut mem = MemBuffer::new(svd_scratch::<T>(
 		m,
 		n,

@@ -1,6 +1,6 @@
 ---
 name: faer-usage
-description: Call this library from a downstream Rust project. Use when writing or reviewing code that factorises, solves, multiplies or decomposes dense matrices with `faer` (package `t4a-faer`): which decomposition and entry point to pick, the borrowed-versus-in-place forms, the error types, scratch sizing, and caller-owned thread teams.
+description: Call this library from a downstream Rust project. Use when writing or reviewing code that factorises, solves, multiplies or decomposes dense matrices with `colmat`: which decomposition and entry point to pick, the borrowed-versus-in-place forms, the error types, scratch sizing, and caller-owned thread teams.
 ---
 
 # Using the library from a downstream project
@@ -9,12 +9,12 @@ This is the usage layer: how a **consumer** of the crate calls it correctly. The
 workflow for developing the fork itself is the separate
 [`faer-optimization`](../faer-optimization/SKILL.md) skill.
 
-The package is `t4a-faer`; the Rust library name is `faer` (`faer/Cargo.toml:2`, `faer/Cargo.toml:17`).
-Depend on it with the package name aliased:
+The package and the Rust library are both `colmat` (`faer/Cargo.toml:2`, `faer/Cargo.toml:18`),
+renamed from `t4a-faer` 0.33.0; depend on it directly:
 
 ```toml
 [dependencies]
-faer = { package = "t4a-faer", version = "0.32" }
+colmat = "0.34"
 ```
 
 This is **not** upstream `faer`: upstream examples from a model's training data do not compile here.
@@ -83,13 +83,13 @@ let mut stack = MemStack::new(&mut mem);
 `*_scratch` functions take a `ParShape` (the width, without the authority to run anything), not a
 `Par` (`docs/par-team-migration.md:44`). Combine several requirements with `StackReq::any_of(&[...])`,
 as `faer/src/linalg/qr/mod.rs:63` does. `MemStack`, `MemBuffer` and `StackReq` are re-exported from
-`faer::dyn_stack` (`faer/src/lib.rs:1431`). A caller-held `MemBuffer` reused across calls is the
+`colmat::dyn_stack` (`faer/src/lib.rs:1431`). A caller-held `MemBuffer` reused across calls is the
 route to a steady-state call that allocates nothing; `faer/tests/svd_values_no_alloc.rs` and
 `faer/tests/no_step_alloc.rs` are the contracts.
 
 ## Solving
 
-Import the trait: `use faer::linalg::solvers::Solve;`. Two families:
+Import the trait: `use colmat::linalg::solvers::Solve;`. Two families:
 
 | You want | Method | Allocates |
 | --- | --- | --- |
@@ -145,7 +145,7 @@ There is no `truncated_svd` and no rank argument on the owning methods.
 | --- | --- |
 | `Par::Seq` | one call on the calling thread; always correct |
 | build a `threadteam::Pool` once, `pool.into_team(w)`, `team.exec(w)` per call | the primary route: a budget held across many calls |
-| `faer::team::with_team(w, \|par\| ...)` (`faer/src/utils/team.rs:97`) | a single call, or a script |
+| `colmat::team::with_team(w, \|par\| ...)` (`faer/src/utils/team.rs:97`) | a single call, or a script |
 
 Inside a region, lend the token to every call but the last: `par.reborrow()` (as in
 `docs/migration/README.md`'s checked example). Nesting does not add threads: split the team first
@@ -172,8 +172,9 @@ Column-major is native (`Mat` is column-major; `MatRef`/`MatMut` may be strided)
 
 ## Pitfalls
 
-- **Package versus library name.** `t4a-faer` in `Cargo.toml`, `faer` in `use`. A plain
-  `faer = "0.32"` pulls upstream, not this crate.
+- **One name.** `colmat` in `Cargo.toml` and `colmat` in `use`; the crate was published as
+  `t4a-faer` up to 0.33.0, whose library was named `faer`. A plain `faer = "0.x"` pulls upstream,
+  not this crate.
 - **Upstream code does not compile here.** `set_global_parallelism`, `get_global_parallelism` and
   `Par::Rayon` are gone; the factorization methods take a trailing `Par`.
 - **`A = U S V^H`.** `Svd::V()` returns `V`, so a reconstruction is `U · S · V.adjoint()`, not
@@ -195,8 +196,8 @@ Column-major is native (`Mat` is column-major; `MatRef`/`MatMut` may be strided)
 Verified against this tree; the CI-run counterpart is `faer/examples/migration_overview.rs`.
 
 ```rust
-use faer::linalg::solvers::{Solve, SolveLstsq};
-use faer::{Par, mat};
+use colmat::linalg::solvers::{Solve, SolveLstsq};
+use colmat::{Par, mat};
 
 fn main() {
 	let a = mat![[4.0_f64, 1.0], [1.0, 3.0]];
