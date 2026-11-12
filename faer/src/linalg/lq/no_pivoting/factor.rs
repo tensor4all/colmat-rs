@@ -142,7 +142,7 @@ mod tests {
 	/// below the byte threshold.
 	#[test]
 	fn copy_l_reaches_the_tiled_copy_gate() {
-		use crate::linalg::{tile_copy_pays, tiled_copies};
+		use crate::linalg::tiled_copies;
 		for (m, n, tiled) in [
 			(512, 512, true),
 			// square, 2048 bytes of stride: #352's measured cell
@@ -158,7 +158,9 @@ mod tests {
 			// `packed` as a row-major view of a column-major `n x m` allocation
 			let packed_col = Mat::<f64>::from_fn(n, m, |j, i| (i + 2 * j) as f64);
 			let packed = packed_col.as_ref().transpose();
-			assert!(tile_copy_pays::<f64>(m, k, m as isize) == tiled);
+			// the dispatch the route actually took, not a stride re-derived here:
+			// the gate reads the padded column stride of the packed destination and
+			// the row stride of the source, which this route holds as views
 			let mut out = Mat::<f64>::from_fn(m, k, |_, _| -1.0);
 			let before = tiled_copies();
 			copy_l(out.as_mut(), packed, false);
