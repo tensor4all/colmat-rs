@@ -1,0 +1,12 @@
+[package]
+name = "faer-044-fx128-matmul-panics"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Not part of the colmat workspace: this reproduces the published crate on its own.
+[workspace]
+
+[dependencies]
+faer = { version = "=0.24.4", default-features = false, features = ["std", "linalg"] }
+qd = { version = "=0.8.0", default-features = false, features = ["std"] }
