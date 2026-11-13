@@ -6,12 +6,22 @@
 [![documentation](https://docs.rs/colmat/badge.svg)](https://docs.rs/colmat)
 [![crate](https://img.shields.io/crates/v/colmat.svg)](https://crates.io/crates/colmat)
 
-`colmat` is a pure-Rust dense and sparse linear algebra library for scientific and HPC work. It is
-the linear algebra backend of [tenferro](https://github.com/tensor4all/tenferro-rs) and the other
-[tensor4all](https://github.com/tensor4all) libraries, and it changes upstream faer's API where
-their workloads need a different shape: parallel work runs on a `threadteam` team that the caller owns
-and passes as `Par::Team` (or `Par::Seq` for the calling thread), with no implicit global thread
-pool. Its decompositions are validated against LAPACK's own test suites. Published versions follow
+`colmat` is a pure-Rust dense and sparse linear algebra library for scientific and HPC work. It
+began as the linear algebra backend of [tenferro](https://github.com/tensor4all/tenferro-rs) and the
+other [tensor4all](https://github.com/tensor4all) libraries, and is now developed as a
+general-purpose library. It aims at three things:
+
+- **Correct results.** Its decompositions are validated against LAPACK's own test suites, and the
+  defects found on the way that also affect the published upstream crates are kept as reproducers in
+  [`upstream-reports/`](upstream-reports/README.md).
+- **Performance on many threads.** The goal is to outperform OpenBLAS and MKL at high thread counts.
+  The [benchmarks](https://tensor4all.org/faer-benchmark/) give the current numbers, with their
+  measurement conditions.
+- **Precise thread control.** Parallel work runs on a `threadteam` team that the caller owns and
+  passes as `Par::Team` (or `Par::Seq` for the calling thread). There is no implicit global thread
+  pool, and each parallel region runs at the widest width that pays for its dispatch cost.
+
+It changes upstream faer's API where these goals need a different shape. Published versions follow
 semver, and APIs can change in incompatible releases.
 
 **Renamed from `t4a-faer`.** The crate was published as `t4a-faer` up to 0.33.0; 0.34.0 is the
