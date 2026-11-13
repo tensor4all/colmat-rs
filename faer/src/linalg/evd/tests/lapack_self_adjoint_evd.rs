@@ -303,7 +303,17 @@ fn lapack_self_adjoint_evd_parallel() {
 			)
 		});
 	}
-	run.finish(18);
+	// tensor4all/colmat-rs#165: on a team the auto threshold (128) enters the divide and
+	// conquer from n > 16, so the band n = 64..128 that a sequential call solves by QR iteration
+	// answers to the same bounds through the divide and conquer
+	for n in [64, 96, 128] {
+		for threads in [2, 4] {
+			crate::team::with_team(threads, |par| {
+				dense_self_adjoint_case(&mut run, n, 4, (n + threads) % 4, 128, par)
+			});
+		}
+	}
+	run.finish(18 + 3 * 2 * 6);
 }
 
 #[test]
