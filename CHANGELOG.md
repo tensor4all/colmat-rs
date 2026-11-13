@@ -17,6 +17,19 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   `[hi, lo]` memory into high-part and low-part registers and the stores reinterleave, so lanes do
   not mix elements (#173 called the `_raw` hooks, which move memory unconverted by contract). Both
   are now covered by integration tests with nonzero low parts (`fx128_matmul`, `fx128_simd_hooks`).
+- Real and complex QZ (`gevd::qz_real`, `gevd::qz_cplx`) lost Q/Z orthogonality and coupled
+  reconstruction accuracy when the active block became narrower than `nmin`. In that case the
+  driver hands AED the whole block, but it still capped that window at `(n - 3) / 3`. The capped
+  window kept a spike, nothing deflated, and AED reran without a sweep until `maxit`, with each
+  rerun adding rounding to (S, T, Q, Z). As in LAPACK `dlaqz0`, only the recommended window is now
+  capped (#117). DGET54 ratios move from 178.6 to 0.87 (n = 78, maximum window), 232.9 to 0.96
+  (n = 100) and 81.0 to 0.84 (n = 18, `blocking_threshold = 15`); LAPACK gives 0.77 on the n = 78
+  pencil. The workspace query reserves an AED window of up to `nmin - 1` (n = 78 default: 33280 to
+  144640 bytes).
+- The multishift sweep of both QZ variants reserved `n x 2 nsr` for temporaries of up to
+  `n x nblock`, and `nblock` exceeds `2 nsr` for small shift counts. With the exact queried
+  workspace, complex QZ panicked at n = 15..20 with two shifts. The sweep now reserves `n x
+  max(2 nsr, nblock)`.
 
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 

@@ -1093,6 +1093,8 @@ pub fn hessenberg_to_qz_scratch<T: ComplexField>(
 		return StackReq::EMPTY;
 	}
 	let nw = (n - 3) / 3;
+	// AED also takes a whole active block narrower than `nmin` (#117).
+	let nw = Ord::max(nw, nmin - 1);
 	let nsr = (params.recommended_shift_count)(n, n);
 	let rcost = (params.relative_cost_estimate_of_shift_chase_to_matmul)(n, n);
 	let itemp1 = (nsr as f64
@@ -1111,12 +1113,15 @@ pub fn hessenberg_to_qz_scratch<T: ComplexField>(
 		StackReq::all_of(&[
 			qc_sweep,
 			qc_sweep,
-			multishift_sweep_scratch::<T>(n, nsr),
+			multishift_sweep_scratch::<T>(n, nsr, nbr),
 		]),
 	])
 }
-fn multishift_sweep_scratch<T: ComplexField>(n: usize, ns: usize) -> StackReq {
-	linalg::temp_mat_scratch::<T>(n, 2 * ns)
+/// The sweep's temporaries are at most `n x nblock`: the chase updates take `ns + np <= nblock`
+/// rows or columns of `Q`, `Z`, `S`, `T` (`np` up to `nblock - ns`), and `nblock = nsr + itemp1`
+/// exceeds `2 * nsr` when the shift count is small (colmat-rs#117 follow-up).
+fn multishift_sweep_scratch<T: ComplexField>(n: usize, ns: usize, nblock: usize) -> StackReq {
+	linalg::temp_mat_scratch::<T>(n, Ord::max(2 * ns, nblock))
 }
 fn aed_scratch<T: ComplexField>(
 	n: usize,
@@ -1398,7 +1403,13 @@ fn hessenberg_to_qz_blocked<T: ComplexField>(
 			eshift = zero();
 			continue;
 		}
-		let mut nw = nwr;
+		// The recommended window is capped at `(n - 3) / 3`
+		// (DLAQZ0 caps NWR at `(N - 1) / 3`). A block narrower than `nmin`
+		// goes to AED whole, uncapped, as in DLAQZ0: its window starts at a
+		// zero subdiagonal, has no spike and deflates completely. Capping it left a
+		// spike that blocked deflation, and AED reran without a sweep until
+		// `maxit`, rounding every rerun into (S, T, Q, Z) (#117).
+		let mut nw = Ord::min(nwr, nw_max);
 		let nshifts = nsr;
 		let nblock = nbr;
 		if istop + 1 - istart2 < nmin {
@@ -1409,7 +1420,6 @@ fn hessenberg_to_qz_blocked<T: ComplexField>(
 				nw = istop + 1 - istart2;
 			}
 		}
-		nw = Ord::min(nw, nw_max);
 		let (n_undeflated, n_deflated);
 		{
 			let (mut QC, stack) =
