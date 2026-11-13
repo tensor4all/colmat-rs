@@ -15,6 +15,7 @@ macro_rules! suite {
 			include!("../../tests/lapack_support.rs");
 			include!("../../tests/lapack_lin_support.rs");
 			include!("lapack_lu.rs");
+			include!("par_identity.rs");
 		}
 	};
 }
