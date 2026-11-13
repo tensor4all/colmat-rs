@@ -23,6 +23,8 @@ jobs:
       # The library also builds without `rayon`; keep the sequential-only path tested, not
       # just compiled (the test modules inside the library need `threadteam`, #203).
       - run: cargo test -p colmat --no-default-features --features "std,linalg" --test public_bidiag_sequential --test sparse_lu_no_rayon --test iteration_control
+      # #174/#173: the double-double product and SIMD hooks, compiled as a downstream crate compiles them.
+      - run: cargo test -p colmat --test fx128_matmul --test fx128_simd_hooks
       - run: cargo test -p colmat-traits
       # `faer-ffi` is in the workspace again (#98); its two tests drive the C entry points, the team
       # handle, and the "the team is left again" affinity check.
