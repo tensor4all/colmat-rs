@@ -62,6 +62,11 @@ pub struct SelfAdjointEvdParams {
 	/// tridiagonalization parameters
 	pub tridiag: TridiagParams,
 	/// threshold at which the implementation should stop recursing
+	///
+	/// the auto value (128) depends on the team: with two or more participants the
+	/// divide-and-conquer is entered from `n > 16` instead, and without a team, or on a team of
+	/// one, the QR iteration runs below 128 as before (tensor4all/colmat-rs#165). Any other
+	/// value is used as given at every thread count.
 	pub recursion_threshold: usize,
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
@@ -88,9 +93,32 @@ impl<T: ComplexField> Auto<T> for SelfAdjointEvdParams {
 	fn auto() -> Self {
 		Self {
 			tridiag: auto!(T),
-			recursion_threshold: 128,
+			recursion_threshold: AUTO_RECURSION_THRESHOLD,
 			non_exhaustive: NonExhaustive(()),
 		}
+	}
+}
+/// The auto [`SelfAdjointEvdParams::recursion_threshold`]: the threshold without a team.
+const AUTO_RECURSION_THRESHOLD: usize = 128;
+/// The threshold the auto value stands for on a team of two or more.
+///
+/// It is the `recursion_threshold = 16` of the 2026-11-10 and 2026-11-12 records
+/// (`docs/worklogs/2026-11-1{0,2}-eigh-vs-mkl-*.md`, tables C and A): at n = 64..128 it takes
+/// 13-32% off the call at 8T, and at 2T and 4T it is not slower than the QR iteration, which
+/// takes no `Par` and so runs on one participant whatever the team. At 1T it is -5% to +9%
+/// against QR depending on the host and the size, so a sequential call keeps 128.
+const TEAM_RECURSION_THRESHOLD: usize = 16;
+/// The threshold the tridiagonal solve uses for `params` on `degree` participants: the auto
+/// value is a function of the team (tensor4all/colmat-rs#165), every other value is used as is.
+///
+/// Below it the solve is the QR iteration; from it, the divide-and-conquer, which also takes it
+/// as the size of its QR leaves. The scratch query asks with the [`ParShape`]'s degree and the
+/// call with the [`Par`]'s, so the two agree when the shape is the call's.
+fn tridiag_evd_threshold(recursion_threshold: usize, degree: usize) -> usize {
+	if recursion_threshold == AUTO_RECURSION_THRESHOLD && degree >= 2 {
+		TEAM_RECURSION_THRESHOLD
+	} else {
+		recursion_threshold
 	}
 }
 /// whether the eigenvectors should be computed
@@ -145,7 +173,7 @@ pub fn self_adjoint_evd_scratch<T: ComplexField>(
 		// the column-major stand-in for a row-major `u`
 		temp_mat_scratch::<T>(n, n),
 		StackReq::any_of(&[
-			if n < params.recursion_threshold {
+			if n < tridiag_evd_threshold(params.recursion_threshold, par.degree()) {
 				StackReq::empty()
 			} else {
 				tridiag_evd::divide_and_conquer_scratch::<T>(n, par)
@@ -187,7 +215,10 @@ pub fn tridiagonal_self_adjoint_evd_scratch<T: ComplexField>(
 		} else {
 			temp_mat_scratch::<T::Real>(n, if T::IS_REAL { 0 } else { n }).and(
 				temp_mat_scratch::<T>(n, 1).or(
-					if n < params.recursion_threshold {
+					if n < tridiag_evd_threshold(
+						params.recursion_threshold,
+						par.degree(),
+					) {
 						StackReq::EMPTY
 					} else {
 						tridiag_evd::divide_and_conquer_scratch::<T::Real>(
@@ -271,7 +302,9 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 	} else {
 		u_real.rb_mut()
 	};
-	if n < params.recursion_threshold {
+	let threshold =
+		tridiag_evd_threshold(params.recursion_threshold, par.degree());
+	if n < threshold {
 		tridiag_evd::qr_algorithm(
 			real_diag.rb_mut(),
 			real_offdiag.rb_mut(),
@@ -284,7 +317,7 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 			u_evd.rb_mut(),
 			par,
 			stack,
-			params.recursion_threshold,
+			threshold,
 		)?;
 	}
 	if const { !T::IS_REAL } {
@@ -491,7 +524,9 @@ pub fn self_adjoint_evd<T: ComplexField>(
 	} else {
 		u_real.rb_mut()
 	};
-	let solved = if n < params.recursion_threshold {
+	let threshold =
+		tridiag_evd_threshold(params.recursion_threshold, par.degree());
+	let solved = if n < threshold {
 		tridiag_evd::qr_algorithm(
 			diag.rb_mut(),
 			offdiag.rb_mut(),
@@ -504,7 +539,7 @@ pub fn self_adjoint_evd<T: ComplexField>(
 			u_evd.rb_mut(),
 			par.reborrow(),
 			stack,
-			params.recursion_threshold,
+			threshold,
 		)
 	};
 	if let Err(e) = solved {
