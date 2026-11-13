@@ -1,3 +1,15 @@
+# Unreleased
+
+Numbers are tensor4all/colmat-rs issues or PRs.
+
+## Correctness
+
+- A `Par::Team` holding a team of one participant took the kernels' parallel branches with one
+  thread instead of running sequentially: `utils::thread::with_width` returned it unchanged
+  before checking for a width below two. An `n x 1` product then kept an `n`-element partial
+  buffer per thread and added it back (#168). `with_width` now maps a width or a degree below two to
+  `Par::Seq` first. Covered by `team_of_one`.
+
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
 Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.

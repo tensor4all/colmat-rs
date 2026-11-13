@@ -70,17 +70,20 @@ pub mod thread {
 			parallelism,
 		)
 	}
-	/// Runs `f` on a part of `par` of `width` participants: `par` itself when `width` is its
-	/// degree or more, `Par::Seq` below two, otherwise a sub-team of `width` (a split into one
-	/// child, which is led by the caller and dispatches nothing; the members it leaves out stay
-	/// idle). A region decides its width with [`cost::par_width`](crate::utils::cost) and runs
-	/// here, so only that region is narrowed and the caller keeps its whole `par`.
+	/// Runs `f` on a part of `par` of `width` participants: `Par::Seq` when `width` or the degree
+	/// of `par` is below two (a team of one participant included), `par` itself when `width` is
+	/// its degree or more, otherwise a sub-team of `width` (a split into one child, which is led by
+	/// the caller and dispatches nothing; the members it leaves out stay idle). A region decides its
+	/// width with [`cost::par_width`](crate::utils::cost) and runs here, so only that region is
+	/// narrowed and the caller keeps its whole `par`.
 	pub fn with_width<R>(par: Par, width: usize, f: impl FnOnce(Par) -> R) -> R {
+		// before the `width >= degree` return: a held team of one would otherwise reach the
+		// kernels' parallel branches with one thread (colmat-rs#168)
+		if width < 2 || par.degree() < 2 {
+			return f(Par::Seq);
+		}
 		if width >= par.degree() {
 			return f(par);
-		}
-		if width < 2 {
-			return f(Par::Seq);
 		}
 		match par {
 			Par::Seq => f(Par::Seq),
