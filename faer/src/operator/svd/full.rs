@@ -68,7 +68,7 @@ pub fn partial_full_svd<T: ComplexField>(
 	let (mut s, stack) = stack.make_with(size, |_| zero::<T>());
 	let ok = linalg::svd::svd(
 		dense.rb(),
-		DiagMut::from_slice_mut(&mut *s),
+		DiagMut::from_slice_mut(&mut s),
 		Some(u.rb_mut()),
 		Some(v.rb_mut()),
 		par.reborrow(),
@@ -118,6 +118,8 @@ mod tests {
 	use crate::prelude::*;
 	use dyn_stack::MemBuffer;
 
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// runs the public driver and checks both residuals and the orthonormality
 	/// of the returned singular vectors. the singular vectors of a degenerate
 	/// spectrum are not unique, so only the residuals and the orthogonality are
@@ -329,11 +331,7 @@ mod tests {
 		// one larger: `max_dim` stays at 64 and the iterative branch runs
 		let n = 65;
 		let A = Mat::<f64>::from_fn(n, n, |i, j| {
-			if i == j {
-				(n - i) as f64
-			} else {
-				0.0
-			}
+			if i == j { (n - i) as f64 } else { 0.0 }
 		});
 		let s = check(A.as_ref(), 1, default());
 		core::assert!((s[0] - n as f64).abs() < 1e-9);
@@ -350,7 +348,12 @@ mod tests {
 		let mut s = [7.0f64];
 		let v0 = Col::<f64>::zeros(0);
 		let params: PartialEigenParams = default();
-		let mut mem = MemBuffer::new(partial_svd_scratch(&A, 1, Par::Seq.shape(), params));
+		let mut mem = MemBuffer::new(partial_svd_scratch(
+			&A,
+			1,
+			Par::Seq.shape(),
+			params,
+		));
 		let info = partial_svd(
 			U.as_mut(),
 			V.as_mut(),

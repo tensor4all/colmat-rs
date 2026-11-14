@@ -26,7 +26,7 @@
 //! of two matrices:
 //! - a lower trapezoidal matrix with unit diagonal, which is the horizontal
 //!   concatenation of the
-//! bases of each block householder transformation,
+//!   bases of each block householder transformation,
 //! - a horizontal concatenation of the householder factors.
 //!
 //! examples on how to create and manipulate block householder sequences are
@@ -75,16 +75,16 @@ fn make_householder_imp<T: ComplexField>(
 			norm: head_norm,
 		};
 	}
-	let ref head_norm = head_norm;
-	let ref one_half = from_f64::<T::Real>(0.5);
+	let head_norm = &head_norm;
+	let one_half = &from_f64::<T::Real>(0.5);
 	let norm = head_norm.hypot(&tail_norm);
 	let sign = if *head_norm != zero() {
 		head.mul_real(head_norm.recip())
 	} else {
 		one()
 	};
-	let ref signed_norm = sign * norm.to_cplx::<T>();
-	let ref head_with_beta = &*head + signed_norm;
+	let signed_norm = &(sign * norm.to_cplx::<T>());
+	let head_with_beta = &(&*head + signed_norm);
 	let head_with_beta_inv = head_with_beta.recip();
 	match input {
 		None => zip!(out).for_each(|unzip!(e)| {
@@ -182,12 +182,17 @@ pub fn upgrade_householder_factor<T: ComplexField>(
 	crate::utils::cost::trace::shape("", 0, 0, 0);
 	if width >= 2 && width < par.degree() {
 		return crate::utils::thread::with_width(par, width, |par| {
-			upgrade_householder_factor(householder_factor, essentials, block_size, prev_block_size, par)
+			upgrade_householder_factor(
+				householder_factor,
+				essentials,
+				block_size,
+				prev_block_size,
+				par,
+			)
 		});
 	}
 	let mut par = if width >= 2 { par } else { Par::Seq };
 	let mut householder_factor = householder_factor;
-	let essentials = essentials;
 	assert!(householder_factor.nrows() == householder_factor.ncols());
 	let block_count = householder_factor.nrows().msrv_div_ceil(block_size);
 	if block_count > 1 {
@@ -282,7 +287,7 @@ pub fn upgrade_householder_factor<T: ComplexField>(
 				}
 			}
 		} else if deep {
-	#[cfg(feature = "rayon")]
+			#[cfg(feature = "rayon")]
 			{
 				use rayon::prelude::*;
 				// exactly `threads` balanced row ranges (at least four rows each), so the split runs
@@ -290,27 +295,32 @@ pub fn upgrade_householder_factor<T: ComplexField>(
 				let n_chunks = threads;
 				let mut partials = alloc::vec![T::zero(); n_chunks * n * n];
 				let source = basis_bot;
-				crate::utils::thread::with_width(par, threads, |par| crate::utils::thread::for_each(
-					par,
-					n_chunks,
-					partials.par_chunks_mut(n * n).enumerate(),
-					|(index, part)| {
-						let (lo, len) = crate::utils::thread::par_split_indices(rows, index, n_chunks);
-						let hi = lo + len;
-						let mut part =
-							MatMut::from_column_major_slice_mut(part, n, n);
-						matmul_with_conj(
-							part.rb_mut(),
-							Accum::Replace,
-							source.subrows(lo, hi - lo).transpose(),
-							Conj::Yes,
-							source.subrows(lo, hi - lo),
-							Conj::No,
-							one(),
-							Par::Seq,
-						);
-					},
-				));
+				crate::utils::thread::with_width(par, threads, |par| {
+					crate::utils::thread::for_each(
+						par,
+						n_chunks,
+						partials.par_chunks_mut(n * n).enumerate(),
+						|(index, part)| {
+							let (lo, len) =
+								crate::utils::thread::par_split_indices(
+									rows, index, n_chunks,
+								);
+							let hi = lo + len;
+							let mut part =
+								MatMut::from_column_major_slice_mut(part, n, n);
+							matmul_with_conj(
+								part.rb_mut(),
+								Accum::Replace,
+								source.subrows(lo, hi - lo).transpose(),
+								Conj::Yes,
+								source.subrows(lo, hi - lo),
+								Conj::No,
+								one(),
+								Par::Seq,
+							);
+						},
+					)
+				});
 				for index in 0..n_chunks {
 					let part = MatRef::from_column_major_slice(
 						&partials[index * n * n..(index + 1) * n * n],
@@ -498,6 +508,7 @@ pub fn apply_block_householder_sequence_on_the_right_in_place_scratch<
 	let _ = householder_basis_nrows;
 	temp_mat_scratch::<T>(block_size, lhs_nrows)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 fn apply_block_householder_on_the_left_in_place_generic<
 	'M,
@@ -557,7 +568,7 @@ fn apply_block_householder_on_the_left_in_place_generic<
 	// unit an element of the target.
 	#[cfg(feature = "par-trace")]
 	crate::utils::cost::trace::shape(
-"big_rank_one",
+		"big_rank_one",
 		householder_basis.nrows().unbound(),
 		N.unbound(),
 		matrix.ncols().unbound(),
@@ -573,7 +584,8 @@ fn apply_block_householder_on_the_left_in_place_generic<
 	) > 1;
 	let use_simd = N.unbound() == 1
 		&& T::SIMD_CAPABILITIES.is_simd()
-		&& !(crate::utils::thread::parallelism_degree(&par) > 1 && big_rank_one);
+		&& !(crate::utils::thread::parallelism_degree(&par) > 1
+			&& big_rank_one);
 	if let (Some(householder_basis), Some(matrix), true) = (
 		householder_basis.try_as_col_major(),
 		matrix.rb_mut().try_as_col_major_mut(),
@@ -608,7 +620,6 @@ fn apply_block_householder_on_the_left_in_place_generic<
 				for idx in K.indices() {
 					let col0 = rhs0.rb_mut().at_mut(idx);
 					let mut col = rhs.rb_mut().col_mut(idx);
-					let essential = essential;
 					let dot = if const { CONJ } {
 						&*col0
 							+ dot::inner_prod_no_conj_simd(
@@ -624,7 +635,7 @@ fn apply_block_householder_on_the_left_in_place_generic<
 								col.rb(),
 							)
 					};
-					let ref k = -dot * tau_inv;
+					let k = &(-dot * tau_inv);
 					*col0 += k;
 					let k = simd.splat(k);
 
@@ -689,10 +700,21 @@ fn apply_block_householder_on_the_left_in_place_generic<
 		let M = matrix.nrows();
 		let K = matrix.ncols();
 		// `row_major_tmp`: the `N x K` temporary is the transpose of a column-major `K x N` one
-		let (tmp_rows, tmp_cols) = if row_major_tmp { (K.unbound(), N.unbound()) } else { (N.unbound(), K.unbound()) };
-		let (mut tmp, _) = unsafe { temp_mat_uninit::<T, usize, usize>(tmp_rows, tmp_cols, stack) };
+		let (tmp_rows, tmp_cols) = if row_major_tmp {
+			(K.unbound(), N.unbound())
+		} else {
+			(N.unbound(), K.unbound())
+		};
+		let (mut tmp, _) = unsafe {
+			temp_mat_uninit::<T, usize, usize>(tmp_rows, tmp_cols, stack)
+		};
 		let tmp = tmp.as_mat_mut();
-		let mut tmp = if row_major_tmp { tmp.transpose_mut() } else { tmp }.as_shape_mut(N, K);
+		let mut tmp = if row_major_tmp {
+			tmp.transpose_mut()
+		} else {
+			tmp
+		}
+		.as_shape_mut(N, K);
 		let threads = crate::utils::thread::parallelism_degree(&par);
 		// The column split is the only parallelism when the rows are not split, so it takes
 		// the whole budget and leaves `inner_parallelism` at one thread: the block apply a
@@ -715,12 +737,18 @@ fn apply_block_householder_on_the_left_in_place_generic<
 			);
 			// the split: the widest number of tasks (at most `K`) that pays for its one section;
 			// the region: the widest width that pays, shared out among the tasks
-			let tasks = crate::utils::cost::par_width_time_upto(&par, est, 1, n_tasks);
+			let tasks =
+				crate::utils::cost::par_width_time_upto(&par, est, 1, n_tasks);
 			let width = crate::utils::cost::par_width_time(&par, est, 1);
 			#[cfg(feature = "par-trace")]
-	#[cfg(feature = "rayon")]
+			#[cfg(feature = "rayon")]
 			{
-				crate::utils::cost::trace::shape("n_tasks", M.unbound(), N.unbound(), K.unbound());
+				crate::utils::cost::trace::shape(
+					"n_tasks",
+					M.unbound(),
+					N.unbound(),
+					K.unbound(),
+				);
 				let w = core::num::NonZeroUsize::new(width.max(2)).unwrap();
 				crate::utils::cost::trace_pub(
 					M.unbound() * N.unbound() * K.unbound(),
@@ -733,9 +761,14 @@ fn apply_block_householder_on_the_left_in_place_generic<
 				);
 			}
 			#[cfg(feature = "par-trace")]
-			let (tasks, width) = match crate::utils::cost::trace::N_TASKS_MODE.load(core::sync::atomic::Ordering::Relaxed) {
+			let (tasks, width) = match crate::utils::cost::trace::N_TASKS_MODE
+				.load(core::sync::atomic::Ordering::Relaxed)
+			{
 				1 => {
-					if (M.unbound() * K.unbound()).saturating_mul(4 * M.unbound()) >= gemm::get_threading_threshold() {
+					if (M.unbound() * K.unbound())
+						.saturating_mul(4 * M.unbound())
+						>= gemm::get_threading_threshold()
+					{
 						(n_tasks, threads)
 					} else {
 						(1, 1)
@@ -821,7 +854,6 @@ fn apply_block_householder_on_the_left_in_place_generic<
 		};
 		if n_tasks <= 1 {
 			func((tmp.as_dyn_cols_mut(), matrix.as_dyn_cols_mut()), par);
-			return;
 		} else {
 			#[cfg(feature = "rayon")]
 			{
@@ -830,9 +862,9 @@ fn apply_block_householder_on_the_left_in_place_generic<
 					crate::utils::thread::for_each_with_par(
 						par,
 						n_tasks,
-						tmp.rb_mut()
-							.par_col_partition_mut(n_tasks)
-							.zip_eq(matrix.rb_mut().par_col_partition_mut(n_tasks)),
+						tmp.rb_mut().par_col_partition_mut(n_tasks).zip_eq(
+							matrix.rb_mut().par_col_partition_mut(n_tasks),
+						),
 						func,
 					)
 				});
@@ -1120,8 +1152,6 @@ pub fn apply_block_householder_sequence_transpose_on_the_right_in_place_with_con
 #[cfg(test)]
 mod tests {
 	use super::{
-		apply_block_householder_on_the_left_in_place_scratch,
-		apply_block_householder_on_the_left_in_place_with_conj,
 		apply_block_householder_transpose_on_the_left_in_place_scratch,
 		apply_block_householder_transpose_on_the_left_in_place_with_conj,
 		make_householder_in_place, upgrade_householder_factor,
@@ -1405,7 +1435,7 @@ mod tests {
 			assert!(err < 1e-12, "{err}");
 		};
 		run(Par::Seq);
-		crate::team::with_team(4, |par| run(par));
+		crate::team::with_team(4, run);
 	}
 }
 #[cfg(test)]
@@ -1416,9 +1446,15 @@ mod gate_tests {
 	//! the decision itself is what `utils::cost` tests.
 	use super::*;
 	use crate::c64;
-	use crate::linalg::matmul::triangular::{BlockStructure, matmul as tmatmul};
+	use crate::linalg::matmul::triangular::{
+		BlockStructure, matmul as tmatmul,
+	};
 
-	fn fill<T: ComplexField<Real = f64>>(m: usize, n: usize, seed: usize) -> Mat<T> {
+	fn fill<T: ComplexField<Real = f64>>(
+		m: usize,
+		n: usize,
+		seed: usize,
+	) -> Mat<T> {
 		Mat::from_fn(m, n, |i, j| {
 			let h = (i * 2654435761usize)
 				.wrapping_add(j * 40503)
@@ -1439,7 +1475,12 @@ mod gate_tests {
 		core::assert!(err <= 1e-9 * scale, "error {err}, scale {scale}");
 	}
 
-	fn apply<T: ComplexField<Real = f64>>(m: usize, n: usize, k: usize, par: Par) -> Mat<T> {
+	fn apply<T: ComplexField<Real = f64>>(
+		m: usize,
+		n: usize,
+		k: usize,
+		par: Par,
+	) -> Mat<T> {
 		let basis = fill::<T>(m, n, 1);
 		let mut factor = fill::<T>(n, n, 2);
 		for i in 0..n {
@@ -1463,9 +1504,12 @@ mod gate_tests {
 	fn check_apply<T: ComplexField<Real = f64>>(mut par: Par<'_>) {
 		// rank one: `N == 1`, 0.5 million target elements
 		// column split: tall target and wide target
-		for (m, n, k) in
-			[(2048, 16, 96), (2048, 1, 256), (512, 16, 1024), (4096, 32, 64)]
-		{
+		for (m, n, k) in [
+			(2048, 16, 96),
+			(2048, 1, 256),
+			(512, 16, 1024),
+			(4096, 32, 64),
+		] {
 			let seq = apply::<T>(m, n, k, Par::Seq);
 			let par = apply::<T>(m, n, k, par.reborrow());
 			close(seq.as_ref(), par.as_ref());
@@ -1480,13 +1524,23 @@ mod gate_tests {
 		});
 	}
 
-	fn upgrade<T: ComplexField<Real = f64>>(m: usize, n: usize, par: Par) -> Mat<T> {
+	fn upgrade<T: ComplexField<Real = f64>>(
+		m: usize,
+		n: usize,
+		par: Par,
+	) -> Mat<T> {
 		let essentials = fill::<T>(m, n, 4);
 		let mut factor = Mat::<T>::zeros(n, n);
 		for i in 0..n {
 			factor[(i, i)] = from_f64::<T>(1.5);
 		}
-		upgrade_householder_factor(factor.as_mut(), essentials.as_ref(), n, 1, par);
+		upgrade_householder_factor(
+			factor.as_mut(),
+			essentials.as_ref(),
+			n,
+			1,
+			par,
+		);
 		factor
 	}
 
@@ -1506,11 +1560,19 @@ mod gate_tests {
 		});
 	}
 
-	fn matvec<T: ComplexField<Real = f64>>(n: usize, row_major: bool, par: Par) -> Mat<T> {
+	fn matvec<T: ComplexField<Real = f64>>(
+		n: usize,
+		row_major: bool,
+		par: Par,
+	) -> Mat<T> {
 		let a = fill::<T>(n, n, 5);
 		let x = fill::<T>(n, 1, 6);
 		let mut y = Mat::<T>::zeros(n, 1);
-		let lhs = if row_major { a.as_ref().transpose() } else { a.as_ref() };
+		let lhs = if row_major {
+			a.as_ref().transpose()
+		} else {
+			a.as_ref()
+		};
 		crate::linalg::matmul::matmul(
 			y.as_mut(),
 			Accum::Replace,

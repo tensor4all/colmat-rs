@@ -296,6 +296,9 @@ struct Worst {
 	failures: Vec<String>,
 }
 
+#[allow(clippy::neg_cmp_op_on_partial_ord)]
+// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 fn check(fixture: &str) -> Worst {
 	let f = parse(fixture);
 	let n = f.a.nrows();

@@ -69,14 +69,14 @@ fn iterate_arnoldi<T: ComplexField>(
 				.for_each(|unzip!(y, x): Zip!(&mut T, &T)| *y -= &r * x);
 			h[i] = r;
 		}
-		let ref f =
-			from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>();
+		let f =
+			&(from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>());
 		loop {
 			let mut all_true = true;
 			for i in 0..j {
 				if !converged[i] {
 					all_true = false;
-					let ref r = V.col(i).adjoint() * Vnext.rb();
+					let r = &(V.col(i).adjoint() * Vnext.rb());
 					zip!(Vnext.rb_mut(), V.col(i))
 						.for_each(|unzip!(y, x): Zip!(&mut T, &T)| *y -= r * x);
 					h[i] += r;
@@ -96,6 +96,7 @@ fn iterate_arnoldi<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::missing_transmute_annotations)] // the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 fn schur_swap<T: ComplexField>(
 	a: MatMut<T>,
 	q: Option<MatMut<T>>,
@@ -129,28 +130,20 @@ fn reorder_schur<T: ComplexField>(
 	let n = A.nrows();
 	let mut nbf = 1;
 	if const { T::IS_REAL } {
-		if ifst > 0 {
-			if A[(ifst, ifst - 1)] != zero {
-				ifst -= 1;
-			}
+		if ifst > 0 && A[(ifst, ifst - 1)] != zero {
+			ifst -= 1;
 		}
-		if ifst < n - 1 {
-			if A[(ifst + 1, ifst)] != zero {
-				nbf = 2;
-			}
+		if ifst < n - 1 && A[(ifst + 1, ifst)] != zero {
+			nbf = 2;
 		}
 	}
 	let mut nbl = 1;
 	if const { T::IS_REAL } {
-		if ilst > 0 {
-			if A[(ilst, ilst - 1)] != zero {
-				ilst = ilst - 1;
-			}
+		if ilst > 0 && A[(ilst, ilst - 1)] != zero {
+			ilst -= 1;
 		}
-		if ilst < n - 1 {
-			if A[(ilst + 1, ilst)] != zero {
-				nbl = 2;
-			}
+		if ilst < n - 1 && A[(ilst + 1, ilst)] != zero {
+			nbl = 2;
 		}
 	}
 	if ifst == ilst {
@@ -167,28 +160,23 @@ fn reorder_schur<T: ComplexField>(
 		loop {
 			if nbf == 1 || nbf == 2 {
 				let mut nbnext = 1;
-				if const { T::IS_REAL } {
-					if here + nbf + 1 <= n - 1 {
-						if A[(here + nbf + 1, here + nbf)] != zero {
-							nbnext = 2;
-						}
-					}
+				if const { T::IS_REAL }
+					&& here + nbf < n - 1
+					&& A[(here + nbf + 1, here + nbf)] != zero
+				{
+					nbnext = 2;
 				}
 				schur_swap(A.rb_mut(), Q.rb_mut(), here, nbf, nbnext);
 				here += nbnext;
-				if const { T::IS_REAL } {
-					if nbf == 2 {
-						if A[(here + 1, here)] == zero {
-							nbf = 3;
-						}
-					}
+				if const { T::IS_REAL }
+					&& nbf == 2 && A[(here + 1, here)] == zero
+				{
+					nbf = 3;
 				}
 			} else if const { T::IS_REAL } {
 				let mut nbnext = 1;
-				if here + 3 <= n - 1 {
-					if A[(here + 3, here + 2)] != zero {
-						nbnext = 2;
-					}
+				if here + 3 < n && A[(here + 3, here + 2)] != zero {
+					nbnext = 2;
 				}
 				schur_swap(A.rb_mut(), Q.rb_mut(), here + 1, 1, nbnext);
 				if nbnext == 1 {
@@ -218,28 +206,22 @@ fn reorder_schur<T: ComplexField>(
 		loop {
 			if nbf == 1 || nbf == 2 {
 				let mut nbnext = 1;
-				if const { T::IS_REAL } {
-					if here >= 2 {
-						if A[(here - 1, here - 2)] != zero {
-							nbnext = 2;
-						}
-					}
+				if const { T::IS_REAL }
+					&& here >= 2 && A[(here - 1, here - 2)] != zero
+				{
+					nbnext = 2;
 				}
 				schur_swap(A.rb_mut(), Q.rb_mut(), here - nbnext, nbnext, nbf);
 				here -= nbnext;
-				if const { T::IS_REAL } {
-					if nbf == 2 {
-						if A[(here + 1, here)] == zero {
-							nbf = 3;
-						}
-					}
+				if const { T::IS_REAL }
+					&& nbf == 2 && A[(here + 1, here)] == zero
+				{
+					nbf = 3;
 				}
 			} else if const { T::IS_REAL } {
 				let mut nbnext = 1;
-				if here >= 2 {
-					if A[(here - 1, here - 2)] != zero {
-						nbnext = 2;
-					}
+				if here >= 2 && A[(here - 1, here - 2)] != zero {
+					nbnext = 2;
 				}
 				schur_swap(A.rb_mut(), Q.rb_mut(), here - nbnext, nbnext, 1);
 				if nbnext == 1 {
@@ -267,6 +249,7 @@ fn reorder_schur<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn partial_schur_real_imp<T: RealField>(
 	eigvecs: MatMut<'_, Complex<T>>,
 	eigvals: &mut [Complex<T>],
@@ -311,7 +294,7 @@ fn partial_schur_real_imp<T: RealField>(
 		let mut householder = householder.as_mat_mut();
 		let f = v0.norm_l2();
 		if f > min_positive() {
-			let ref f = f.recip();
+			let f = &f.recip();
 			zip!(V.rb_mut().col_mut(0), v0)
 				.for_each(|unzip!(y, x): Zip!(&mut T, &T)| *y = f * x);
 		} else {
@@ -342,7 +325,7 @@ fn partial_schur_real_imp<T: RealField>(
 				par.reborrow(),
 				stack,
 			);
-			let ref Hmm = H[(max_dim, max_dim - 1)].abs();
+			let Hmm = &H[(max_dim, max_dim - 1)].abs();
 			let n = max_dim - active;
 			let (mut w_re, mut w_im) =
 				w.rb_mut().get_mut(active..max_dim, ..).two_cols_mut(0, 1);
@@ -734,6 +717,7 @@ fn partial_schur_real_imp<T: RealField>(
 	limit
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn partial_schur_cplx_imp<T: ComplexField>(
 	eigvecs: MatMut<'_, Complex<T::Real>>,
 	eigvals: &mut [Complex<T::Real>],
@@ -809,7 +793,7 @@ fn partial_schur_cplx_imp<T: ComplexField>(
 				par.reborrow(),
 				stack,
 			);
-			let ref Hmm = H[(max_dim, max_dim - 1)].copy();
+			let Hmm = &H[(max_dim, max_dim - 1)].copy();
 			let n = max_dim - active;
 			let mut w = w.rb_mut().get_mut(active..max_dim);
 			Q.fill(zero());
@@ -910,7 +894,7 @@ fn partial_schur_cplx_imp<T: ComplexField>(
 				par.reborrow(),
 			);
 			H.rb_mut().get_mut(..active, ..).copy_from(&H_tmp);
-			let ref Hmm_abs = Hmm.abs();
+			let Hmm_abs = &Hmm.abs();
 			for j in 0..n {
 				residual[active + j] =
 					Hmm_abs * vecs[(max_dim - active - 1, j)].abs();
@@ -1341,6 +1325,9 @@ pub fn partial_svd_scratch<T: ComplexField>(
 	])
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::missing_transmute_annotations)]
+// the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 /// computes an estimate of the eigenvalues (and corresponding eigenvectors) of
 /// $A$ with the largest magnitude until the provided outputs are full or the
 /// maximum number of algorithm restarts is reached.
@@ -1410,6 +1397,7 @@ pub fn partial_eigen<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes an estimate of the eigenvalues (and corresponding eigenvectors) of
 /// $A$ with the largest magnitude, assuming $A$ is self-adjoint, until the
 /// provided outputs are full or the maximum number of algorithm restarts is
@@ -1472,6 +1460,7 @@ pub fn partial_self_adjoint_eigen<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes an estimate of the singular values (and corresponding singular
 /// vectors) of $A$ with the largest magnitude, until the provided outputs are
 /// full or the maximum number of algorithm restarts is reached.
@@ -1541,6 +1530,8 @@ mod tests {
 	use crate::{Scale, assert};
 	use rand::prelude::*;
 
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_arnoldi_real() {
 		let rng = &mut StdRng::seed_from_u64(1);
@@ -1598,6 +1589,8 @@ mod tests {
 			assert!((A * V.col(j) - Scale(w[j]) * V.col(j)).norm_l2() < 1e-10);
 		}
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_arnoldi_cplx() {
 		let rng = &mut StdRng::seed_from_u64(1);
@@ -1654,6 +1647,8 @@ mod tests {
 			assert!((A * V.col(j) - Scale(w[j]) * V.col(j)).norm_l2() < 1e-10);
 		}
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_toeplitz() {
 		let n = 10;
@@ -1714,6 +1709,8 @@ mod tests {
 			assert!((A * V.col(j) - Scale(w[j]) * V.col(j)).norm_l2() < 1e-10);
 		}
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_small_real() {
 		let rng = &mut StdRng::seed_from_u64(1);
@@ -1758,6 +1755,8 @@ mod tests {
 			assert!((A * V.col(j) - Scale(w[j]) * V.col(j)).norm_l2() < 1e-10);
 		}
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_small_cplx() {
 		let rng = &mut StdRng::seed_from_u64(1);
@@ -1797,11 +1796,13 @@ mod tests {
 			default(),
 		);
 		assert!(w.iter().map(|x| x.norm()).is_sorted_by(|x, y| x >= y));
-		let A = &zip!(A).map(|unzip!(x)| Complex::from(*x));
+		let A = &zip!(A).map(|unzip!(x)| *x);
 		for j in 0..info.n_converged_eigen {
 			assert!((A * V.col(j) - Scale(w[j]) * V.col(j)).norm_l2() < 1e-10);
 		}
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_self_adjoint_full_subspace_exact_scratch_real() {
 		let rng = &mut StdRng::seed_from_u64(3);

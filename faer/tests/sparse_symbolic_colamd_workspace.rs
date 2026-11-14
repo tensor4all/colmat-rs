@@ -73,12 +73,14 @@ fn colamd_bytes(a: &SymbolicSparseColMat<usize>) -> usize {
 }
 
 fn params() -> (lu::LuSymbolicParams<'static>, qr::QrSymbolicParams<'static>) {
-	let mut lu_params = lu::LuSymbolicParams::default();
-	lu_params.supernodal_flop_ratio_threshold =
-		SupernodalThreshold::FORCE_SIMPLICIAL;
-	let mut qr_params = qr::QrSymbolicParams::default();
-	qr_params.supernodal_flop_ratio_threshold =
-		SupernodalThreshold::FORCE_SIMPLICIAL;
+	let lu_params = lu::LuSymbolicParams {
+		supernodal_flop_ratio_threshold: SupernodalThreshold::FORCE_SIMPLICIAL,
+		..Default::default()
+	};
+	let qr_params = qr::QrSymbolicParams {
+		supernodal_flop_ratio_threshold: SupernodalThreshold::FORCE_SIMPLICIAL,
+		..Default::default()
+	};
 	(lu_params, qr_params)
 }
 

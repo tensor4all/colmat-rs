@@ -41,23 +41,28 @@ pub mod thread {
 		) {
 			match parallelism {
 				Par::Seq => {
-					(op_a(parallelism.reborrow()), op_b(parallelism));
+					op_a(parallelism.reborrow());
+					op_b(parallelism);
 				},
 				#[cfg(feature = "threadteam")]
 				Par::Team(team) => {
 					let n_threads = team.size().get();
 					if n_threads == 1 {
-						(op_a(Par::Team(team)), op_b(Par::Seq));
+						op_a(Par::Team(team));
+						op_b(Par::Seq);
 					} else {
 						// each half runs on the leader of a sub-team of its width and owns that
 						// sub-team
 						let half = n_threads / 2;
 						let ops = [Slot::new(op_a), Slot::new(op_b)];
 						super::team::note_split(2);
-						let _ = team.split(&[n_threads - half, half], |c, child| {
-							// SAFETY: the split hands index `c` to one child only, and `c < 2`
-							unsafe { (ops[c].take())(Par::Team(child)) }
-						});
+						let _ = team.split(
+							&[n_threads - half, half],
+							|c, child| {
+								// SAFETY: the split hands index `c` to one child only, and `c < 2`
+								unsafe { (ops[c].take())(Par::Team(child)) }
+							},
+						);
 					}
 				},
 			};
@@ -76,7 +81,11 @@ pub mod thread {
 	/// the caller and dispatches nothing; the members it leaves out stay idle). A region decides its
 	/// width with [`cost::par_width`](crate::utils::cost) and runs here, so only that region is
 	/// narrowed and the caller keeps its whole `par`.
-	pub fn with_width<R>(par: Par, width: usize, f: impl FnOnce(Par) -> R) -> R {
+	pub fn with_width<R>(
+		par: Par,
+		width: usize,
+		f: impl FnOnce(Par) -> R,
+	) -> R {
 		// before the `width >= degree` return: a held team of one would otherwise reach the
 		// kernels' parallel branches with one thread (colmat-rs#168)
 		if width < 2 || par.degree() < 2 {
@@ -90,7 +99,9 @@ pub mod thread {
 			#[cfg(feature = "threadteam")]
 			Par::Team(team) => {
 				super::team::note_width(width);
-				struct Once<F, R>(core::cell::UnsafeCell<(Option<F>, Option<R>)>);
+				struct Once<F, R>(
+					core::cell::UnsafeCell<(Option<F>, Option<R>)>,
+				);
 				// SAFETY: a split into the single child `[width]` runs its callback once, on the
 				// calling thread (child 0 is led by the caller), so the cell is never shared.
 				unsafe impl<F, R> Sync for Once<F, R> {}
@@ -103,7 +114,8 @@ pub mod thread {
 				team.split(&[width], |_, child| {
 					// SAFETY: see `Once`.
 					let (f, out) = unsafe { &mut *once.get() };
-					*out = Some((f.take().expect("one child"))(Par::Team(child)));
+					*out =
+						Some((f.take().expect("one child"))(Par::Team(child)));
 				})
 				.expect("2 <= width < size is a valid split");
 				once.0.into_inner().1.expect("the child ran")
@@ -133,10 +145,7 @@ pub mod thread {
 	/// A flat item loop on the team of `par`: the team's members process contiguous blocks,
 	/// the caller alone for `Seq`
 	#[cfg(feature = "rayon")]
-	pub fn for_each<
-		T: Send,
-		I: rayon::iter::IntoParallelIterator<Item = T>,
-	>(
+	pub fn for_each<T: Send, I: rayon::iter::IntoParallelIterator<Item = T>>(
 		par: Par,
 		n_jobs: usize,
 		iter: I,
@@ -178,13 +187,18 @@ pub mod thread {
 		I::Iter: rayon::iter::IndexedParallelIterator,
 	{
 		match par {
-			Par::Seq => for_each(Par::Seq, n_jobs, iter, |item| f(item, Par::Seq)),
+			Par::Seq => {
+				for_each(Par::Seq, n_jobs, iter, |item| f(item, Par::Seq))
+			},
 			#[cfg(feature = "threadteam")]
 			Par::Team(team) => {
 				// the item runs on the leader of its own sub-team and receives it
-				super::team::for_each_child(team, n_jobs, iter, |item, child| {
-					f(item, Par::Team(child))
-				})
+				super::team::for_each_child(
+					team,
+					n_jobs,
+					iter,
+					|item, child| f(item, Par::Team(child)),
+				)
 			},
 		}
 	}
@@ -235,7 +249,8 @@ pub mod thread {
 			Par::Team(team) => {
 				if sizes.iter().sum::<usize>() <= team.size().get() {
 					super::team::note_split(sizes.len());
-					let _ = team.split(sizes, |c, child| f(c, Par::Team(child)));
+					let _ =
+						team.split(sizes, |c, child| f(c, Par::Team(child)));
 				} else {
 					// the team is too small for the requested widths: run the parts in turn
 					for c in 0..sizes.len() {
@@ -338,7 +353,9 @@ pub mod thread {
 				for_each(par, 4, (0..4u32).into_par_iter(), |_| {
 					let now = active.fetch_add(1, Ordering::AcqRel) + 1;
 					peak.fetch_max(now, Ordering::AcqRel);
-					while peak.load(Ordering::Acquire) < 2 && Instant::now() < deadline {
+					while peak.load(Ordering::Acquire) < 2
+						&& Instant::now() < deadline
+					{
 						std::hint::spin_loop();
 					}
 					std::thread::sleep(Duration::from_millis(2));
@@ -365,12 +382,21 @@ pub mod thread {
 						let side = |which: usize, par: Par| {
 							let jobs = par.degree();
 							widths[which].store(jobs, Ordering::Relaxed);
-							for_each_with_par(par, jobs, (0..jobs).into_par_iter(), |_, _| {
-								let now = active.fetch_add(1, Ordering::AcqRel) + 1;
-								peak.fetch_max(now, Ordering::AcqRel);
-								std::thread::sleep(std::time::Duration::from_millis(3));
-								active.fetch_sub(1, Ordering::AcqRel);
-							});
+							for_each_with_par(
+								par,
+								jobs,
+								(0..jobs).into_par_iter(),
+								|_, _| {
+									let now = active
+										.fetch_add(1, Ordering::AcqRel)
+										+ 1;
+									peak.fetch_max(now, Ordering::AcqRel);
+									std::thread::sleep(
+										std::time::Duration::from_millis(3),
+									);
+									active.fetch_sub(1, Ordering::AcqRel);
+								},
+							);
 						};
 						join_sized(
 							par.reborrow(),

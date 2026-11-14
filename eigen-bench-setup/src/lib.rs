@@ -17,7 +17,20 @@ pub const CX128: usize = 5;
 use core::ffi::c_void;
 
 unsafe extern "C" {
-	pub fn libeigen_make_decomp(decomp: usize, dtype: usize, nrows: usize, ncols: usize) -> *mut c_void;
-	pub fn libeigen_factorize(decomp: usize, dtype: usize, ptr: *mut c_void, data: *mut c_void, nrows: usize, ncols: usize, stride: usize);
+	pub fn libeigen_make_decomp(
+		decomp: usize,
+		dtype: usize,
+		nrows: usize,
+		ncols: usize,
+	) -> *mut c_void;
+	pub fn libeigen_factorize(
+		decomp: usize,
+		dtype: usize,
+		ptr: *mut c_void,
+		data: *mut c_void,
+		nrows: usize,
+		ncols: usize,
+		stride: usize,
+	);
 	pub fn libeigen_free_decomp(decomp: usize, dtype: usize, ptr: *mut c_void);
 }

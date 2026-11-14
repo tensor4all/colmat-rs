@@ -1,6 +1,6 @@
 mod common;
-use common::*;
 use colmat::linalg::evd::*;
+use common::*;
 
 fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 	for n in SIZES {
@@ -31,8 +31,8 @@ fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 						.mul_pow2(scale[j].recip()),
 					original[(perm[i], perm[j])]
 				);
-				r = r.hypot(&b[(i, j)].abs());
-				c = c.hypot(&b[(j, i)].abs());
+				r = r.hypot(b[(i, j)].abs());
+				c = c.hypot(b[(j, i)].abs());
 			}
 			if c > zero() && r > zero() {
 				let current = &c + &r;
@@ -232,7 +232,8 @@ fn run_job(
 fn jobs_select_the_permutation_and_the_scaling() {
 	// an upper triangular matrix: the permutation can isolate both ends, and the
 	// entries are graded enough that the scaling step accepts a factor
-	let a = colmat::mat![[1.0, 1024.0, 0.0], [0.0, 2.0, 512.0], [0.0, 0.0, 4.0],];
+	let a =
+		colmat::mat![[1.0, 1024.0, 0.0], [0.0, 2.0, 512.0], [0.0, 0.0, 4.0],];
 	let n = a.nrows();
 
 	// `N`: nothing is touched, and the metadata is the identity

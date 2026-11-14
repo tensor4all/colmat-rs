@@ -141,6 +141,7 @@ fn clear_flag<I: SignedIndex>(wflg: I, wbig: I, w: &mut [I]) -> I {
 	}
 	wflg
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[allow(clippy::comparison_chain)]
 fn amd_2<I: Index>(
 	pe: &mut [I::Signed],
@@ -869,10 +870,10 @@ fn aat<I: Index>(
 /// a sorted matrix
 pub fn order_scratch<I: Index>(n: usize, nnz_upper: usize) -> StackReq {
 	let n_scratch = StackReq::new::<I>(n);
-	let nzaat = nnz_upper.checked_mul(2).unwrap_or(usize::MAX);
+	let nzaat = nnz_upper.saturating_mul(2);
 	StackReq::all_of(&[
 		n_scratch,
-		StackReq::new::<I>(nzaat.checked_add(nzaat / 5).unwrap_or(usize::MAX)),
+		StackReq::new::<I>(nzaat.saturating_add(nzaat / 5)),
 		n_scratch,
 		n_scratch,
 		n_scratch,

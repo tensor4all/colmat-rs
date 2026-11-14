@@ -272,6 +272,7 @@ fn rank_one_update_conjugates_the_row_operand() {
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn check_blend(
 	name: &str,
 	dst_before: &Mat<Scalar>,

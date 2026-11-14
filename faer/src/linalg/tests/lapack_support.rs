@@ -124,7 +124,7 @@ fn similarity_ratio(
 }
 fn phase(i: usize) -> Scalar {
 	if <Scalar as ComplexField>::IS_REAL {
-		z(if i % 2 == 0 { 1.0 } else { -1.0 })
+		z(if i.is_multiple_of(2) { 1.0 } else { -1.0 })
 	} else {
 		match i % 4 {
 			0 => scalar(0.0, 1.0),

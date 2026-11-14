@@ -71,19 +71,19 @@ fn pow2_near<T: RealField>(x: T) -> T {
 	let mut m = x;
 	let mut k = 0i32;
 	while m >= two {
-		m = m * &half;
+		m *= &half;
 		k -= 1;
 	}
 	while m < one {
-		m = m * &two;
+		m *= &two;
 		k += 1;
 	}
-	let ref sqrt2 = from_f64::<T>(1.4142135623730951);
+	let sqrt2 = &from_f64::<T>(core::f64::consts::SQRT_2);
 	let e = if m >= *sqrt2 { 1 - k } else { -k };
 	let base = if e >= 0 { two } else { half };
 	let mut f = one;
 	for _ in 0..e.unsigned_abs() {
-		f = f * &base;
+		f *= &base;
 	}
 	f
 }
@@ -169,6 +169,7 @@ pub fn lsmr_scratch<T: ComplexField>(
 	}
 	implementation(&right_precond, &mat, rhs_ncols, par)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// executes lsmr using the provided preconditioner
 ///
 /// # note
@@ -193,6 +194,7 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<LsmrInfo<T::Real>, LsmrError<T::Real>> {
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	#[track_caller]
 	fn implementation<T: ComplexField>(
 		mut x: MatMut<'_, T>,
@@ -351,8 +353,17 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 			let (mut qr, mut stack) =
 				unsafe { temp_mat_uninit::<T, _, _>(n, k, stack.rb_mut()) };
 			let mut qr = qr.as_mat_mut();
-			A.adjoint_apply(qr.rb_mut(), u.rb(), par.reborrow(), stack.rb_mut());
-			M.adjoint_apply_in_place(qr.rb_mut(), par.reborrow(), stack.rb_mut());
+			A.adjoint_apply(
+				qr.rb_mut(),
+				u.rb(),
+				par.reborrow(),
+				stack.rb_mut(),
+			);
+			M.adjoint_apply_in_place(
+				qr.rb_mut(),
+				par.reborrow(),
+				stack.rb_mut(),
+			);
 			let mut start = 0;
 			while start < k {
 				let end = Ord::min(k - start, s) + start;
@@ -374,10 +385,9 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 		// multiply the solution update by its inverse, which is exactly the iteration for
 		// `A / scale` -- the same arithmetic on a problem whose coefficients are near one.
 		// `beta`'s first block is `|b|` (see the bidiagonalization above), so it stays.
-		let ref scale = pow2_near::<T::Real>(alpha.rb().norm_max());
-		let ref scale_inv = scale.recip();
-		zip!(alpha.rb_mut())
-			.for_each(|unzip!(a)| *a = a.mul_real(scale_inv));
+		let scale = &pow2_near::<T::Real>(alpha.rb().norm_max());
+		let scale_inv = &scale.recip();
+		zip!(alpha.rb_mut()).for_each(|unzip!(a)| *a = a.mul_real(scale_inv));
 		zetabar.fill(zero());
 		let mut start = 0;
 		while start < k {
@@ -425,9 +435,12 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 			};
 			let mut tmp = tmp.as_mat_mut();
 			A.adjoint_apply(tmp.rb_mut(), b, par.reborrow(), stack.rb_mut());
-			M.adjoint_apply_in_place(tmp.rb_mut(), par.reborrow(), stack.rb_mut());
-			zip!(tmp.rb_mut())
-				.for_each(|unzip!(x)| *x = x.mul_real(scale_inv));
+			M.adjoint_apply_in_place(
+				tmp.rb_mut(),
+				par.reborrow(),
+				stack.rb_mut(),
+			);
+			zip!(tmp.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(scale_inv));
 			tmp.norm_l2()
 		};
 		// The estimate is the preconditioned normal residual of the scaled problem, so it
@@ -505,8 +518,17 @@ pub fn lsmr<T: ComplexField, C: IterationControl>(
 				let (mut qr, mut stack) =
 					unsafe { temp_mat_uninit::<T, _, _>(n, k, stack.rb_mut()) };
 				let mut qr = qr.as_mat_mut();
-				A.adjoint_apply(qr.rb_mut(), u.rb(), par.reborrow(), stack.rb_mut());
-				M.adjoint_apply_in_place(qr.rb_mut(), par.reborrow(), stack.rb_mut());
+				A.adjoint_apply(
+					qr.rb_mut(),
+					u.rb(),
+					par.reborrow(),
+					stack.rb_mut(),
+				);
+				M.adjoint_apply_in_place(
+					qr.rb_mut(),
+					par.reborrow(),
+					stack.rb_mut(),
+				);
 				zip!(qr.rb_mut())
 					.for_each(|unzip!(q)| *q = q.mul_real(scale_inv));
 				let mut start = 0;
@@ -737,7 +759,7 @@ mod tests {
 	use equator::assert;
 	#[test]
 	fn test_lsmr() {
-		let ref mut rng = StdRng::seed_from_u64(0);
+		let rng = &mut StdRng::seed_from_u64(0);
 		let m = 100;
 		let n = 80;
 		for k in [1, 2, 4, 7, 10, 40, 80, 100] {
@@ -754,8 +776,8 @@ mod tests {
 			}
 			.sample(rng);
 			let k = b.ncols();
-			let ref mut diag =
-				Scale(c64::new(2.0, 0.0)) * Mat::<c64>::identity(n, n);
+			let diag =
+				&mut (Scale(c64::new(2.0, 0.0)) * Mat::<c64>::identity(n, n));
 			for i in 0..n {
 				diag[(i, i)] = (128.0
 					* f64::exp(rand_distr::StandardUniform.sample(rng)))
@@ -794,7 +816,7 @@ mod tests {
 	}
 	#[test]
 	fn test_breakdown() {
-		let ref mut rng = StdRng::seed_from_u64(0);
+		let rng = &mut StdRng::seed_from_u64(0);
 		let m = 100;
 		let n = 80;
 		for k in [1, 2, 4, 7, 10, 40, 80, 100] {
@@ -812,8 +834,8 @@ mod tests {
 			.sample(rng);
 			let b = crate::concat![[b, b]];
 			let k = b.ncols();
-			let ref mut diag =
-				Scale(c64::new(2.0, 0.0)) * Mat::<c64>::identity(n, n);
+			let diag =
+				&mut (Scale(c64::new(2.0, 0.0)) * Mat::<c64>::identity(n, n));
 			for i in 0..n {
 				diag[(i, i)] = (128.0
 					* f64::exp(rand_distr::StandardUniform.sample(rng)))
@@ -873,7 +895,9 @@ mod tests {
 			)
 		};
 		// The initial normal residual is the `sqrt(2)` of the two-entry rhs.
-		let with = |abs_tolerance: f64, rel_tolerance: f64, max_iters: usize| LsmrParams {
+		let with = |abs_tolerance: f64,
+		            rel_tolerance: f64,
+		            max_iters: usize| LsmrParams {
 			abs_tolerance,
 			rel_tolerance,
 			max_iters,

@@ -73,11 +73,7 @@ pub fn lq_in_place_scratch<T: ComplexField>(
 ) -> StackReq {
 	// the QR query of the transposed view, which includes the staged panels
 	linalg::qr::no_pivoting::factor::qr_in_place_scratch::<T>(
-		ncols,
-		nrows,
-		block_size,
-		par,
-		params,
+		ncols, nrows, block_size, par, params,
 	)
 }
 /// copies the triangular factor $L$ out of the packed factorization in `packed`,
@@ -104,7 +100,9 @@ pub fn copy_l<T: ComplexField>(
 	// every entry of `out` is written: the strict upper triangle and the full
 	// factor's trailing columns are zero.
 	out.rb_mut().fill(zero());
-	out.rb_mut().get_mut(.., ..k).copy_from_triangular_lower(packed.get(.., ..k));
+	out.rb_mut()
+		.get_mut(.., ..k)
+		.copy_from_triangular_lower(packed.get(.., ..k));
 	if positive {
 		for j in 0..k {
 			let phase = linalg::positive_phase(packed[(j, j)].clone()).conj();
@@ -119,7 +117,6 @@ pub fn copy_l<T: ComplexField>(
 mod tests {
 	use super::*;
 	use crate::assert;
-	use crate::internal_prelude::*;
 	use crate::linalg::qr::no_pivoting::factor::{
 		LOOKAHEAD_FORCE, LOOKAHEAD_STEPS,
 	};
@@ -156,7 +153,8 @@ mod tests {
 		] {
 			let k = Ord::min(m, n);
 			// `packed` as a row-major view of a column-major `n x m` allocation
-			let packed_col = Mat::<f64>::from_fn(n, m, |j, i| (i + 2 * j) as f64);
+			let packed_col =
+				Mat::<f64>::from_fn(n, m, |j, i| (i + 2 * j) as f64);
 			let packed = packed_col.as_ref().transpose();
 			// the dispatch the route actually took, not a stride re-derived here:
 			// the gate reads the padded column stride of the packed destination and
@@ -298,7 +296,10 @@ mod tests {
 				let mut z = CwiseMatDistribution {
 					nrows: m,
 					ncols: n,
-					dist: ComplexDistribution::new(StandardNormal, StandardNormal),
+					dist: ComplexDistribution::new(
+						StandardNormal,
+						StandardNormal,
+					),
 				}
 				.rand::<Mat<c64>>(rng);
 				for i in zero_rows.clone().filter(|&i| i < m) {
@@ -308,7 +309,9 @@ mod tests {
 					}
 				}
 				for threads in [1, 4] {
-					let tag = format!("{m}x{n} block {bs} zero rows {zero_rows:?} threads {threads}");
+					let tag = format!(
+						"{m}x{n} block {bs} zero rows {zero_rows:?} threads {threads}"
+					);
 					check(a.as_ref(), bs, threads, &format!("f64 {tag}"));
 					check(z.as_ref(), bs, threads, &format!("c64 {tag}"));
 					cases += 1;
@@ -378,7 +381,7 @@ mod tests {
 					};
 					(packed, coeff, rank)
 				};
-				let (p0, c0, r0) = run(0, &mut 0, false);
+				let (p0, _c0, r0) = run(0, &mut 0, false);
 				let mut steps = 0;
 				let (p1, c1, r1) = run(4, &mut steps, true);
 				let tag = format!("{m}x{n} threads {threads}");
@@ -417,7 +420,7 @@ mod tests {
 				assert!((&l * &q) ~ a, "{tag}: L Q");
 				assert!((&q * q.adjoint()) ~ Mat::<c64>::identity(k, k), "{tag}: Q orthonormal");
 				for j in 0..k {
-					let d = l[(j, j)].clone();
+					let d = l[(j, j)];
 					assert!(
 						real(&d) >= 0.0
 							&& imag(&d).abs() <= 1e-13 * d.abs().max(1.0)

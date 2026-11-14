@@ -81,8 +81,8 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 	/// the function panics if any of the following conditions are violated:
 	/// * `forward` and `inverse` must have the same length which must be less
 	///   than or equal to
-	/// `I::Signed::MAX`, be valid permutations, and be inverse permutations of
-	/// each other
+	///   `I::Signed::MAX`, be valid permutations, and be inverse permutations of
+	///   each other
 	#[inline]
 	#[track_caller]
 	pub fn new_checked(
@@ -108,15 +108,13 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 			I::canonicalize(N::cast_idx_slice(inverse)),
 			dim.unbound(),
 		);
-		Self {
-			0: Ref { forward, inverse },
-		}
+		Self(Ref { forward, inverse })
 	}
 
 	/// creates a new permutation reference, without checking the validity of
 	/// the inputs
 	///
-	/// # safety
+	/// # Safety
 	///
 	/// `forward` and `inverse` must have the same length which must be less
 	/// than or equal to `I::Signed::MAX`, be valid permutations, and be
@@ -133,11 +131,10 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 			forward.len() == dim.unbound(),
 			inverse.len() == dim.unbound(),
 		));
-		Self {
-			0: Ref { forward, inverse },
-		}
+		Self(Ref { forward, inverse })
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns the permutation as an array
 	#[inline]
 	pub fn arrays(self) -> (&'a [Idx<N, I>], &'a [Idx<N, I>]) {
@@ -153,12 +150,10 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 	/// returns the inverse permutation
 	#[inline]
 	pub fn inverse(self) -> Self {
-		Self {
-			0: Ref {
-				forward: self.inverse,
-				inverse: self.forward,
-			},
-		}
+		Self(Ref {
+			forward: self.inverse,
+			inverse: self.forward,
+		})
 	}
 
 	/// returns the inverse permutation
@@ -207,6 +202,7 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 	}
 }
 impl<'a, 'N, I: Index> PermRef<'a, I, Dim<'N>> {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns the permutation as an array
 	#[inline]
 	pub fn bound_arrays(

@@ -1,7 +1,7 @@
 //! Exact public scratch for real QZ, including rounded and recursive AED windows.
 mod common;
-use common::*;
 use colmat::linalg::gevd::{self, ComputeEigenvectors};
+use common::*;
 extern "C" fn maximum_window(n: usize, _active: usize) -> usize {
 	let w = n.saturating_sub(3) / 3;
 	w + w % 2

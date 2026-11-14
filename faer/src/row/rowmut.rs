@@ -59,7 +59,7 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 	/// creates a `RowMut` from pointers to the column vector data, number of
 	/// rows, and row stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatMut::from_raw_parts_mut(ptr, 1, ncols, 0, col_stride)`]
 	#[inline(always)]
@@ -69,11 +69,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 		ncols: Cols,
 		col_stride: CStride,
 	) -> Self {
-		Self {
-			0: Mut {
-				trans: ColMut::from_raw_parts_mut(ptr, ncols, col_stride),
-			},
-		}
+		Self(Mut {
+			trans: ColMut::from_raw_parts_mut(ptr, ncols, col_stride),
+		})
 	}
 
 	/// returns a pointer to the row data
@@ -137,7 +135,7 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the row bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `col < self.ncols()`
@@ -207,6 +205,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 		)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`RowRef::get_unchecked`]
@@ -371,6 +372,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 		self.trans.ptr_at_mut(col)
 	}
 
+	///
+	/// # Safety
+	/// `col` must be in bounds of the view, and no other borrow of the element may be live while the returned pointer is used.
 	#[inline(always)]
 	#[track_caller]
 	/// see [`RowRef::ptr_inbounds_at`]
@@ -449,6 +453,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 		<RowMut<'a, T, Cols, CStride> as RowIndex<ColRange>>::get(self, col)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view and must not overlap any other live borrow of the same elements.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`RowRef::get`]
@@ -571,6 +578,7 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowMut<'a, T, Cols, CStride> {
 		}
 	}
 
+	#[allow(clippy::wrong_self_convention)] // the name is upstream API; renaming it would break callers
 	pub(crate) unsafe fn as_type<U>(self) -> RowMut<'a, U, Cols, CStride> {
 		RowMut::from_raw_parts_mut(
 			self.as_ptr_mut() as *mut U,

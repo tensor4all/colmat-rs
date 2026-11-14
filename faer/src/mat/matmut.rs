@@ -4,8 +4,8 @@ use crate::utils::bound::{Dim, Partition};
 use crate::{Conj, ContiguousFwd, Idx, IdxInc};
 use core::mem::MaybeUninit;
 
-use equator::assert;
 use colmat_traits::ComplexField;
+use equator::assert;
 use generativity::Guard;
 use linalg::zip::Last;
 /// see [`super::MatMut`]
@@ -52,7 +52,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 {
 	/// creates a write-only matrix view from a raw pointer.
 	///
-	/// # safety
+	/// # Safety
 	/// the pointed-to memory must contain the complete matrix described by the
 	/// dimensions and strides, be properly aligned for `MaybeUninit<T>`, and
 	/// remain exclusively borrowed for `'a`. Matrix elements must not overlap
@@ -266,26 +266,26 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// col: i + 1)`). this offset is specified in number of elements, not in
 	/// bytes
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * for each matrix unit, the entire memory region addressed by the matrix
 	///   must be contained
-	/// within a single allocation, accessible in its entirety by the
-	/// corresponding pointer in `ptr`
+	///   within a single allocation, accessible in its entirety by the
+	///   corresponding pointer in `ptr`
 	/// * for each matrix unit, the corresponding pointer must be non null and
 	///   properly aligned,
-	/// even for a zero-sized matrix.
+	///   even for a zero-sized matrix.
 	/// * the values accessible by the matrix must be initialized at some point
 	///   before they are read, or
-	/// references to them are formed
+	///   references to them are formed
 	/// * no aliasing (including self aliasing) is allowed. in other words, none
 	///   of the elements
-	/// accessible by any matrix unit may be accessed for reads or writes by any
-	/// other means for the duration of the lifetime `'a`. no two elements
-	/// within a single matrix unit may point to the same address (such a thing
-	/// can be achieved with a zero stride, for example), and no two
-	/// matrix units may point to the same address
+	///   accessible by any matrix unit may be accessed for reads or writes by any
+	///   other means for the duration of the lifetime `'a`. no two elements
+	///   within a single matrix unit may point to the same address (such a thing
+	///   can be achieved with a zero stride, for example), and no two
+	///   matrix units may point to the same address
 	///
 	/// # example
 	///
@@ -298,7 +298,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// // which is 1
 	/// let mut data = [[1.0, 2.0, 3.0, f64::NAN], [4.0, 5.0, 6.0, f64::NAN]];
 	/// let mut matrix =
-	/// 	unsafe { MatMut::from_raw_parts_mut(data.as_mut_ptr() as *mut f64, 2, 3, 4, 1) };
+	///     unsafe { MatMut::from_raw_parts_mut(data.as_mut_ptr() as *mut f64, 2, 3, 4, 1) };
 	/// let expected = mat![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 	/// assert_eq!(expected.as_ref(), matrix);
 	/// ```
@@ -397,7 +397,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the matrix bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -412,6 +412,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.rb().ptr_inbounds_at(row, col)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at`]
@@ -428,6 +429,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.into_const().split_at(row, col)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at_row`]
@@ -441,6 +443,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.into_const().split_at_row(row)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at_col`]
@@ -791,7 +794,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self
 	}
 
-	/// see [`MatRef::)]`]	#[doc(hidden)]
+	/// see [`MatRef::)]`]    #[doc(hidden)]
 	#[inline]
 	pub fn bind<'M, 'N>(
 		self,
@@ -868,7 +871,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	#[inline]
 	/// see [`MatRef::get_unchecked`]
 	///
-	/// # safety
+	/// # Safety
 	/// same as [`MatRef::get_unchecked`]
 	pub unsafe fn get_unchecked<RowRange, ColRange>(
 		self,
@@ -913,7 +916,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 
 	/// see [`MatRef::get_unchecked`]
 	///
-	/// # safety
+	/// # Safety
 	/// same as [`MatRef::get_unchecked`]
 	#[track_caller]
 	#[inline]
@@ -1156,6 +1159,9 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.rb().ptr_at(row, col) as *mut T
 	}
 
+	///
+	/// # Safety
+	/// `row` must be in bounds of the view, and no other borrow of the element may be live while the returned pointer is used.
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::ptr_inbounds_at`]
@@ -1167,6 +1173,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.rb().ptr_inbounds_at(row, col) as *mut T
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at`]
@@ -1191,6 +1198,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at_row`]
@@ -1205,6 +1213,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		unsafe { (a.const_cast(), b.const_cast()) }
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at_col`]
@@ -1454,6 +1463,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 			.map(|x| unsafe { x.const_cast() })
 	}
 
+	#[allow(clippy::wrong_self_convention)] // the name is upstream API; renaming it would break callers
 	#[inline]
 	pub(crate) unsafe fn as_type<U>(
 		self,
@@ -1619,6 +1629,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_first_row`]
 	pub fn split_first_row_mut(
@@ -1635,6 +1646,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_first_col`]
 	pub fn split_first_col_mut(
@@ -1651,6 +1663,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_last_row`]
 	pub fn split_last_row_mut(
@@ -1668,6 +1681,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_last_col`]
 	pub fn split_last_col_mut(
@@ -1685,6 +1699,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_first_row`]
 	pub fn split_first_row(
@@ -1696,6 +1711,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.into_const().split_first_row()
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_first_col`]
 	pub fn split_first_col(
@@ -1707,6 +1723,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.into_const().split_first_col()
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_last_row`]
 	pub fn split_last_row(
@@ -1718,6 +1735,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		self.into_const().split_last_row()
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatRef::split_last_col`]
 	pub fn split_last_col(
@@ -1925,6 +1943,7 @@ impl<'a, T, Rows: Shape, Cols: Shape> MatMut<'a, T, Rows, Cols> {
 impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Dim<'ROWS>, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_with_mut<'TOP, 'BOT, 'LEFT, 'RIGHT>(
@@ -1949,6 +1968,7 @@ impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Dim<'ROWS>, Cols, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_rows_with_mut<'TOP, 'BOT>(
@@ -1965,6 +1985,7 @@ impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 impl<'COLS, 'a, T, Rows: Shape, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Rows, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_cols_with_mut<'LEFT, 'RIGHT>(
@@ -1981,6 +2002,7 @@ impl<'COLS, 'a, T, Rows: Shape, RStride: Stride, CStride: Stride>
 impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Dim<'ROWS>, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_with<'TOP, 'BOT, 'LEFT, 'RIGHT>(
@@ -2005,6 +2027,7 @@ impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Dim<'ROWS>, Cols, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_rows_with<'TOP, 'BOT>(
@@ -2021,6 +2044,7 @@ impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 impl<'COLS, 'a, T, Rows: Shape, RStride: Stride, CStride: Stride>
 	MatMut<'a, T, Rows, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_cols_with<'LEFT, 'RIGHT>(

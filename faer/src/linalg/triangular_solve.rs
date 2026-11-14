@@ -51,7 +51,7 @@ fn solve_unit_lower_triangular_in_place_base_case_generic_imp<
 				let y0 = x0.copy();
 				let mut y1 = x1.copy();
 				let mut y2 = x2.copy();
-				y1 = y1 + nl10_div_l11 * &y0;
+				y1 += nl10_div_l11 * &y0;
 				y2 = y2 + nl20_div_l22 * &y0 + nl21_div_l22 * &y1;
 				*x0 = y0;
 				*x1 = y1;
@@ -79,7 +79,7 @@ fn solve_unit_lower_triangular_in_place_base_case_generic_imp<
 				let mut y1 = x1.copy();
 				let mut y2 = x2.copy();
 				let mut y3 = x3.copy();
-				y1 = y1 + nl10_div_l11 * &y0;
+				y1 += nl10_div_l11 * &y0;
 				y2 = y2 + nl20_div_l22 * &y0 + nl21_div_l22 * &y1;
 				y3 = y3
 					+ nl30_div_l33 * &y0
@@ -114,15 +114,15 @@ fn solve_lower_triangular_in_place_base_case_generic_imp<
 	}) {
 		let mut rhs = rhs;
 		for i in N.indices() {
-			let ref pivot = maybe_conj_lhs(tril[(i, i)].copy());
-			let ref inv = pivot.recip();
-			let ref scale = if T::IS_REAL || inv.is_finite() {
+			let pivot = &maybe_conj_lhs(tril[(i, i)].copy());
+			let inv = &pivot.recip();
+			let scale = &(if T::IS_REAL || inv.is_finite() {
 				one::<T::Real>()
 			} else {
 				// Leave headroom for both complex products when scaling a tiny divisor.
 				from_f64::<T::Real>(0.25) * min_positive::<T::Real>().recip()
-			};
-			let ref scaled_pivot = pivot.mul_real(scale);
+			});
+			let scaled_pivot = &pivot.mul_real(scale);
 			for k in rhs.ncols().indices() {
 				let mut value = rhs[(i, k)].copy();
 				for j in 0..i.unbound() {
@@ -181,7 +181,7 @@ fn solve_lower_triangular_in_place_base_case_generic_imp<
 				let mut y0 = x0.copy();
 				let mut y1 = x1.copy();
 				let mut y2 = x2.copy();
-				y0 = y0 * l00_inv;
+				y0 *= l00_inv;
 				y1 = y1 * l11_inv + nl10_div_l11 * &y0;
 				y2 = y2 * l22_inv + nl20_div_l22 * &y0 + nl21_div_l22 * &y1;
 				*x0 = y0;
@@ -214,7 +214,7 @@ fn solve_lower_triangular_in_place_base_case_generic_imp<
 				let mut y1 = x1.copy();
 				let mut y2 = x2.copy();
 				let mut y3 = x3.copy();
-				y0 = y0 * l00_inv;
+				y0 *= l00_inv;
 				y1 = y1 * l11_inv + nl10_div_l11 * &y0;
 				y2 = y2 * l22_inv + nl20_div_l22 * &y0 + nl21_div_l22 * &y1;
 				y3 = y3 * l33_inv
@@ -234,11 +234,11 @@ fn solve_lower_triangular_in_place_base_case_generic_imp<
 fn block_size(n: usize) -> usize {
 	let base_rem = n / 2;
 	n - if n >= 32 {
-		(base_rem + 15) / 16 * 16
+		base_rem.div_ceil(16) * 16
 	} else if n >= 16 {
-		(base_rem + 7) / 8 * 8
+		base_rem.div_ceil(8) * 8
 	} else if n >= 8 {
-		(base_rem + 3) / 4 * 4
+		base_rem.div_ceil(4) * 4
 	} else {
 		base_rem
 	}
@@ -536,7 +536,7 @@ mod stage {
 	#[inline]
 	fn staged_stride<T>(n: usize) -> usize {
 		let size = core::mem::size_of::<T>();
-		if (n * size) % 1024 == 0 {
+		if (n * size).is_multiple_of(1024) {
 			n + 64usize.div_ceil(size)
 		} else {
 			n
@@ -597,14 +597,21 @@ fn solve_unit_lower_triangular_in_place_imp<'N, 'K, T: ComplexField>(
 		// One flat split of the right hand sides over the budget when the whole solve pays for one
 		// section; the halving below (a join per level, each nested in the one above) is the shape
 		// rule for a sequential run.
-	#[cfg(feature = "rayon")]
+		#[cfg(feature = "rayon")]
 		{
 			// the split: the widest number of jobs, at most `ceil(k / 64)` (the inherited cap), that
 			// pays for its section; the region: the widest width that pays, shared out among the jobs
 			let units = n.saturating_mul(n).saturating_mul(k) / 2;
 			let rate = crate::utils::cost::rate::gemm_mac();
-			let jobs = crate::utils::cost::par_width_upto::<T>(&par, units, rate, 1, k.div_ceil(64));
-			let width = crate::utils::cost::par_width::<T>(&par, units, rate, 1);
+			let jobs = crate::utils::cost::par_width_upto::<T>(
+				&par,
+				units,
+				rate,
+				1,
+				k.div_ceil(64),
+			);
+			let width =
+				crate::utils::cost::par_width::<T>(&par, units, rate, 1);
 			if jobs >= 2 {
 				crate::utils::thread::with_width(par, width, |par| {
 					crate::utils::thread::for_each_with_par(
@@ -663,8 +670,7 @@ fn solve_unit_lower_triangular_in_place_imp<'N, 'K, T: ComplexField>(
 		rhs.nrows() == tril.ncols(),
 	));
 	#[cfg(feature = "std")]
-	if n <= 128
-		&& n >= stage::MIN_ROWS
+	if (stage::MIN_ROWS..=128).contains(&n)
 		&& rhs.row_stride() == 1
 		&& stage::native::<T>()
 		&& stage::conflicts::<T>(rhs.col_stride(), k)
@@ -742,14 +748,21 @@ fn solve_lower_triangular_in_place_imp<'N, 'K, T: ComplexField>(
 	let n = N.unbound();
 	let k = K.unbound();
 	if k > 64 && n <= 128 {
-	#[cfg(feature = "rayon")]
+		#[cfg(feature = "rayon")]
 		{
 			// the split: the widest number of jobs, at most `ceil(k / 64)` (the inherited cap), that
 			// pays for its section; the region: the widest width that pays, shared out among the jobs
 			let units = n.saturating_mul(n).saturating_mul(k) / 2;
 			let rate = crate::utils::cost::rate::gemm_mac();
-			let jobs = crate::utils::cost::par_width_upto::<T>(&par, units, rate, 1, k.div_ceil(64));
-			let width = crate::utils::cost::par_width::<T>(&par, units, rate, 1);
+			let jobs = crate::utils::cost::par_width_upto::<T>(
+				&par,
+				units,
+				rate,
+				1,
+				k.div_ceil(64),
+			);
+			let width =
+				crate::utils::cost::par_width::<T>(&par, units, rate, 1);
 			if jobs >= 2 {
 				crate::utils::thread::with_width(par, width, |par| {
 					crate::utils::thread::for_each_with_par(
@@ -1165,6 +1178,6 @@ mod aliased_rhs {
 		check::<f32>(|re, _| re as f32);
 		check::<f64>(|re, _| re);
 		check::<c32>(|re, im| c32::new(re as f32, im as f32));
-		check::<c64>(|re, im| c64::new(re, im));
+		check::<c64>(c64::new);
 	}
 }

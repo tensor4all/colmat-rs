@@ -63,7 +63,6 @@ fn with_team_of_one<R>(f: impl FnOnce(Par<'_>) -> R) -> R {
 		.build()
 		.unwrap()
 		.into_team(1)
-		.ok()
 		.expect("an idle pool");
 	let mut exec = team.exec(1);
 	exec.team(|t| {
@@ -71,7 +70,6 @@ fn with_team_of_one<R>(f: impl FnOnce(Par<'_>) -> R) -> R {
 		assert_eq!(par.degree(), 1);
 		f(par)
 	})
-	.ok()
 	.expect("a team token for an idle team")
 }
 

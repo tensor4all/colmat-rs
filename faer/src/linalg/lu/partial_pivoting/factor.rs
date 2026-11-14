@@ -27,8 +27,11 @@ fn first_of_max<T: ComplexField, S: pulp::Simd>(
 ) -> usize {
 	let best = simd.reduce_max_real(val);
 	let is_best = (**simd).ge(val, simd.splat_real(&best));
-	let tied = simd.iselect(is_best, idx, simd.isplat(T::Index::truncate(usize::MAX)));
-	let lanes = bytemuck::cast_slice::<T::SimdIndex<S>, T::Index>(core::slice::from_ref(&tied));
+	let tied =
+		simd.iselect(is_best, idx, simd.isplat(T::Index::truncate(usize::MAX)));
+	let lanes = bytemuck::cast_slice::<T::SimdIndex<S>, T::Index>(
+		core::slice::from_ref(&tied),
+	);
 	lanes.iter().map(|i| i.zx()).min().unwrap_or(0)
 }
 
@@ -56,29 +59,42 @@ fn leaf_step_simd<T: ComplexField>(
 
 		#[inline(always)]
 		fn with_simd<S: pulp::Simd>(self, simd: S) -> usize {
-			let Self { mut lhs, mut rest, urow, inv, search_lhs } = self;
+			let Self {
+				mut lhs,
+				mut rest,
+				urow,
+				inv,
+				search_lhs,
+			} = self;
 			let M = lhs.nrows();
 			let N = rest.ncols();
 			let simd = SimdCtx::<'_, T, S>::new(T::simd_ctx(simd), M);
-			let lanes = core::mem::size_of::<T::SimdVec<S>>() / core::mem::size_of::<T>();
+			let lanes = core::mem::size_of::<T::SimdVec<S>>()
+				/ core::mem::size_of::<T>();
 			let inc = simd.isplat(T::Index::truncate(lanes));
 			let iota = T::simd_iota(&simd.0);
 			let indices = simd.indices();
 			let mut best_val = colmat_traits::RealReg(simd.zero());
 			let mut best_idx = simd.izero();
-			let track = |x: T::SimdVec<S>,
-			             idx: T::SimdIndex<S>,
-			             best_val: &mut colmat_traits::RealReg<T::SimdVec<S>>,
-			             best_idx: &mut T::SimdIndex<S>| {
-				let v = simd.abs1(x);
-				let better = (*simd).gt(v, *best_val);
-				*best_val = colmat_traits::RealReg(simd.select(better, v.0, best_val.0));
-				*best_idx = simd.iselect(better, idx, *best_idx);
-			};
+			let track =
+				|x: T::SimdVec<S>,
+				 idx: T::SimdIndex<S>,
+				 best_val: &mut colmat_traits::RealReg<T::SimdVec<S>>,
+				 best_idx: &mut T::SimdIndex<S>| {
+					let v = simd.abs1(x);
+					let better = (*simd).gt(v, *best_val);
+					*best_val = colmat_traits::RealReg(
+						simd.select(better, v.0, best_val.0),
+					);
+					*best_idx = simd.iselect(better, idx, *best_idx);
+				};
 			// `x - l * u` in one fused multiply-add: the rounding of the scalar leaf's rank one
 			// `matmul`, so the factor, and the pivots of near ties, do not depend on the layout
 			// (a strided panel takes the scalar leaf)
-			let update = |l: T::SimdVec<S>, u: T::SimdVec<S>, x: T::SimdVec<S>| simd.mul_add(l, u, x);
+			let update =
+				|l: T::SimdVec<S>, u: T::SimdVec<S>, x: T::SimdVec<S>| {
+					simd.mul_add(l, u, x)
+				};
 			if let Some(inv) = inv {
 				let inv = simd.splat(&inv);
 				simd_iter!(for i in [indices] {
@@ -89,7 +105,12 @@ fn leaf_step_simd<T: ComplexField>(
 			if search_lhs {
 				let mut idx = iota;
 				simd_iter!(for i in [indices] {
-					track(simd.read(lhs.rb(), i), idx, &mut best_val, &mut best_idx);
+					track(
+						simd.read(lhs.rb(), i),
+						idx,
+						&mut best_val,
+						&mut best_idx,
+					);
 					idx = simd.iadd(idx, inc);
 				});
 				let _ = idx;
@@ -102,7 +123,11 @@ fn leaf_step_simd<T: ComplexField>(
 				if *j == 0 {
 					let mut idx = iota;
 					simd_iter!(for i in [indices] {
-						let x = update(simd.read(lhs, i), u, simd.read(dst.rb(), i));
+						let x = update(
+							simd.read(lhs, i),
+							u,
+							simd.read(dst.rb(), i),
+						);
 						simd.write(dst.rb_mut(), i, x);
 						track(x, idx, &mut best_val, &mut best_idx);
 						idx = simd.iadd(idx, inc);
@@ -110,12 +135,20 @@ fn leaf_step_simd<T: ComplexField>(
 					let _ = idx;
 				} else {
 					simd_iter!(for i in [indices] {
-						let x = update(simd.read(lhs, i), u, simd.read(dst.rb(), i));
+						let x = update(
+							simd.read(lhs, i),
+							u,
+							simd.read(dst.rb(), i),
+						);
 						simd.write(dst.rb_mut(), i, x);
 					});
 				}
 			}
-			if *N == 0 { 0 } else { first_of_max(&simd, best_val, best_idx) }
+			if *N == 0 {
+				0
+			} else {
+				first_of_max(&simd, best_val, best_idx)
+			}
 		}
 	}
 	with_dim!(M, lhs.nrows());
@@ -146,7 +179,8 @@ fn lu_in_place_unblocked_simd<I: Index, T: ComplexField>(
 	let m = matrix.nrows();
 	let mut n_trans = 0;
 	let mut imax = {
-		let (col, _) = matrix.rb_mut().get_mut(.., start..end).split_at_col_mut(1);
+		let (col, _) =
+			matrix.rb_mut().get_mut(.., start..end).split_at_col_mut(1);
 		let col = col.col_mut(0).try_as_col_major_mut().unwrap();
 		let empty = MatMut::from_column_major_slice_mut(&mut [], m, 0)
 			.try_as_col_major_mut()
@@ -173,8 +207,8 @@ fn lu_in_place_unblocked_simd<I: Index, T: ComplexField>(
 				inv = Some(pivot.recip());
 			} else {
 				// see the scalar leaf: a subnormal pivot divides elementwise, rescaled
-				let ref shift = max_positive::<T::Real>();
-				let ref pivot = pivot.mul_real(shift);
+				let shift = &max_positive::<T::Real>();
+				let pivot = &pivot.mul_real(shift);
 				for i in 0..lhs.nrows() {
 					lhs[(i, 0)] = &lhs[(i, 0)].mul_real(shift) / pivot;
 				}
@@ -204,12 +238,15 @@ fn lu_in_place_unblocked<I: Index, T: ComplexField>(
 	}
 	// real types only: the lane indices of the complex search were not right (the scalar leaf
 	// stays the complex one)
-	if const { T::SIMD_CAPABILITIES.is_simd() && T::IS_REAL } && matrix.row_stride() == 1 {
+	if const { T::SIMD_CAPABILITIES.is_simd() && T::IS_REAL }
+		&& matrix.row_stride() == 1
+	{
 		lu_in_place_unblocked_simd(matrix, start, end, trans)
 	} else {
 		lu_in_place_unblocked_scalar(matrix, start, end, trans)
 	}
 }
+#[allow(clippy::mut_range_bound)] // the mutated binding is the argmax, not the loop bound
 fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
 	matrix: MatMut<'_, T>,
 	start: usize,
@@ -223,18 +260,18 @@ fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
 		let col = j;
 		let row = j - start;
 		let t = &mut trans[row];
-		let mut imax = row;
+		let mut argmax = row;
 		let mut max = zero();
-		for i in imax..m {
+		for i in row..m {
 			let abs = matrix[(i, col)].abs1();
 			if abs > max {
 				max = abs;
-				imax = i;
+				argmax = i;
 			}
 		}
-		*t = I::truncate(imax - row);
-		if imax != row {
-			swap_rows_idx(matrix.rb_mut(), row, imax);
+		*t = I::truncate(argmax - row);
+		if argmax != row {
+			swap_rows_idx(matrix.rb_mut(), row, argmax);
 			n_trans += 1;
 		}
 		let mut matrix = matrix.rb_mut().get_mut(.., start..end);
@@ -243,7 +280,7 @@ fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
 		let pivot = matrix[(row, row)].copy();
 		if pivot != zero() {
 			if pivot.abs() >= min_positive() {
-				let ref inv = pivot.recip();
+				let inv = &pivot.recip();
 				for i in row + 1..m {
 					matrix[(i, row)] *= inv;
 				}
@@ -252,8 +289,8 @@ fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
 				// forms its squared denominator, so rescale both operands instead: a power
 				// of two keeps the scaling exact and the squares in range (`dgetf2`
 				// divides elementwise below `SFMIN`)
-				let ref shift = max_positive::<T::Real>();
-				let ref pivot = pivot.mul_real(shift);
+				let shift = &max_positive::<T::Real>();
+				let pivot = &pivot.mul_real(shift);
 				for i in row + 1..m {
 					matrix[(i, row)] =
 						&matrix[(i, row)].mul_real(shift) / pivot;
@@ -287,7 +324,9 @@ const SWAP_STAGE_SECTIONS: u32 = 4;
 /// Sections of the swap stage when one side holds every column (the first panel of a wide
 /// matrix, the last of a tall one): one split of the columns over the whole budget.
 const SWAP_ONE_SIDE_SECTIONS: u32 = 1;
-use crate::utils::cost::{gemm_ns_per_mac, max_region_width, par_width_time_upto, rate, serial_time};
+use crate::utils::cost::{
+	gemm_ns_per_mac, max_region_width, par_width_time_upto, rate, serial_time,
+};
 use crate::utils::thread::with_width;
 
 pub use crate::utils::cost::ParThreshold;
@@ -316,16 +355,25 @@ fn trailing_update_width<T: ComplexField>(
 			return par_width_time_upto(
 				par,
 				serial_time(macs, gemm_ns_per_mac::<T>())
-					+ serial_time(b.saturating_mul(cols), rate::lu_swap().of::<T>()),
+					+ serial_time(
+						b.saturating_mul(cols),
+						rate::lu_swap().of::<T>(),
+					),
 				TRAILING_UPDATE_SECTIONS,
 				max_region_width(par.degree()),
 			);
 		},
 	};
-	let work = rows
-		.saturating_mul(cols)
-		.saturating_mul(if T::IS_REAL { 2 } else { 8 });
-	if work > floor.saturating_mul(2) { par.degree() } else { 1 }
+	let work = rows.saturating_mul(cols).saturating_mul(if T::IS_REAL {
+		2
+	} else {
+		8
+	});
+	if work > floor.saturating_mul(2) {
+		par.degree()
+	} else {
+		1
+	}
 }
 
 /// The width the swap stage (`n` row swaps over `cols` columns of an `m` row matrix) runs at;
@@ -342,19 +390,30 @@ fn swap_stage_width<T: ComplexField>(
 	match par_threshold {
 		ParThreshold::Never => 1,
 		ParThreshold::Fixed(floor) => {
-			if m.saturating_mul(cols) > floor { par.degree() } else { 1 }
+			if m.saturating_mul(cols) > floor {
+				par.degree()
+			} else {
+				1
+			}
 		},
 		ParThreshold::Derived => par_width_time_upto(
 			par,
 			serial_time(n.saturating_mul(cols), rate::lu_swap().of::<T>()),
-			if one_side { SWAP_ONE_SIDE_SECTIONS } else { SWAP_STAGE_SECTIONS },
+			if one_side {
+				SWAP_ONE_SIDE_SECTIONS
+			} else {
+				SWAP_STAGE_SECTIONS
+			},
 			max_region_width(par.degree()),
 		),
 	}
 }
 /// Applies the transpositions `trans` (row `j` with row `j + trans[j]`, in order) to every
 /// column of `mat`.
-fn apply_transpositions<I: Index, T: ComplexField>(mat: MatMut<'_, T>, trans: &[I]) {
+fn apply_transpositions<I: Index, T: ComplexField>(
+	mat: MatMut<'_, T>,
+	trans: &[I],
+) {
 	let mut mat = mat;
 	// a row-major block swaps whole rows, each a contiguous run (tensor4all/faer#314): the column
 	// walk below would touch a cache line per element
@@ -396,7 +455,8 @@ fn lu_in_place_unblocked_row_major<I: Index, T: ComplexField>(
 	if w == 0 {
 		return 0;
 	}
-	let mut panel = MatMut::from_column_major_slice_mut(&mut buf[..m * w], m, w);
+	let mut panel =
+		MatMut::from_column_major_slice_mut(&mut buf[..m * w], m, w);
 	copy_panel(panel.rb_mut(), A.rb().subcols(start, w));
 	let n_trans = lu_in_place_unblocked(panel.rb_mut(), 0, w, trans);
 	copy_panel(A.rb_mut().subcols_mut(start, w), panel.rb());
@@ -467,7 +527,9 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 	let n = end - start;
 	if n <= params.recursion_threshold {
 		if is_row_major(A.rb()) && leaf_buf.len() >= m * n {
-			return lu_in_place_unblocked_row_major(A, start, end, trans, leaf_buf);
+			return lu_in_place_unblocked_row_major(
+				A, start, end, trans, leaf_buf,
+			);
 		}
 		return lu_in_place_unblocked(A, start, end, trans);
 	}
@@ -503,7 +565,13 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 		// cold caches. Below it take `Par::Seq`; the recursion keeps the caller's
 		// `par`, so every level decides for its own trailing update.
 		let (rows1, cols1, b) = (A10.nrows(), A_r.ncols(), A10.ncols());
-		let width = trailing_update_width::<T>(&par, params.par_threshold, rows1, cols1, b);
+		let width = trailing_update_width::<T>(
+			&par,
+			params.par_threshold,
+			rows1,
+			cols1,
+			b,
+		);
 		with_width(par.reborrow(), width, |mut par_here| {
 			// the swap and the solve of one column chunk of the right half are the chunk's
 			// worker's alone: one section, sequential work on every member
@@ -525,7 +593,7 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 						par_here.reborrow(),
 						k,
 						A_r.rb_mut().par_col_partition_mut(k),
-						|chunk| swap_and_solve(chunk),
+						swap_and_solve,
 					);
 				},
 			}
@@ -568,7 +636,7 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 				swap(A_left);
 				swap(A_right);
 			},
-		#[cfg(feature = "rayon")]
+			#[cfg(feature = "rayon")]
 			mut par => {
 				// The left recursion sees only its own columns and the right one ends at the
 				// last column (#276), so one side of a swap stage is empty and the other takes
@@ -764,6 +832,7 @@ pub(crate) fn takes_the_copy(
 		&& linalg::row_major_copy_pays(nrows, ncols)
 		&& (!row_major || (threads > 1 && nrows * ncols >= 256 * 256))
 }
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 	A: MatMut<'_, T>,
 	perm: &'out mut [I],
@@ -870,9 +939,9 @@ pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 			config.rel_tol,
 			&matrix[(0, 0)].abs(),
 		);
-		if let Some(k) = (0..r)
-			.find(|&k| linalg::lu::rank_rejects::<T>(&matrix[(k, k)].abs(), &threshold))
-		{
+		if let Some(k) = (0..r).find(|&k| {
+			linalg::lu::rank_rejects::<T>(&matrix[(k, k)].abs(), &threshold)
+		}) {
 			rank = k;
 		}
 	}
@@ -889,8 +958,8 @@ mod tests {
 	use super::*;
 	use crate::stats::prelude::*;
 	use crate::utils::approx::*;
-	use crate::{Mat, assert, c32, c64};
 	use crate::utils::cost::{pays_at, rate, serial_time};
+	use crate::{Mat, assert, c32, c64};
 	use dyn_stack::MemBuffer;
 	/// `perf-warn`: contiguous column-major and row-major inputs are the two
 	/// recommended layouts, so the warning fires only for a matrix that is
@@ -912,23 +981,120 @@ mod tests {
 		use core::num::NonZeroUsize;
 		let seq = Par::Seq;
 		// sequential never goes wider than one, whatever the size
-		assert_eq!(trailing_update_width::<f64>(&seq, ParThreshold::Derived, 4096, 4096, 256), 1);
-		assert_eq!(swap_stage_width::<f64>(&seq, ParThreshold::Derived, 4096, 256, 4096, false), 1);
+		assert_eq!(
+			trailing_update_width::<f64>(
+				&seq,
+				ParThreshold::Derived,
+				4096,
+				4096,
+				256
+			),
+			1
+		);
+		assert_eq!(
+			swap_stage_width::<f64>(
+				&seq,
+				ParThreshold::Derived,
+				4096,
+				256,
+				4096,
+				false
+			),
+			1
+		);
 		crate::team::with_team(6, |par| {
 			// tiny regions stay serial, huge ones take the whole team
-			assert_eq!(trailing_update_width::<f64>(&par, ParThreshold::Derived, 16, 16, 8), 1);
-			assert_eq!(trailing_update_width::<f64>(&par, ParThreshold::Derived, 2048, 2048, 128), 6);
-			assert_eq!(swap_stage_width::<f64>(&par, ParThreshold::Derived, 64, 16, 48, false), 1);
-			assert_eq!(swap_stage_width::<f64>(&par, ParThreshold::Derived, 4096, 256, 4096, false), 6);
+			assert_eq!(
+				trailing_update_width::<f64>(
+					&par,
+					ParThreshold::Derived,
+					16,
+					16,
+					8
+				),
+				1
+			);
+			assert_eq!(
+				trailing_update_width::<f64>(
+					&par,
+					ParThreshold::Derived,
+					2048,
+					2048,
+					128
+				),
+				6
+			);
+			assert_eq!(
+				swap_stage_width::<f64>(
+					&par,
+					ParThreshold::Derived,
+					64,
+					16,
+					48,
+					false
+				),
+				1
+			);
+			assert_eq!(
+				swap_stage_width::<f64>(
+					&par,
+					ParThreshold::Derived,
+					4096,
+					256,
+					4096,
+					false
+				),
+				6
+			);
 			// a complex trailing update reaches the floor at fewer elements than a real one
 			let (r, c) = (160, 160);
-			let real = trailing_update_width::<f64>(&par, ParThreshold::Derived, r, c, 32);
-			let cplx = trailing_update_width::<c64>(&par, ParThreshold::Derived, r, c, 32);
+			let real = trailing_update_width::<f64>(
+				&par,
+				ParThreshold::Derived,
+				r,
+				c,
+				32,
+			);
+			let cplx = trailing_update_width::<c64>(
+				&par,
+				ParThreshold::Derived,
+				r,
+				c,
+				32,
+			);
 			assert!(cplx >= real);
 			// an explicit floor restores the fixed rule (the whole team) and `usize::MAX` disables
-			assert_eq!(trailing_update_width::<f64>(&par, ParThreshold::Fixed(1), 64, 64, 8), 6);
-			assert_eq!(trailing_update_width::<f64>(&par, ParThreshold::Never, 4096, 4096, 256), 1);
-			assert_eq!(swap_stage_width::<f64>(&par, ParThreshold::Never, 4096, 256, 4096, false), 1);
+			assert_eq!(
+				trailing_update_width::<f64>(
+					&par,
+					ParThreshold::Fixed(1),
+					64,
+					64,
+					8
+				),
+				6
+			);
+			assert_eq!(
+				trailing_update_width::<f64>(
+					&par,
+					ParThreshold::Never,
+					4096,
+					4096,
+					256
+				),
+				1
+			);
+			assert_eq!(
+				swap_stage_width::<f64>(
+					&par,
+					ParThreshold::Never,
+					4096,
+					256,
+					4096,
+					false
+				),
+				1
+			);
 		});
 		// the swap stage of a 64 x 1024 matrix (64 swaps over 960 columns, every column on one
 		// side: one section) takes the widest width at which the rule holds on the tables of the
@@ -941,11 +1107,41 @@ mod tests {
 				let rule = |ns: f64| {
 					(2..=w)
 						.rev()
-						.find(|&k| pays_at(serial_time(64 * 960, ns), SWAP_ONE_SIDE_SECTIONS, shape.dispatch_cost(NonZeroUsize::new(k).unwrap())))
+						.find(|&k| {
+							pays_at(
+								serial_time(64 * 960, ns),
+								SWAP_ONE_SIDE_SECTIONS,
+								shape.dispatch_cost(
+									NonZeroUsize::new(k).unwrap(),
+								),
+							)
+						})
 						.unwrap_or(1)
 				};
-				assert_eq!(swap_stage_width::<f64>(&par, ParThreshold::Derived, 64, 64, 960, true), rule(rate::lu_swap().of::<f64>()), "f64 {w}");
-				assert_eq!(swap_stage_width::<c64>(&par, ParThreshold::Derived, 64, 64, 960, true), rule(rate::lu_swap().of::<c64>()), "c64 {w}");
+				assert_eq!(
+					swap_stage_width::<f64>(
+						&par,
+						ParThreshold::Derived,
+						64,
+						64,
+						960,
+						true
+					),
+					rule(rate::lu_swap().of::<f64>()),
+					"f64 {w}"
+				);
+				assert_eq!(
+					swap_stage_width::<c64>(
+						&par,
+						ParThreshold::Derived,
+						64,
+						64,
+						960,
+						true
+					),
+					rule(rate::lu_swap().of::<c64>()),
+					"c64 {w}"
+				);
 			});
 		}
 	}
@@ -965,19 +1161,37 @@ mod tests {
 				let mut lu = a.clone();
 				let mut perm = vec![0usize; m];
 				let mut perm_inv = vec![0usize; m];
-				let mut mem = MemBuffer::new(lu_in_place_scratch::<usize, T>(m, n, par.shape(), default()));
-				lu_in_place(lu.as_mut(), &mut perm, &mut perm_inv, par.reborrow(), MemStack::new(&mut mem), default());
+				let mut mem = MemBuffer::new(lu_in_place_scratch::<usize, T>(
+					m,
+					n,
+					par.shape(),
+					default(),
+				));
+				lu_in_place(
+					lu.as_mut(),
+					&mut perm,
+					&mut perm_inv,
+					par.reborrow(),
+					MemStack::new(&mut mem),
+					default(),
+				);
 				(lu, perm)
 			};
 			let (want, perm_want) = run(Par::Seq);
 			for threads in [4, 8] {
 				{
 					let (got, perm_got) = crate::team::with_team(threads, run);
-					assert_eq!(perm_want, perm_got, "{m}x{n} {threads} threads");
+					assert_eq!(
+						perm_want, perm_got,
+						"{m}x{n} {threads} threads"
+					);
 					let mut d: f64 = 0.0;
 					for j in 0..n {
 						for i in 0..m {
-							d = d.max((want[(i, j)].clone() - got[(i, j)].clone()).abs());
+							d = d.max(
+								(want[(i, j)].clone() - got[(i, j)].clone())
+									.abs(),
+							);
 						}
 					}
 					assert!(d < 1e-9, "{m}x{n} {threads} threads: {d}");
@@ -1005,10 +1219,29 @@ mod tests {
 			let mut perm_ai = vec![0usize; n];
 			let mut perm_b = vec![0usize; n];
 			let mut perm_bi = vec![0usize; n];
-			let mut mem = MemBuffer::new(lu_in_place_scratch::<usize, f64>(n, n, Par::Seq.shape(), default()));
-			lu_in_place(want.as_mut(), &mut perm_a, &mut perm_ai, Par::Seq, MemStack::new(&mut mem), default());
+			let mut mem = MemBuffer::new(lu_in_place_scratch::<usize, f64>(
+				n,
+				n,
+				Par::Seq.shape(),
+				default(),
+			));
+			lu_in_place(
+				want.as_mut(),
+				&mut perm_a,
+				&mut perm_ai,
+				Par::Seq,
+				MemStack::new(&mut mem),
+				default(),
+			);
 			crate::team::with_team(4, |par| {
-				lu_in_place(got.as_mut(), &mut perm_b, &mut perm_bi, par, MemStack::new(&mut mem), default())
+				lu_in_place(
+					got.as_mut(),
+					&mut perm_b,
+					&mut perm_bi,
+					par,
+					MemStack::new(&mut mem),
+					default(),
+				)
 			});
 			assert_eq!(perm_a, perm_b, "n = {n}");
 			let mut d: f64 = 0.0;
@@ -1099,7 +1332,10 @@ mod tests {
 					usize,
 					f64,
 				>(
-					n, n, ParShape::Seq, default()
+					n,
+					n,
+					ParShape::Seq,
+					default(),
 				))),
 				default(),
 			)
@@ -1129,10 +1365,15 @@ mod tests {
 		let perm = &mut *vec![0usize; n];
 		let perm_inv = &mut *vec![0usize; n];
 		let params: Spec<PartialPivLuParams, f64> = default();
-		let stack =
-			&mut MemBuffer::new(lu_in_place_scratch::<usize, f64>(n, n, par.shape(), params));
+		let stack = &mut MemBuffer::new(lu_in_place_scratch::<usize, f64>(
+			n,
+			n,
+			par.shape(),
+			params,
+		));
 		let stack = MemStack::new(stack);
-		let (info, _) = lu_in_place(LU.as_mut(), perm, perm_inv, par, stack, params);
+		let (info, _) =
+			lu_in_place(LU.as_mut(), perm, perm_inv, par, stack, params);
 		(LU, perm.to_vec(), info.transposition_count)
 	}
 	fn factor_lu_c64(A: &Mat<c64>, par: Par) -> (Mat<c64>, Vec<usize>, usize) {
@@ -1141,10 +1382,15 @@ mod tests {
 		let perm = &mut *vec![0usize; n];
 		let perm_inv = &mut *vec![0usize; n];
 		let params: Spec<PartialPivLuParams, c64> = default();
-		let stack =
-			&mut MemBuffer::new(lu_in_place_scratch::<usize, c64>(n, n, par.shape(), params));
+		let stack = &mut MemBuffer::new(lu_in_place_scratch::<usize, c64>(
+			n,
+			n,
+			par.shape(),
+			params,
+		));
 		let stack = MemStack::new(stack);
-		let (info, _) = lu_in_place(LU.as_mut(), perm, perm_inv, par, stack, params);
+		let (info, _) =
+			lu_in_place(LU.as_mut(), perm, perm_inv, par, stack, params);
 		(LU, perm.to_vec(), info.transposition_count)
 	}
 	/// The two products at a recursion level take `Par::Seq` while the trailing update's work is
@@ -1188,7 +1434,9 @@ mod tests {
 				dist: StandardNormal,
 			}
 			.rand::<Mat<f64>>(rng);
-			let A = Mat::<c64>::from_fn(n, n, |i, j| c64::new(real[(i, j)], imag[(i, j)]));
+			let A = Mat::<c64>::from_fn(n, n, |i, j| {
+				c64::new(real[(i, j)], imag[(i, j)])
+			});
 			let (seq, perm_seq, trans_seq) = factor_lu_c64(&A, Par::Seq);
 			let (par, perm_par, trans_par) =
 				crate::team::with_team(4, |par| factor_lu_c64(&A, par));
@@ -1281,7 +1529,10 @@ mod tests {
 					usize,
 					T,
 				>(
-					n, n, par_shape, params.into()
+					n,
+					n,
+					par_shape,
+					params.into(),
 				))),
 				params.into(),
 			)
@@ -1314,7 +1565,9 @@ mod tests {
 
 	/// The `f64` default leaf is 8 columns (the other types keep 16), and it factors shapes whose
 	/// width leaves a leaf tail, sequentially and on a team: `P A = L U` to rounding.
-	fn simd_leaf_picks_the_scalar_pivots_for<T: ComplexField<Real = T> + Copy + PartialEq>(
+	fn simd_leaf_picks_the_scalar_pivots_for<
+		T: ComplexField<Real = T> + Copy + PartialEq,
+	>(
 		from: impl Fn(f64) -> T,
 	) {
 		// the same panels through both leaves: the transpositions must be identical, ties
@@ -1323,7 +1576,17 @@ mod tests {
 		// the scalar leaf's `matmul`); the panel sits between other columns, which the row
 		// swaps must reach too
 		let rng = &mut StdRng::seed_from_u64(0x5EAF);
-		let shapes = [(1usize, 1usize), (8, 8), (9, 8), (16, 8), (17, 8), (33, 5), (100, 8), (257, 16), (64, 3)];
+		let shapes = [
+			(1usize, 1usize),
+			(8, 8),
+			(9, 8),
+			(16, 8),
+			(17, 8),
+			(33, 5),
+			(100, 8),
+			(257, 16),
+			(64, 3),
+		];
 		for (m, w) in shapes {
 			for ties in [false, true] {
 				let ncols = w + 6;
@@ -1335,15 +1598,28 @@ mod tests {
 				.rand::<Mat<f64>>(rng);
 				let A = Mat::from_fn(m, ncols, |i, j| {
 					// small integers: exact ties first, near ties after a step
-					from(if ties { ((i * 7 + j * 3) % 5) as f64 + (R[(i, j)] * 2.0).round() } else { R[(i, j)] })
+					from(if ties {
+						((i * 7 + j * 3) % 5) as f64 + (R[(i, j)] * 2.0).round()
+					} else {
+						R[(i, j)]
+					})
 				});
 				let (start, end) = (3, 3 + w);
 				let (mut simd, mut scalar) = (A.clone(), A.clone());
-				let (mut t_simd, mut t_scalar) = (vec![0usize; w], vec![0usize; w]);
-				let n_simd =
-					lu_in_place_unblocked_simd(simd.as_mut(), start, end, &mut t_simd);
-				let n_scalar =
-					lu_in_place_unblocked_scalar(scalar.as_mut(), start, end, &mut t_scalar);
+				let (mut t_simd, mut t_scalar) =
+					(vec![0usize; w], vec![0usize; w]);
+				let n_simd = lu_in_place_unblocked_simd(
+					simd.as_mut(),
+					start,
+					end,
+					&mut t_simd,
+				);
+				let n_scalar = lu_in_place_unblocked_scalar(
+					scalar.as_mut(),
+					start,
+					end,
+					&mut t_scalar,
+				);
 				assert!(all(t_simd == t_scalar, n_simd == n_scalar));
 				assert!(simd == scalar);
 			}

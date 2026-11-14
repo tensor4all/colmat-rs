@@ -16,7 +16,7 @@ pub struct SymbolicSupernodalParams<'a> {
 	/// relax[1].1) || ...`
 	pub relax: Option<&'a [(usize, f64)]>,
 }
-const DEFAULT_RELAX: &'static [(usize, f64)] =
+const DEFAULT_RELAX: &[(usize, f64)] =
 	&[(4, 1.0), (16, 0.8), (48, 0.1), (usize::MAX, 0.05)];
 impl Default for SymbolicSupernodalParams<'_> {
 	#[inline]

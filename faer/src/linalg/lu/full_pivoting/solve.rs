@@ -17,6 +17,7 @@ pub fn solve_transpose_in_place_scratch<I: Index, T: ComplexField>(
 	_ = par;
 	permute_rows_in_place_scratch::<I, T>(LU_dim, rhs_ncols)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 	L: MatRef<'_, T>,
@@ -54,6 +55,7 @@ pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 	);
 	permute_rows_in_place(rhs.rb_mut(), col_perm.inverse(), stack);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 pub fn solve_transpose_in_place_with_conj<I: Index, T: ComplexField>(
 	L: MatRef<'_, T>,
@@ -199,7 +201,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(& A * & X ~ B);
@@ -214,7 +220,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.transpose() * & X ~ B);
@@ -229,7 +239,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.conjugate() * & X ~ B);
@@ -244,7 +258,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.adjoint() * & X ~ B);

@@ -1,6 +1,6 @@
 use crate::internal_prelude::*;
-use core::ops::Mul;
 use colmat_traits::Real;
+use core::ops::Mul;
 extern crate alloc;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ApproxEq<T> {
@@ -52,8 +52,9 @@ impl<R: RealField, T: ComplexField<Real = R>> equator::Cmp<T, T>
 		let Self { abs_tol, rel_tol } = self;
 		let diff = (lhs - rhs).abs();
 		let max = lhs.abs().fmax(rhs.abs());
-		(max == zero() && diff <= *abs_tol)
-			|| (diff <= *abs_tol || diff <= rel_tol * max)
+		// `max == zero() && diff <= *abs_tol` is absorbed by the `diff <= *abs_tol` term, so the
+		// predicate is the plain tolerance test; NaN in either operand still fails it.
+		diff <= *abs_tol || diff <= rel_tol * max
 	}
 }
 impl<

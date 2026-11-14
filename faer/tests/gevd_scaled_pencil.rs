@@ -92,6 +92,7 @@ fn two_pairs() -> (Mat<f64>, Mat<f64>) {
 	pencil(&[[1.0, 2.0, -0.5, 1.0], [-2.0, 1.0, -3.0, -1.5]], 20)
 }
 
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 fn repeated_pair() -> (Mat<f64>, Mat<f64>) {
 	let mut a = Mat::<f64>::zeros(5, 5);
 	for o in [0usize, 2] {
@@ -104,6 +105,7 @@ fn repeated_pair() -> (Mat<f64>, Mat<f64>) {
 	(a, Mat::<f64>::identity(5, 5))
 }
 
+#[allow(clippy::type_complexity)] // signature shape kept explicit to match upstream
 const PENCILS: [(&str, fn() -> (Mat<f64>, Mat<f64>)); 3] = [
 	("one_pair", one_pair),
 	("two_pairs", two_pairs),
@@ -1077,7 +1079,8 @@ fn check_issue_scales<U>(
 						&& scaled.left.is_all_finite()
 						&& scaled.right.is_all_finite();
 					if !(finite
-						&& d.lambda <= TOL && d.left <= TOL && d.right <= TOL)
+						&& d.lambda <= TOL && d.left <= TOL
+						&& d.right <= TOL)
 					{
 						failures.push(format!(
 							"{name}, s = {s:e}: finite = {finite}, NaN = {nan}, \

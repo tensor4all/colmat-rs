@@ -45,7 +45,7 @@ pub(crate) fn lower_area_split(
 	let big_b = 2 * m + 1;
 	let q = p * big_b * big_b - 8 * total * i as u128;
 	let fits =
-		|k: u128| k <= (big_b + 1) / 2 && p * (big_b + 1 - 2 * k).pow(2) >= q;
+		|k: u128| k <= big_b.div_ceil(2) && p * (big_b + 1 - 2 * k).pow(2) >= q;
 	let mut k = (big_b + 1 - (q / p).isqrt()) / 2;
 	while fits(k + 1) {
 		k += 1;

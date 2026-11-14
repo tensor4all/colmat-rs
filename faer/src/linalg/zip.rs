@@ -373,16 +373,28 @@ pub trait MatIndex {
 			Slice = Self::Slice,
 		>;
 	type Slice: for<'a> SliceFamily<'a, Self::Item>;
+	///
+	/// # Safety
+	/// the index must lie in bounds of every zipped operand and `n_elems` elements must remain at it.
 	/// returns slice at index of length `n_elems`
 	unsafe fn get_slice_unchecked<'a>(
 		this: &'a mut Self,
 		idx: Self::Index,
 		n_elems: usize,
 	) -> <Self::Slice as SliceFamily<'a, Self::Item>>::Slice;
+	///
+	/// # Safety
+	/// the erased index must denote a valid index of this operand.
 	/// converts a type erased index back to its original representation
 	unsafe fn from_dyn_idx(idx: <Self::Dyn as MatIndex>::Index) -> Self::Index;
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	/// get the item at the given index, skipping bound checks
 	unsafe fn get_unchecked(this: &mut Self, index: Self::Index) -> Self::Item;
+	///
+	/// # Safety
+	/// the slice position must be in bounds and not yet consumed.
 	/// get the item at the given slice position, skipping bound checks
 	unsafe fn next_unchecked<'a>(
 		slice: &mut <Self::Slice as SliceFamily<'a, Self::Item>>::Slice,
@@ -826,9 +838,7 @@ impl<'b, T, Len: Shape, Strd: Stride> MatIndex for ColMut<'b, T, Len, Strd> {
 	}
 
 	#[inline]
-	fn ncols(_: &Self) -> Self::Cols {
-		()
-	}
+	fn ncols(_: &Self) -> Self::Cols {}
 
 	#[inline]
 	unsafe fn get_slice_unchecked<'a>(
@@ -984,9 +994,7 @@ impl<'b, T, Len: Shape, Strd: Stride> MatIndex for RowMut<'b, T, Len, Strd> {
 	type Slice = SliceMut<'b, T>;
 
 	#[inline]
-	fn nrows(_: &Self) -> Self::Rows {
-		()
-	}
+	fn nrows(_: &Self) -> Self::Rows {}
 
 	#[inline]
 	fn ncols(this: &Self) -> Self::Cols {
@@ -1068,9 +1076,7 @@ impl<'b, T, Len: Shape, Strd: Stride> MatIndex for ColRef<'b, T, Len, Strd> {
 	}
 
 	#[inline]
-	fn ncols(_: &Self) -> Self::Cols {
-		()
-	}
+	fn ncols(_: &Self) -> Self::Cols {}
 
 	#[inline]
 	unsafe fn get_slice_unchecked<'a>(
@@ -1223,9 +1229,7 @@ impl<'b, T, Len: Shape, Strd: Stride> MatIndex for RowRef<'b, T, Len, Strd> {
 	type Slice = SliceRef<'b, T>;
 
 	#[inline]
-	fn nrows(_: &Self) -> Self::Rows {
-		()
-	}
+	fn nrows(_: &Self) -> Self::Rows {}
 
 	#[inline]
 	fn ncols(this: &Self) -> Self::Cols {
@@ -1673,7 +1677,7 @@ fn for_each_mat_triangular_lower_with_index<
 		MatLayoutTransform::TransposeReverseRows => unsafe {
 			if Z::Dyn::is_contiguous(&z) {
 				for j in 0..n {
-					let start = m - Ord::min(j + (1 - strict) as usize, m);
+					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
 						continue;
@@ -1692,7 +1696,7 @@ fn for_each_mat_triangular_lower_with_index<
 				}
 			} else {
 				for j in 0..n {
-					let start = m - Ord::min(j + (1 - strict) as usize, m);
+					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
 						continue;
@@ -1774,7 +1778,7 @@ fn for_each_mat_triangular_upper_with_index<
 		MatLayoutTransform::ReverseRows => unsafe {
 			if Z::Dyn::is_contiguous(&z) {
 				for j in 0..Ord::min(m, n) {
-					let start = m - Ord::min(j + (1 - strict) as usize, m);
+					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
 						continue;
@@ -1793,7 +1797,7 @@ fn for_each_mat_triangular_upper_with_index<
 				}
 			} else {
 				for j in 0..Ord::min(m, n) {
-					let start = m - Ord::min(j + (1 - strict) as usize, m);
+					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
 						continue;

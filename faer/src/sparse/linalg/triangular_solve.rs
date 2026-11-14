@@ -236,7 +236,7 @@ fn solve_lower_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x3j = x3[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
+							let d = &conj_tril.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x2j = &x2[j] * d;
@@ -278,7 +278,7 @@ fn solve_lower_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x2j = x2[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
+							let d = &conj_tril.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x2j = &x2[j] * d;
@@ -313,7 +313,7 @@ fn solve_lower_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x1j = x1[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
+							let d = &conj_tril.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x0[j] = x0j.copy();
@@ -340,7 +340,7 @@ fn solve_lower_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x0j = x0[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
+							let d = &conj_tril.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x0[j] = x0j.copy();
 						},
@@ -404,7 +404,7 @@ pub(crate) fn ldlt_scale_solve_unit_lower_triangular_transpose_in_place_impl<
 					}
 					let (i, d) = first.unwrap();
 					debug_assert!(i == j);
-					let ref d = conj_tril.apply_rt(&d.recip());
+					let d = &conj_tril.apply_rt(&d.recip());
 					x0[j] = &x0[j] * d - acc0a;
 					x1[j] = &x1[j] * d - acc1a;
 					x2[j] = &x2[j] * d - acc2a;
@@ -434,7 +434,7 @@ pub(crate) fn ldlt_scale_solve_unit_lower_triangular_transpose_in_place_impl<
 					}
 					let (i, d) = first.unwrap();
 					debug_assert!(i == j);
-					let ref d = conj_tril.apply_rt(&d.recip());
+					let d = &conj_tril.apply_rt(&d.recip());
 					x0[j] = &x0[j] * d - acc0a;
 					x1[j] = &x1[j] * d - acc1a;
 					x2[j] = &x2[j] * d - acc2a;
@@ -459,7 +459,7 @@ pub(crate) fn ldlt_scale_solve_unit_lower_triangular_transpose_in_place_impl<
 					}
 					let (i, d) = first.unwrap();
 					debug_assert!(i == j);
-					let ref d = conj_tril.apply_rt(&d.recip());
+					let d = &conj_tril.apply_rt(&d.recip());
 					x0[j] = &x0[j] * d - acc0a;
 					x1[j] = &x1[j] * d - acc1a;
 				}
@@ -478,7 +478,7 @@ pub(crate) fn ldlt_scale_solve_unit_lower_triangular_transpose_in_place_impl<
 					}
 					let (i, d) = first.unwrap();
 					debug_assert!(i == j);
-					let ref d = conj_tril.apply_rt(&d.recip());
+					let d = &conj_tril.apply_rt(&d.recip());
 					x0[j] = &x0[j] * d - acc0a;
 				}
 				k = k0.next();
@@ -540,11 +540,11 @@ fn solve_lower_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_tril {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
-							x2j = x2j * d;
-							x3j = x3j * d;
+							let d = &conj_tril.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
+							x2j *= d;
+							x3j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -582,10 +582,10 @@ fn solve_lower_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_tril {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
-							x2j = x2j * d;
+							let d = &conj_tril.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
+							x2j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -617,9 +617,9 @@ fn solve_lower_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_tril {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
+							let d = &conj_tril.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -644,8 +644,8 @@ fn solve_lower_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_tril {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_tril.apply_rt(&d.recip());
-							x0j = x0j * d;
+							let d = &conj_tril.apply_rt(&d.recip());
+							x0j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -704,7 +704,7 @@ fn solve_upper_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x3j = x3[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
+							let d = &conj_triu.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x2j = &x2[j] * d;
@@ -749,7 +749,7 @@ fn solve_upper_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x2j = x2[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
+							let d = &conj_triu.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x2j = &x2[j] * d;
@@ -787,7 +787,7 @@ fn solve_upper_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x1j = x1[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
+							let d = &conj_triu.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x1j = &x1[j] * d;
 							x0[j] = x0j.copy();
@@ -817,7 +817,7 @@ fn solve_upper_triangular_in_place_impl<I: Index, T: ComplexField>(
 							x0j = x0[j].copy();
 						},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
+							let d = &conj_triu.apply_rt(&d.recip());
 							x0j = &x0[j] * d;
 							x0[j] = x0j.copy();
 						},
@@ -886,11 +886,11 @@ fn solve_upper_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_triu {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
-							x2j = x2j * d;
-							x3j = x3j * d;
+							let d = &conj_triu.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
+							x2j *= d;
+							x3j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -928,10 +928,10 @@ fn solve_upper_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_triu {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
-							x2j = x2j * d;
+							let d = &conj_triu.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
+							x2j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -963,9 +963,9 @@ fn solve_upper_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_triu {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
-							x0j = x0j * d;
-							x1j = x1j * d;
+							let d = &conj_triu.apply_rt(&d.recip());
+							x0j *= d;
+							x1j *= d;
 						},
 					}
 					x0[j] = x0j;
@@ -990,8 +990,8 @@ fn solve_upper_triangular_transpose_in_place_impl<I: Index, T: ComplexField>(
 					match diag_triu {
 						DiagStatus::Unit => {},
 						DiagStatus::Generic => {
-							let ref d = conj_triu.apply_rt(&d.recip());
-							x0j = x0j * d;
+							let d = &conj_triu.apply_rt(&d.recip());
+							x0j *= d;
 						},
 					}
 					x0[j] = x0j;

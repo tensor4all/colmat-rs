@@ -46,6 +46,7 @@ fn output_view(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn run_view_case(
 	failures: &mut Vec<String>,
 	attempted: &mut usize,

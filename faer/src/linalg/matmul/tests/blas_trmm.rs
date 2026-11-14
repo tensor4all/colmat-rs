@@ -170,7 +170,7 @@ fn trmm_reads_and_writes_nothing_outside_its_operands() {
 			.submatrix_mut(1, 1, order, order)
 			.copy_from(&operand(order, structure));
 		let a_before = a_parent.clone();
-		let b = Mat::<Scalar>::from_fn(m, n, |i, j| integer(i, j));
+		let b = Mat::<Scalar>::from_fn(m, n, integer);
 		// the reference comes from the operand as it was stored before the call
 		let b_before = b.clone();
 		let mut dst_parent = Mat::<Scalar>::full(m + 2, n + 2, rogue());

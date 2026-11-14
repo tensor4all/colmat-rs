@@ -10,21 +10,21 @@ fn lahqr_eig22<T: RealField>(
 	a11: T,
 ) -> ((T, T), (T, T)) {
 	let half = from_f64::<T>(0.5);
-	let ref s = a00.abs() + a01.abs() + a10.abs() + a11.abs();
+	let s = &(a00.abs() + a01.abs() + a10.abs() + a11.abs());
 	if *s == zero() {
 		return ((zero(), zero()), (zero(), zero()));
 	}
-	let ref a00 = a00 / s;
-	let ref a01 = a01 / s;
-	let ref a10 = a10 / s;
-	let ref a11 = a11 / s;
-	let ref tr = (a00 + a11) * half;
-	let ref det = (a00 - tr).abs2() + a01 * a10;
+	let a00 = &(a00 / s);
+	let a01 = &(a01 / s);
+	let a10 = &(a10 / s);
+	let a11 = &(a11 / s);
+	let tr = &((a00 + a11) * half);
+	let det = &((a00 - tr).abs2() + a01 * a10);
 	if *det >= zero() {
-		let ref rtdisc = det.sqrt();
+		let rtdisc = &det.sqrt();
 		((s * (tr + rtdisc), zero()), (s * (tr - rtdisc), zero()))
 	} else {
-		let ref rtdisc = (-det).sqrt();
+		let rtdisc = &(-det).sqrt();
 		let re = s * tr;
 		let im = s * rtdisc;
 		((re.copy(), im.copy()), (re, -im))
@@ -44,8 +44,8 @@ fn lasy2<T: RealField>(
 		tl.ncols() == 2,
 		tr.ncols() == 2,
 	));
-	let ref eps = eps::<T>();
-	let ref smlnum = min_positive::<T>() / eps;
+	let eps = &eps::<T>();
+	let smlnum = &(min_positive::<T>() / eps);
 	stack_mat!(btmp, 4, 1, T);
 	stack_mat!(tmp, 4, 1, T);
 	stack_mat!(t16, 4, 4, T);
@@ -78,6 +78,7 @@ fn lasy2<T: RealField>(
 	btmp[(3, 0)] = b[(1, 1)].copy();
 	let (mut ipsv, mut jpsv);
 	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	for i in 0..3usize {
 		ipsv = i;
 		jpsv = i;
@@ -118,7 +119,7 @@ fn lasy2<T: RealField>(
 		t16[(3, 3)] = smin.copy();
 	}
 	let mut scale = one::<T>();
-	let ref eight = from_f64::<T>(8.0);
+	let eight = &from_f64::<T>(8.0);
 	if (eight * smlnum) * btmp[(0, 0)].abs1() > t16[(0, 0)].abs1()
 		|| (eight * smlnum) * btmp[(1, 0)].abs1() > t16[(1, 1)].abs1()
 		|| (eight * smlnum) * btmp[(2, 0)].abs1() > t16[(2, 2)].abs1()
@@ -137,7 +138,7 @@ fn lasy2<T: RealField>(
 	}
 	for i in 0..4usize {
 		let k = 3 - i;
-		let ref temp = t16[(k, k)].recip();
+		let temp = &t16[(k, k)].recip();
 		tmp[(k, 0)] = &btmp[(k, 0)] * temp;
 		for j in k + 1..4 {
 			tmp[(k, 0)] = &tmp[(k, 0)] - temp * &t16[(k, j)] * &tmp[(j, 0)];
@@ -157,6 +158,7 @@ fn lasy2<T: RealField>(
 	let _ = info;
 	scale
 }
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 #[inline(never)]
 fn lahqr_schur22<T: RealField>(
 	mut a: T,
@@ -164,13 +166,13 @@ fn lahqr_schur22<T: RealField>(
 	mut c: T,
 	mut d: T,
 ) -> ((T, T, T, T), (T, T), (T, T), (T, T)) {
-	let ref half = from_f64::<T>(0.5);
+	let half = &from_f64::<T>(0.5);
 	let one = one::<T>();
-	let ref multpl = from_f64::<T>(4.0);
-	let ref eps = eps::<T>();
-	let ref safmin = min_positive::<T>();
-	let ref safmn2 = (safmin / eps).sqrt();
-	let ref safmx2 = safmn2.recip();
+	let multpl = &from_f64::<T>(4.0);
+	let eps = &eps::<T>();
+	let safmin = &min_positive::<T>();
+	let safmn2 = &(safmin / eps).sqrt();
+	let safmx2 = &safmn2.recip();
 	let mut cs;
 	let mut sn;
 	if c == zero() {
@@ -188,12 +190,12 @@ fn lahqr_schur22<T: RealField>(
 	} else {
 		let mut temp = &a - &d;
 		let mut p = &temp * half;
-		let ref bcmax = b.abs().fmax(c.abs());
+		let bcmax = &b.abs().fmax(c.abs());
 		let mut bcmin = b.abs().fmin(c.abs());
 		if (b > zero()) != (c > zero()) {
 			bcmin = -bcmin;
 		}
-		let ref bcmin = bcmin;
+		let bcmin = &bcmin;
 		let mut scale = p.abs().fmax(bcmax);
 		let mut z = (&p / &scale) * &p + (bcmax / &scale) * bcmin;
 		if z >= multpl * eps {
@@ -211,23 +213,23 @@ fn lahqr_schur22<T: RealField>(
 				// `cs = sn = 0`. Other inputs keep the historical arithmetic.
 				tau = lapy2(&c, &z);
 			}
-			let ref tau = tau;
+			let tau = &tau;
 			cs = &z / tau;
 			sn = &c / tau;
-			b = b - c;
+			b -= c;
 			c = zero();
 		} else {
 			let mut sigma = &b + &c;
 			for _ in 0..20 {
 				scale = temp.abs().fmax(sigma.abs());
 				if scale >= *safmx2 {
-					sigma = sigma * safmn2;
-					temp = temp * safmn2;
+					sigma *= safmn2;
+					temp *= safmn2;
 					continue;
 				}
 				if scale <= *safmn2 {
-					sigma = sigma * safmx2;
-					temp = temp * safmx2;
+					sigma *= safmx2;
+					temp *= safmx2;
 					continue;
 				}
 				break;
@@ -239,10 +241,10 @@ fn lahqr_schur22<T: RealField>(
 			if sigma < zero() {
 				sn = -sn;
 			}
-			let ref aa = &a * &cs + &b * &sn;
-			let ref bb = -&a * &sn + &b * &cs;
-			let ref cc = &c * &cs + &d * &sn;
-			let ref dd = -&c * &sn + &d * &cs;
+			let aa = &(&a * &cs + &b * &sn);
+			let bb = &(-&a * &sn + &b * &cs);
+			let cc = &(&c * &cs + &d * &sn);
+			let dd = &(-&c * &sn + &d * &cs);
 			a = aa * &cs + cc * &sn;
 			b = bb * &cs + dd * &sn;
 			c = -aa * &sn + cc * &cs;
@@ -251,16 +253,16 @@ fn lahqr_schur22<T: RealField>(
 			a = temp.copy();
 			d = temp.copy();
 			if c != zero() && b != zero() && (b > zero()) == (c > zero()) {
-				let ref sab = b.abs().sqrt();
-				let ref sac = c.abs().sqrt();
+				let sab = &b.abs().sqrt();
+				let sac = &c.abs().sqrt();
 				p = if c > zero() { sab * sac } else { -sab * sac };
 				tau = (&b + &c).abs().sqrt().recip();
 				a = &temp + &p;
 				d = &temp - &p;
 				b -= &c;
 				c = zero();
-				let ref cs1 = sab * &tau;
-				let ref sn1 = sac * &tau;
+				let cs1 = &(sab * &tau);
+				let sn1 = &(sac * &tau);
 				temp = &cs * cs1 - &sn * sn1;
 				sn = &cs * sn1 + &sn * cs1;
 				cs = temp;
@@ -297,12 +299,12 @@ fn lahqr_shiftcolumn<T: RealField>(
 	let n = h.nrows();
 	debug_assert!(v.nrows() == n);
 	if n == 2 {
-		let ref s = (&h[(0, 0)] - &s2.0).abs() + &s2.1.abs() + &h[(1, 0)].abs();
+		let s = &((&h[(0, 0)] - &s2.0).abs() + &s2.1.abs() + &h[(1, 0)].abs());
 		if *s == zero() {
 			v[0] = zero();
 			v[1] = zero();
 		} else {
-			let ref h10s = &h[(1, 0)] / s;
+			let h10s = &(&h[(1, 0)] / s);
 			let v0 = h10s * &h[(0, 1)]
 				+ (&h[(0, 0)] - &s1.0) * ((&h[(0, 0)] - &s2.0) / s)
 				- &s1.1 * (&s2.1 / s);
@@ -311,17 +313,17 @@ fn lahqr_shiftcolumn<T: RealField>(
 			v[1] = v1;
 		}
 	} else {
-		let ref s = (&h[(0, 0)] - &s2.0).abs()
+		let s = &((&h[(0, 0)] - &s2.0).abs()
 			+ s2.1.abs()
 			+ &h[(1, 0)].abs()
-			+ &h[(2, 0)].abs();
+			+ &h[(2, 0)].abs());
 		if *s == zero() {
 			v[0] = zero();
 			v[1] = zero();
 			v[2] = zero();
 		} else {
-			let ref h10s = &h[(1, 0)] / s;
-			let ref h20s = &h[(2, 0)] / s;
+			let h10s = &(&h[(1, 0)] / s);
+			let h20s = &(&h[(2, 0)] / s);
 			let v0 = (&h[(0, 0)] - &s1.0) * ((&h[(0, 0)] - &s2.0) / s)
 				- &s1.1 * (&s2.1 / s)
 				+ &h[(0, 1)] * h10s
@@ -453,10 +455,10 @@ pub(crate) fn schur_swap_12<T: RealField>(
 	let (head, tail) = v1.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau1, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau1 = tau1.recip();
-	let ref v11 = b[(1, 0)].copy();
-	let ref v12 = b[(2, 0)].copy();
-	let ref sum = &b[(0, 1)] + v11 * &b[(1, 1)] + v12 * &b[(2, 1)];
+	let tau1 = &tau1.recip();
+	let v11 = &b[(1, 0)].copy();
+	let v12 = &b[(2, 0)].copy();
+	let sum = &(&b[(0, 1)] + v11 * &b[(1, 1)] + v12 * &b[(2, 1)]);
 	b[(0, 1)] -= sum * tau1;
 	b[(1, 1)] -= sum * tau1 * v11;
 	b[(2, 1)] -= sum * tau1 * v12;
@@ -464,33 +466,33 @@ pub(crate) fn schur_swap_12<T: RealField>(
 	let (head, tail) = v2.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau2, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau2 = tau2.recip();
-	let ref v21 = v2[1].copy();
+	let tau2 = &tau2.recip();
+	let v21 = &v2[1].copy();
 	for j in j0..n {
-		let ref sum = &a[(j0, j)] + v11 * &a[(j1, j)] + v12 * &a[(j2, j)];
+		let sum = &(&a[(j0, j)] + v11 * &a[(j1, j)] + v12 * &a[(j2, j)]);
 		a[(j0, j)] -= sum * tau1;
 		a[(j1, j)] -= sum * tau1 * v11;
 		a[(j2, j)] -= sum * tau1 * v12;
-		let ref sum = &a[(j1, j)] + v21 * &a[(j2, j)];
+		let sum = &(&a[(j1, j)] + v21 * &a[(j2, j)]);
 		a[(j1, j)] -= sum * tau2;
 		a[(j2, j)] -= sum * tau2 * v21;
 	}
 	for j in 0..j3 {
-		let ref sum = &a[(j, j0)] + v11 * &a[(j, j1)] + v12 * &a[(j, j2)];
+		let sum = &(&a[(j, j0)] + v11 * &a[(j, j1)] + v12 * &a[(j, j2)]);
 		a[(j, j0)] -= sum * tau1;
 		a[(j, j1)] -= sum * tau1 * v11;
 		a[(j, j2)] -= sum * tau1 * v12;
-		let ref sum = &a[(j, j1)] + v21 * &a[(j, j2)];
+		let sum = &(&a[(j, j1)] + v21 * &a[(j, j2)]);
 		a[(j, j1)] -= sum * tau2;
 		a[(j, j2)] -= sum * tau2 * v21;
 	}
 	if let Some(mut q) = q.rb_mut() {
 		for j in 0..n {
-			let ref sum = &q[(j, j0)] + v11 * &q[(j, j1)] + v12 * &q[(j, j2)];
+			let sum = &(&q[(j, j0)] + v11 * &q[(j, j1)] + v12 * &q[(j, j2)]);
 			q[(j, j0)] -= sum * tau1;
 			q[(j, j1)] -= sum * tau1 * v11;
 			q[(j, j2)] -= sum * tau1 * v12;
-			let ref sum = &q[(j, j1)] + v21 * &q[(j, j2)];
+			let sum = &(&q[(j, j1)] + v21 * &q[(j, j2)]);
 			q[(j, j1)] -= sum * tau2;
 			q[(j, j2)] -= sum * tau2 * v21;
 		}
@@ -519,10 +521,10 @@ pub(crate) fn schur_swap_21<T: RealField>(
 	let (head, tail) = v1.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau1, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau1 = tau1.recip();
-	let ref v11 = v1[1].copy();
-	let ref v12 = v1[2].copy();
-	let ref sum = &b[(0, 1)] + v11 * &b[(1, 1)] + v12 * &b[(2, 1)];
+	let tau1 = &tau1.recip();
+	let v11 = &v1[1].copy();
+	let v12 = &v1[2].copy();
+	let sum = &(&b[(0, 1)] + v11 * &b[(1, 1)] + v12 * &b[(2, 1)]);
 	b[(0, 1)] -= sum * tau1;
 	b[(1, 1)] -= sum * tau1 * v11;
 	b[(2, 1)] -= sum * tau1 * v12;
@@ -530,33 +532,33 @@ pub(crate) fn schur_swap_21<T: RealField>(
 	let (head, tail) = v2.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau2, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau2 = tau2.recip();
-	let ref v21 = v2[1].copy();
+	let tau2 = &tau2.recip();
+	let v21 = &v2[1].copy();
 	for j in j0..n {
-		let ref sum = &a[(j2, j)] + v11 * &a[(j1, j)] + v12 * &a[(j0, j)];
+		let sum = &(&a[(j2, j)] + v11 * &a[(j1, j)] + v12 * &a[(j0, j)]);
 		a[(j2, j)] -= sum * tau1;
 		a[(j1, j)] -= sum * tau1 * v11;
 		a[(j0, j)] -= sum * tau1 * v12;
-		let ref sum = &a[(j1, j)] + v21 * &a[(j0, j)];
+		let sum = &(&a[(j1, j)] + v21 * &a[(j0, j)]);
 		a[(j1, j)] -= sum * tau2;
 		a[(j0, j)] -= sum * tau2 * v21;
 	}
 	for j in 0..j3 {
-		let ref sum = &a[(j, j2)] + v11 * &a[(j, j1)] + v12 * &a[(j, j0)];
+		let sum = &(&a[(j, j2)] + v11 * &a[(j, j1)] + v12 * &a[(j, j0)]);
 		a[(j, j2)] -= sum * tau1;
 		a[(j, j1)] -= sum * tau1 * v11;
 		a[(j, j0)] -= sum * tau1 * v12;
-		let ref sum = &a[(j, j1)] + v21 * &a[(j, j0)];
+		let sum = &(&a[(j, j1)] + v21 * &a[(j, j0)]);
 		a[(j, j1)] -= sum * tau2;
 		a[(j, j0)] -= sum * tau2 * v21;
 	}
 	if let Some(mut q) = q.rb_mut() {
 		for j in 0..n {
-			let ref sum = &q[(j, j2)] + v11 * &q[(j, j1)] + v12 * &q[(j, j0)];
+			let sum = &(&q[(j, j2)] + v11 * &q[(j, j1)] + v12 * &q[(j, j0)]);
 			q[(j, j2)] -= sum * tau1;
 			q[(j, j1)] -= sum * tau1 * v11;
 			q[(j, j0)] -= sum * tau1 * v12;
-			let ref sum = &q[(j, j1)] + v21 * &q[(j, j0)];
+			let sum = &(&q[(j, j1)] + v21 * &q[(j, j0)]);
 			q[(j, j1)] -= sum * tau2;
 			q[(j, j0)] -= sum * tau2 * v21;
 		}
@@ -571,8 +573,8 @@ pub(crate) fn schur_swap_22<T: RealField>(
 	j0: usize,
 ) -> isize {
 	let n = a.nrows();
-	let ref epsilon = eps::<T>();
-	let ref zero_threshold = min_positive::<T>();
+	let epsilon = &eps::<T>();
+	let zero_threshold = &min_positive::<T>();
 	let j1 = j0 + 1;
 	let j2 = j0 + 2;
 	let j3 = j0 + 3;
@@ -582,12 +584,12 @@ pub(crate) fn schur_swap_22<T: RealField>(
 	let mut dnorm = zero::<T>();
 	z!(d.rb()).for_each(|unzip!(d)| dnorm = dnorm.fmax(d.abs()));
 	let eps = epsilon;
-	let ref small_num = zero_threshold / eps;
+	let small_num = &(zero_threshold / eps);
 	let thresh = (from_f64::<T>(10.0) * eps * dnorm).fmax(small_num);
 	stack_mat!(v, 4, 2, T);
 	let mut x = v.rb_mut().submatrix_mut(0, 0, 2, 2);
 	let (tl, b, _, tr) = d.rb().split_at(2, 2);
-	let ref scale = lasy2(tl, tr, b, x.rb_mut());
+	let scale = &lasy2(tl, tr, b, x.rb_mut());
 	v[(2, 0)] = -scale;
 	v[(2, 1)] = zero();
 	v[(3, 0)] = zero();
@@ -596,12 +598,12 @@ pub(crate) fn schur_swap_22<T: RealField>(
 	let (head, tail) = v1.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau1, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau1 = tau1.recip();
-	let ref v11 = v1[1].copy();
-	let ref v12 = v1[2].copy();
-	let ref v13 = v1[3].copy();
-	let ref sum =
-		&v[(0, 1)] + v11 * &v[(1, 1)] + v12 * &v[(2, 1)] + v13 * &v[(3, 1)];
+	let tau1 = &tau1.recip();
+	let v11 = &v1[1].copy();
+	let v12 = &v1[2].copy();
+	let v13 = &v1[3].copy();
+	let sum =
+		&(&v[(0, 1)] + v11 * &v[(1, 1)] + v12 * &v[(2, 1)] + v13 * &v[(3, 1)]);
 	v[(0, 1)] -= sum * tau1;
 	v[(1, 1)] -= sum * tau1 * v11;
 	v[(2, 1)] -= sum * tau1 * v12;
@@ -610,29 +612,33 @@ pub(crate) fn schur_swap_22<T: RealField>(
 	let (head, tail) = v2.rb_mut().split_at_row_mut(1);
 	let HouseholderInfo { tau: tau2, .. } =
 		make_householder_in_place(head.at_mut(0), tail);
-	let ref tau2 = tau2.recip();
-	let ref v21 = v2[1];
-	let ref v22 = v2[2];
+	let tau2 = &tau2.recip();
+	let v21 = &v2[1];
+	let v22 = &v2[2];
 	for j in 0..4 {
-		let ref sum =
-			&d[(0, j)] + v11 * &d[(1, j)] + v12 * &d[(2, j)] + v13 * &d[(3, j)];
+		let sum = &(&d[(0, j)]
+			+ v11 * &d[(1, j)]
+			+ v12 * &d[(2, j)]
+			+ v13 * &d[(3, j)]);
 		d[(0, j)] -= sum * tau1;
 		d[(1, j)] -= sum * tau1 * v11;
 		d[(2, j)] -= sum * tau1 * v12;
 		d[(3, j)] -= sum * tau1 * v13;
-		let ref sum = &d[(1, j)] + v21 * &d[(2, j)] + v22 * &d[(3, j)];
+		let sum = &(&d[(1, j)] + v21 * &d[(2, j)] + v22 * &d[(3, j)]);
 		d[(1, j)] -= sum * tau2;
 		d[(2, j)] -= sum * tau2 * v21;
 		d[(3, j)] -= sum * tau2 * v22;
 	}
 	for j in 0..4 {
-		let ref sum =
-			&d[(j, 0)] + v11 * &d[(j, 1)] + v12 * &d[(j, 2)] + v13 * &d[(j, 3)];
+		let sum = &(&d[(j, 0)]
+			+ v11 * &d[(j, 1)]
+			+ v12 * &d[(j, 2)]
+			+ v13 * &d[(j, 3)]);
 		d[(j, 0)] -= sum * tau1;
 		d[(j, 1)] -= sum * tau1 * v11;
 		d[(j, 2)] -= sum * tau1 * v12;
 		d[(j, 3)] -= sum * tau1 * v13;
-		let ref sum = &d[(j, 1)] + v21 * &d[(j, 2)] + v22 * &d[(j, 3)];
+		let sum = &(&d[(j, 1)] + v21 * &d[(j, 2)] + v22 * &d[(j, 3)]);
 		d[(j, 1)] -= sum * tau2;
 		d[(j, 2)] -= sum * tau2 * v21;
 		d[(j, 3)] -= sum * tau2 * v22;
@@ -647,44 +653,44 @@ pub(crate) fn schur_swap_22<T: RealField>(
 		return 1;
 	}
 	for j in j0..n {
-		let ref sum = &a[(j0, j)]
+		let sum = &(&a[(j0, j)]
 			+ v11 * &a[(j1, j)]
 			+ v12 * &a[(j2, j)]
-			+ v13 * &a[(j3, j)];
+			+ v13 * &a[(j3, j)]);
 		a[(j0, j)] -= sum * tau1;
 		a[(j1, j)] -= sum * tau1 * v11;
 		a[(j2, j)] -= sum * tau1 * v12;
 		a[(j3, j)] -= sum * tau1 * v13;
-		let ref sum = &a[(j1, j)] + v21 * &a[(j2, j)] + v22 * &a[(j3, j)];
+		let sum = &(&a[(j1, j)] + v21 * &a[(j2, j)] + v22 * &a[(j3, j)]);
 		a[(j1, j)] -= sum * tau2;
 		a[(j2, j)] -= sum * tau2 * v21;
 		a[(j3, j)] -= sum * tau2 * v22;
 	}
 	for j in 0..j0 + 4 {
-		let ref sum = &a[(j, j0)]
+		let sum = &(&a[(j, j0)]
 			+ v11 * &a[(j, j1)]
 			+ v12 * &a[(j, j2)]
-			+ v13 * &a[(j, j3)];
+			+ v13 * &a[(j, j3)]);
 		a[(j, j0)] -= sum * tau1;
 		a[(j, j1)] -= sum * tau1 * v11;
 		a[(j, j2)] -= sum * tau1 * v12;
 		a[(j, j3)] -= sum * tau1 * v13;
-		let ref sum = &a[(j, j1)] + v21 * &a[(j, j2)] + v22 * &a[(j, j3)];
+		let sum = &(&a[(j, j1)] + v21 * &a[(j, j2)] + v22 * &a[(j, j3)]);
 		a[(j, j1)] -= sum * tau2;
 		a[(j, j2)] -= sum * tau2 * v21;
 		a[(j, j3)] -= sum * tau2 * v22;
 	}
 	if let Some(mut q) = q.rb_mut() {
 		for j in 0..n {
-			let ref sum = &q[(j, j0)]
+			let sum = &(&q[(j, j0)]
 				+ v11 * &q[(j, j1)]
 				+ v12 * &q[(j, j2)]
-				+ v13 * &q[(j, j3)];
+				+ v13 * &q[(j, j3)]);
 			q[(j, j0)] -= sum * tau1;
 			q[(j, j1)] -= sum * tau1 * v11;
 			q[(j, j2)] -= sum * tau1 * v12;
 			q[(j, j3)] -= sum * tau1 * v13;
-			let ref sum = &q[(j, j1)] + v21 * &q[(j, j2)] + v22 * &q[(j, j3)];
+			let sum = &(&q[(j, j1)] + v21 * &q[(j, j2)] + v22 * &q[(j, j3)]);
 			q[(j, j1)] -= sum * tau2;
 			q[(j, j2)] -= sum * tau2 * v21;
 			q[(j, j3)] -= sum * tau2 * v22;
@@ -727,7 +733,7 @@ fn lapy2<T: RealField>(x: &T, y: &T) -> T {
 	if z == zero() || !w.is_finite() {
 		w
 	} else {
-		let ref r = &z / &w;
+		let r = &(&z / &w);
 		w * (one::<T>() + r * r).sqrt()
 	}
 }
@@ -741,8 +747,8 @@ fn lasy2_12_21<T: RealField>(n1: usize, d: MatRef<'_, T>) -> (T, T, T) {
 	const LOCU22: [usize; 4] = [3, 2, 1, 0];
 	const XSWPIV: [bool; 4] = [false, false, true, true];
 	const BSWPIV: [bool; 4] = [false, true, false, true];
-	let ref eps = eps::<T>();
-	let ref smlnum = min_positive::<T>() / eps;
+	let eps = &eps::<T>();
+	let smlnum = &(min_positive::<T>() / eps);
 	let (smin, tmp, mut btmp) = if n1 == 1 {
 		let tl = &d[(0, 0)];
 		let tr = d.submatrix(1, 1, 2, 2);
@@ -792,8 +798,8 @@ fn lasy2_12_21<T: RealField>(n1: usize, d: MatRef<'_, T>) -> (T, T, T) {
 	if u11.abs() <= smin {
 		u11 = smin.copy();
 	}
-	let ref u12 = tmp[LOCU12[ipiv]].copy();
-	let ref l21 = &tmp[LOCL21[ipiv]] / &u11;
+	let u12 = &tmp[LOCU12[ipiv]].copy();
+	let l21 = &(&tmp[LOCL21[ipiv]] / &u11);
 	let mut u22 = &tmp[LOCU22[ipiv]] - u12 * l21;
 	if u22.abs() <= smin {
 		u22 = smin.copy();
@@ -806,7 +812,7 @@ fn lasy2_12_21<T: RealField>(n1: usize, d: MatRef<'_, T>) -> (T, T, T) {
 		btmp[1] = &btmp[1] - l21 * &btmp[0];
 	}
 	let mut scale = one::<T>();
-	let ref two_smlnum = from_f64::<T>(2.0) * smlnum;
+	let two_smlnum = &(from_f64::<T>(2.0) * smlnum);
 	if two_smlnum * btmp[1].abs() > u22.abs()
 		|| two_smlnum * btmp[0].abs() > u11.abs()
 	{
@@ -841,15 +847,15 @@ fn larfg3<T: RealField>(alpha: T, x0: T, x1: T) -> (T, T, T) {
 /// result then overflows only if the reflected vector itself is not
 /// representable. Other vectors keep DLARFX's arithmetic bit for bit.
 fn larfx3_vec<T: RealField>(c: [&T; 3], v: &[T; 3], t: &[T; 3]) -> [T; 3] {
-	let ref sum = &v[0] * c[0] + &v[1] * c[1] + &v[2] * c[2];
+	let sum = &(&v[0] * c[0] + &v[1] * c[1] + &v[2] * c[2]);
 	let out = [c[0] - sum * &t[0], c[1] - sum * &t[1], c[2] - sum * &t[2]];
 	if out.iter().all(|x| x.is_finite()) || !c.iter().all(|x| x.is_finite()) {
 		return out;
 	}
-	let ref down = from_f64::<T>(0.125);
-	let ref up = from_f64::<T>(8.0);
+	let down = &from_f64::<T>(0.125);
+	let up = &from_f64::<T>(8.0);
 	let c = [c[0] * down, c[1] * down, c[2] * down];
-	let ref sum = &v[0] * &c[0] + &v[1] * &c[1] + &v[2] * &c[2];
+	let sum = &(&v[0] * &c[0] + &v[1] * &c[1] + &v[2] * &c[2]);
 	[
 		(&c[0] - sum * &t[0]) * up,
 		(&c[1] - sum * &t[1]) * up,
@@ -858,7 +864,7 @@ fn larfx3_vec<T: RealField>(c: [&T; 3], v: &[T; 3], t: &[T; 3]) -> [T; 3] {
 }
 /// LAPACK `dlarfx` with an order-3 reflector `I - tau v v^T` from the left.
 fn larfx3_left<T: RealField>(mut c: MatMut<'_, T>, v: &[T; 3], tau: &T) {
-	let ref t = [tau * &v[0], tau * &v[1], tau * &v[2]];
+	let t = &[tau * &v[0], tau * &v[1], tau * &v[2]];
 	for j in 0..c.ncols() {
 		let [c0, c1, c2] =
 			larfx3_vec([&c[(0, j)], &c[(1, j)], &c[(2, j)]], v, t);
@@ -869,7 +875,7 @@ fn larfx3_left<T: RealField>(mut c: MatMut<'_, T>, v: &[T; 3], tau: &T) {
 }
 /// LAPACK `dlarfx` with an order-3 reflector `I - tau v v^T` from the right.
 fn larfx3_right<T: RealField>(mut c: MatMut<'_, T>, v: &[T; 3], tau: &T) {
-	let ref t = [tau * &v[0], tau * &v[1], tau * &v[2]];
+	let t = &[tau * &v[0], tau * &v[1], tau * &v[2]];
 	for j in 0..c.nrows() {
 		let [c0, c1, c2] =
 			larfx3_vec([&c[(j, 0)], &c[(j, 1)], &c[(j, 2)]], v, t);
@@ -880,7 +886,7 @@ fn larfx3_right<T: RealField>(mut c: MatMut<'_, T>, v: &[T; 3], tau: &T) {
 }
 /// `dlaexc`'s acceptance threshold `max(10 eps |d|_max, safmin / eps)`.
 fn laexc_thresh<T: RealField>(d: MatRef<'_, T>) -> T {
-	let ref eps = eps::<T>();
+	let eps = &eps::<T>();
 	let mut dnorm = zero::<T>();
 	for j in 0..d.ncols() {
 		for i in 0..d.nrows() {
@@ -903,12 +909,12 @@ fn laexc_12<T: RealField>(
 	let (j1, j2) = (j0 + 1, j0 + 2);
 	stack_mat!(d, 3, 3, T);
 	d.copy_from(a.rb().submatrix(j0, j0, 3, 3));
-	let ref thresh = laexc_thresh(d.rb());
+	let thresh = &laexc_thresh(d.rb());
 	let (scale, x11, x12) = lasy2_12_21(1, d.rb());
 	// ( scale, x11, x12 ) H = ( 0, 0, * )
 	let (v0, v1, tau) = larfg3(x12, scale, x11);
-	let ref v = [v0, v1, one()];
-	let ref t11 = a[(j0, j0)].copy();
+	let v = &[v0, v1, one()];
+	let t11 = &a[(j0, j0)].copy();
 	larfx3_left(d.rb_mut(), v, &tau);
 	larfx3_right(d.rb_mut(), v, &tau);
 	let test = [d[(2, 0)].abs(), d[(2, 1)].abs(), (&d[(2, 2)] - t11).abs()];
@@ -936,12 +942,12 @@ fn laexc_21<T: RealField>(
 	let (j1, j2) = (j0 + 1, j0 + 2);
 	stack_mat!(d, 3, 3, T);
 	d.copy_from(a.rb().submatrix(j0, j0, 3, 3));
-	let ref thresh = laexc_thresh(d.rb());
+	let thresh = &laexc_thresh(d.rb());
 	let (scale, x11, x21) = lasy2_12_21(2, d.rb());
 	// H ( -x11, -x21, scale )^T = ( *, 0, 0 )^T
 	let (v1, v2, tau) = larfg3(-x11, -x21, scale);
-	let ref v = [one(), v1, v2];
-	let ref t33 = a[(j2, j2)].copy();
+	let v = &[one(), v1, v2];
+	let t33 = &a[(j2, j2)].copy();
 	larfx3_left(d.rb_mut(), v, &tau);
 	larfx3_right(d.rb_mut(), v, &tau);
 	let test = [d[(1, 0)].abs(), d[(2, 0)].abs(), (&d[(0, 0)] - t33).abs()];
@@ -1082,6 +1088,12 @@ pub(crate) fn schur_swap_checked<T: RealField>(
 	}
 	status
 }
+// The blocked (multishift) path inside is short-circuited on purpose: it arrived from upstream as
+// `if true || jw < params.blocking_threshold` (04ef63628, 2024-12-04) and upstream has shipped it
+// that way since, exactly like `ldlt/factor.rs`'s left-looking driver. The fork keeps it for update
+// parity, so the constant condition is allowed rather than removed.
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::overly_complex_bool_expr)] // both operands are kept as written: the constant records an upstream construction that is under review
 fn aggressive_early_deflation<T: RealField>(
 	want_t: bool,
 	mut a: MatMut<'_, T>,
@@ -1099,8 +1111,8 @@ fn aggressive_early_deflation<T: RealField>(
 	let epsilon = eps::<T>();
 	let zero_threshold = min_positive::<T>();
 	let nw_max = (n - 3) / 3;
-	let ref eps = epsilon;
-	let ref small_num = zero_threshold / eps * from_f64::<T>(n as f64);
+	let eps = &epsilon;
+	let small_num = &(zero_threshold / eps * from_f64::<T>(n as f64));
 	let jw = Ord::min(Ord::min(nw, ihi - ilo), nw_max);
 	let kwtop = ihi - jw;
 	let mut s_spike = if kwtop == ilo {
@@ -1184,7 +1196,7 @@ fn aggressive_early_deflation<T: RealField>(
 	let nd;
 	let mut ilst = infqr;
 	while ilst < ns {
-		let ref s_spike = s_spike;
+		let s_spike = &s_spike;
 		let mut bulge = false;
 		if ns > 1 && (tw[(ns - 1, ns - 2)] != zero()) {
 			bulge = true;
@@ -1245,7 +1257,11 @@ fn aggressive_early_deflation<T: RealField>(
 	};
 	// Size of the block starting at `i` when the window ends at `kend`.
 	let block = |tw: &MatMut<'_, T>, i: usize, kend: usize| -> usize {
-		if i >= kend || tw[(i + 1, i)] == zero() { 1 } else { 2 }
+		if i >= kend || tw[(i + 1, i)] == zero() {
+			1
+		} else {
+			2
+		}
 	};
 	let mut sorted = false;
 	let mut i = ns;
@@ -1313,7 +1329,7 @@ fn aggressive_early_deflation<T: RealField>(
 				make_householder_in_place(&mut head, tail);
 			let beta = head.copy();
 			vv[0] = one::<T>();
-			let ref tau = tau.recip();
+			let tau = &tau.recip();
 			{
 				let mut tw_slice = tw.rb_mut().submatrix_mut(0, 0, ns, jw);
 				let (mut tmp, _) = unsafe { temp_mat_uninit(jw, 1, stack) };
@@ -1504,11 +1520,11 @@ fn move_bulge<T: RealField>(
 	s1: (T, T),
 	s2: (T, T),
 ) {
-	let ref epsilon = eps::<T>();
-	let ref v0 = v[0].copy();
-	let ref v1 = v[1].copy();
-	let ref v2 = v[2].copy();
-	let ref refsum = v2.mul_real(v0) * &h[(3, 2)];
+	let epsilon = &eps::<T>();
+	let v0 = &v[0].copy();
+	let v1 = &v[1].copy();
+	let v2 = &v[2].copy();
+	let refsum = &(v2.mul_real(v0) * &h[(3, 2)]);
 	h[(3, 0)] = -refsum;
 	h[(3, 1)] = -refsum * v1;
 	h[(3, 2)] -= refsum * v2;
@@ -1534,10 +1550,10 @@ fn move_bulge<T: RealField>(
 		let HouseholderInfo { tau, .. } =
 			make_householder_in_place(&mut beta_unused, tail);
 		vt[0] = tau.recip();
-		let ref vt0 = vt[0].copy();
-		let ref vt1 = vt[1].copy();
-		let ref vt2 = vt[2].copy();
-		let ref refsum = vt0 * &h[(1, 0)] + vt1 * &h[(2, 0)];
+		let vt0 = &vt[0].copy();
+		let vt1 = &vt[1].copy();
+		let vt2 = &vt[2].copy();
+		let refsum = &(vt0 * &h[(1, 0)] + vt1 * &h[(2, 0)]);
 		if (&h[(2, 0)] - refsum * vt1).abs1() + (refsum * vt2).abs1()
 			> epsilon * (h[(0, 0)].abs1() + h[(1, 1)].abs1() + h[(2, 2)].abs1())
 		{
@@ -1554,6 +1570,7 @@ fn move_bulge<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn multishift_qr_sweep<T: RealField>(
 	want_t: bool,
 	a: MatMut<T>,
@@ -1660,6 +1677,7 @@ fn multishift_qr_sweep<T: RealField>(
 		par,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn introduce_bulges<T: RealField>(
 	ilo: usize,
@@ -1680,8 +1698,8 @@ fn introduce_bulges<T: RealField>(
 	mut parallelism: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T>();
-	let ref small_num = min_positive::<T>() / eps * from_f64::<T>(n as f64);
+	let eps = &eps::<T>();
+	let small_num = &(min_positive::<T>() / eps * from_f64::<T>(n as f64));
 	let n_block = Ord::min(n_block_desired, ihi - ilo);
 	let mut istart_m = ilo;
 	let mut istop_m = ilo + n_block;
@@ -1725,20 +1743,20 @@ fn introduce_bulges<T: RealField>(
 					(s2_re, s2_im),
 				);
 			}
-			let ref v0 = v[0].copy();
-			let ref v1 = v[1];
-			let ref v2 = v[2];
+			let v0 = &v[0].copy();
+			let v1 = &v[1];
+			let v2 = &v[2];
 			for j in istart_m..i_pos + 3 {
-				let ref sum = &a[(j, i_pos)]
+				let sum = &(&a[(j, i_pos)]
 					+ v1 * &a[(j, i_pos + 1)]
-					+ v2 * &a[(j, i_pos + 2)];
+					+ v2 * &a[(j, i_pos + 2)]);
 				a[(j, i_pos)] -= sum.mul_real(v0);
 				a[(j, i_pos + 1)] -= sum.mul_real(v0) * v1;
 				a[(j, i_pos + 2)] -= sum.mul_real(v0) * v2;
 			}
-			let ref sum = &a[(i_pos, i_pos)]
+			let sum = &(&a[(i_pos, i_pos)]
 				+ v1 * &a[(i_pos + 1, i_pos)]
-				+ v2 * &a[(i_pos + 2, i_pos)];
+				+ v2 * &a[(i_pos + 2, i_pos)]);
 			a[(i_pos, i_pos)] -= sum.mul_real(v0);
 			a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 			a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -1766,21 +1784,21 @@ fn introduce_bulges<T: RealField>(
 					}
 				}
 				if a[(i_pos, i_pos - 1)].abs1() < (eps * tst1).fmax(small_num) {
-					let ref ab = a[(i_pos, i_pos - 1)]
+					let ab = &a[(i_pos, i_pos - 1)]
 						.abs1()
 						.fmax(a[(i_pos - 1, i_pos)].abs1());
-					let ref ba = a[(i_pos, i_pos - 1)]
+					let ba = &a[(i_pos, i_pos - 1)]
 						.abs1()
 						.fmin(a[(i_pos - 1, i_pos)].abs1());
-					let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+					let aa = &a[(i_pos, i_pos)].abs1().fmax(
 						(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 							.abs1(),
 					);
-					let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+					let bb = &a[(i_pos, i_pos)].abs1().fmin(
 						(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 							.abs1(),
 					);
-					let ref s = aa + ab;
+					let s = &(aa + ab);
 					if (ba * (ab / s))
 						<= (eps * (bb * (aa / s))).fmax(small_num)
 					{
@@ -1792,13 +1810,13 @@ fn introduce_bulges<T: RealField>(
 		for i_bulge in 0..n_active_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].copy();
-			let ref v1 = v[1];
-			let ref v2 = v[2];
+			let v0 = &v[0].copy();
+			let v1 = &v[1];
+			let v2 = &v[2];
 			for j in i_pos + 1..istop_m {
-				let ref sum = &a[(i_pos, j)]
+				let sum = &(&a[(i_pos, j)]
 					+ v1 * &a[(i_pos + 1, j)]
-					+ v2 * &a[(i_pos + 2, j)];
+					+ v2 * &a[(i_pos + 2, j)]);
 				a[(i_pos, j)] -= sum.mul_real(v0);
 				a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -1807,18 +1825,18 @@ fn introduce_bulges<T: RealField>(
 		for i_bulge in 0..n_active_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].copy();
-			let ref v1 = v[1];
-			let ref v2 = v[2];
+			let v0 = &v[0].copy();
+			let v1 = &v[1];
+			let v2 = &v[2];
 			let i1 = 0;
 			let i2 = Ord::min(
 				u2.nrows(),
 				(i_pos_last - ilo) + (i_pos_last - ilo) + 3,
 			);
 			for j in i1..i2 {
-				let ref sum = &u2[(j, i_pos - ilo)]
+				let sum = &(&u2[(j, i_pos - ilo)]
 					+ v1 * &u2[(j, i_pos - ilo + 1)]
-					+ v2 * &u2[(j, i_pos - ilo + 2)];
+					+ v2 * &u2[(j, i_pos - ilo + 2)]);
 				u2[(j, i_pos - ilo)] -= sum.mul_real(v0);
 				u2[(j, i_pos - ilo + 1)] -= sum.mul_real(v0) * v1;
 				u2[(j, i_pos - ilo + 2)] -= sum.mul_real(v0) * v2;
@@ -1903,6 +1921,7 @@ fn introduce_bulges<T: RealField>(
 	}
 	*i_pos_block = ilo + n_block - n_shifts;
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn move_bulges_down<T: RealField>(
 	ilo: usize,
@@ -1923,8 +1942,8 @@ fn move_bulges_down<T: RealField>(
 	mut parallelism: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T>();
-	let ref small_num = min_positive::<T>() / eps * from_f64::<T>(n as f64);
+	let eps = &eps::<T>();
+	let small_num = &(min_positive::<T>() / eps * from_f64::<T>(n as f64));
 	while *i_pos_block + n_block_desired < ihi {
 		let n_pos = Ord::min(
 			n_block_desired - n_shifts,
@@ -1954,20 +1973,20 @@ fn move_bulges_down<T: RealField>(
 					(s1_re, s1_im),
 					(s2_re, s2_im),
 				);
-				let ref v0 = v[0].copy();
-				let ref v1 = v[1];
-				let ref v2 = v[2];
+				let v0 = &v[0].copy();
+				let v1 = &v[1];
+				let v2 = &v[2];
 				for j in istart_m..i_pos + 3 {
-					let ref sum = &a[(j, i_pos)]
+					let sum = &(&a[(j, i_pos)]
 						+ v1 * &a[(j, i_pos + 1)]
-						+ v2 * &a[(j, i_pos + 2)];
+						+ v2 * &a[(j, i_pos + 2)]);
 					a[(j, i_pos)] -= sum.mul_real(v0);
 					a[(j, i_pos + 1)] -= sum.mul_real(v0) * v1;
 					a[(j, i_pos + 2)] -= sum.mul_real(v0) * v2;
 				}
-				let ref sum = &a[(i_pos, i_pos)]
+				let sum = &(&a[(i_pos, i_pos)]
 					+ v1 * &a[(i_pos + 1, i_pos)]
-					+ v2 * &a[(i_pos + 2, i_pos)];
+					+ v2 * &a[(i_pos + 2, i_pos)]);
 				a[(i_pos, i_pos)] -= sum.mul_real(v0);
 				a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -1997,21 +2016,21 @@ fn move_bulges_down<T: RealField>(
 					if a[(i_pos, i_pos - 1)].abs1()
 						< (eps * tst1).fmax(small_num)
 					{
-						let ref ab = a[(i_pos, i_pos - 1)]
+						let ab = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmax(a[(i_pos - 1, i_pos)].abs1());
-						let ref ba = a[(i_pos, i_pos - 1)]
+						let ba = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmin(a[(i_pos - 1, i_pos)].abs1());
-						let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+						let aa = &a[(i_pos, i_pos)].abs1().fmax(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+						let bb = &a[(i_pos, i_pos)].abs1().fmin(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref s = aa + ab;
+						let s = &(aa + ab);
 						if (ba * (ab / s))
 							<= (eps * (bb * (aa / s))).fmax(small_num)
 						{
@@ -2023,13 +2042,13 @@ fn move_bulges_down<T: RealField>(
 			for i_bulge in 0..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].copy();
-				let ref v1 = v[1];
-				let ref v2 = v[2];
+				let v0 = &v[0].copy();
+				let v1 = &v[1];
+				let v2 = &v[2];
 				for j in i_pos + 1..istop_m {
-					let ref sum = &a[(i_pos, j)]
+					let sum = &(&a[(i_pos, j)]
 						+ v1 * &a[(i_pos + 1, j)]
-						+ v2 * &a[(i_pos + 2, j)];
+						+ v2 * &a[(i_pos + 2, j)]);
 					a[(i_pos, j)] -= sum.mul_real(v0);
 					a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 					a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -2038,9 +2057,9 @@ fn move_bulges_down<T: RealField>(
 			for i_bulge in 0..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].copy();
-				let ref v1 = v[1];
-				let ref v2 = v[2];
+				let v0 = &v[0].copy();
+				let v1 = &v[1];
+				let v2 = &v[2];
 				let i1 = (i_pos - *i_pos_block)
 					- (i_pos_last + 2 - *i_pos_block - n_shifts);
 				let i2 = Ord::min(
@@ -2050,9 +2069,9 @@ fn move_bulges_down<T: RealField>(
 						+ 3,
 				);
 				for j in i1..i2 {
-					let ref sum = &u2[(j, i_pos - *i_pos_block)]
+					let sum = &(&u2[(j, i_pos - *i_pos_block)]
 						+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]
-						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)];
+						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)]);
 					u2[(j, i_pos - *i_pos_block)] -= sum.mul_real(v0);
 					u2[(j, i_pos - *i_pos_block + 1)] -= sum.mul_real(v0) * v1;
 					u2[(j, i_pos - *i_pos_block + 2)] -= sum.mul_real(v0) * v2;
@@ -2141,6 +2160,7 @@ fn move_bulges_down<T: RealField>(
 		*i_pos_block += n_pos;
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn remove_bulges<T: RealField>(
 	ilo: usize,
@@ -2160,8 +2180,8 @@ fn remove_bulges<T: RealField>(
 	mut parallelism: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T>();
-	let ref small_num = min_positive::<T>() / eps * from_f64::<T>(n as f64);
+	let eps = &eps::<T>();
+	let small_num = &(min_positive::<T>() / eps * from_f64::<T>(n as f64));
 	{
 		let n_block = ihi - *i_pos_block;
 		let mut u2 = u.rb_mut().submatrix_mut(0, 0, n_block, n_block);
@@ -2189,22 +2209,22 @@ fn remove_bulges<T: RealField>(
 					v[1] = h[1].copy();
 					h[0] = beta;
 					h[1] = zero();
-					let ref t0 = v[0];
-					let ref v1 = v[1];
-					let ref t1 = t0 * v1;
+					let t0 = &v[0];
+					let v1 = &v[1];
+					let t1 = &(t0 * v1);
 					for j in istart_m..i_pos + 2 {
-						let ref sum = &a[(j, i_pos)] + v1 * &a[(j, i_pos + 1)];
+						let sum = &(&a[(j, i_pos)] + v1 * &a[(j, i_pos + 1)]);
 						a[(j, i_pos)] -= sum * t0;
 						a[(j, i_pos + 1)] -= sum * t1;
 					}
 					for j in i_pos..istop_m {
-						let ref sum = &a[(i_pos, j)] + v1 * &a[(i_pos + 1, j)];
+						let sum = &(&a[(i_pos, j)] + v1 * &a[(i_pos + 1, j)]);
 						a[(i_pos, j)] -= sum * t0;
 						a[(i_pos + 1, j)] -= sum * t1;
 					}
 					for j in 0..u2.nrows() {
-						let ref sum = &u2[(j, i_pos - *i_pos_block)]
-							+ v1 * &u2[(j, i_pos - *i_pos_block + 1)];
+						let sum = &(&u2[(j, i_pos - *i_pos_block)]
+							+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]);
 						u2[(j, i_pos - *i_pos_block)] -= sum * t0;
 						u2[(j, i_pos - *i_pos_block + 1)] -= sum * t1;
 					}
@@ -2223,26 +2243,26 @@ fn remove_bulges<T: RealField>(
 						(s2_re, s2_im),
 					);
 					{
-						let ref t0 = v[0];
-						let ref v1 = v[1];
-						let ref t1 = t0 * v1;
-						let ref v2 = v[2];
-						let ref t2 = t0 * v2;
+						let t0 = &v[0];
+						let v1 = &v[1];
+						let t1 = &(t0 * v1);
+						let v2 = &v[2];
+						let t2 = &(t0 * v2);
 						for j in istart_m..i_pos + 3 {
-							let ref sum = &a[(j, i_pos)]
+							let sum = &(&a[(j, i_pos)]
 								+ v1 * &a[(j, i_pos + 1)]
-								+ v2 * &a[(j, i_pos + 2)];
+								+ v2 * &a[(j, i_pos + 2)]);
 							a[(j, i_pos)] -= sum * t0;
 							a[(j, i_pos + 1)] -= sum * t1;
 							a[(j, i_pos + 2)] -= sum * t2;
 						}
 					}
-					let ref v0 = v[0].copy();
-					let ref v1 = v[1];
-					let ref v2 = v[2];
-					let ref sum = &a[(i_pos, i_pos)]
+					let v0 = &v[0].copy();
+					let v1 = &v[1];
+					let v2 = &v[2];
+					let sum = &(&a[(i_pos, i_pos)]
 						+ v1 * &a[(i_pos + 1, i_pos)]
-						+ v2 * &a[(i_pos + 2, i_pos)];
+						+ v2 * &a[(i_pos + 2, i_pos)]);
 					a[(i_pos, i_pos)] -= sum.mul_real(v0);
 					a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 					a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -2272,23 +2292,23 @@ fn remove_bulges<T: RealField>(
 						if a[(i_pos, i_pos - 1)].abs1()
 							< (eps * tst1).fmax(small_num)
 						{
-							let ref ab = a[(i_pos, i_pos - 1)]
+							let ab = &a[(i_pos, i_pos - 1)]
 								.abs1()
 								.fmax(a[(i_pos - 1, i_pos)].abs1());
-							let ref ba = a[(i_pos, i_pos - 1)]
+							let ba = &a[(i_pos, i_pos - 1)]
 								.abs1()
 								.fmin(a[(i_pos - 1, i_pos)].abs1());
-							let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+							let aa = &a[(i_pos, i_pos)].abs1().fmax(
 								(&a[(i_pos, i_pos)]
 									- &a[(i_pos - 1, i_pos - 1)])
 									.abs1(),
 							);
-							let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+							let bb = &a[(i_pos, i_pos)].abs1().fmin(
 								(&a[(i_pos, i_pos)]
 									- &a[(i_pos - 1, i_pos - 1)])
 									.abs1(),
 							);
-							let ref s = aa + ab;
+							let s = &(aa + ab);
 							if (ba * (ab / s))
 								<= (eps * (bb * (aa / s))).fmax(small_num)
 							{
@@ -2306,13 +2326,13 @@ fn remove_bulges<T: RealField>(
 			for i_bulge in i_bulge_start..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].copy();
-				let ref v1 = v[1];
-				let ref v2 = v[2];
+				let v0 = &v[0].copy();
+				let v1 = &v[1];
+				let v2 = &v[2];
 				for j in i_pos + 1..istop_m {
-					let ref sum = &a[(i_pos, j)]
+					let sum = &(&a[(i_pos, j)]
 						+ v1 * &a[(i_pos + 1, j)]
-						+ v2 * &a[(i_pos + 2, j)];
+						+ v2 * &a[(i_pos + 2, j)]);
 					a[(i_pos, j)] -= sum.mul_real(v0);
 					a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 					a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -2321,9 +2341,9 @@ fn remove_bulges<T: RealField>(
 			for i_bulge in i_bulge_start..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].copy();
-				let ref v1 = v[1];
-				let ref v2 = v[2];
+				let v0 = &v[0].copy();
+				let v1 = &v[1];
+				let v2 = &v[2];
 				let i1 = (i_pos - *i_pos_block)
 					- (i_pos_last + 2 - *i_pos_block - n_shifts);
 				let i2 = Ord::min(
@@ -2333,9 +2353,9 @@ fn remove_bulges<T: RealField>(
 						+ 3,
 				);
 				for j in i1..i2 {
-					let ref sum = &u2[(j, i_pos - *i_pos_block)]
+					let sum = &(&u2[(j, i_pos - *i_pos_block)]
 						+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]
-						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)];
+						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)]);
 					u2[(j, i_pos - *i_pos_block)] -= sum.mul_real(v0);
 					u2[(j, i_pos - *i_pos_block + 1)] -= sum.mul_real(v0) * v1;
 					u2[(j, i_pos - *i_pos_block + 2)] -= sum.mul_real(v0) * v2;
@@ -2424,6 +2444,7 @@ fn remove_bulges<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub fn multishift_qr<T: RealField>(
 	want_t: bool,
 	a: MatMut<'_, T>,
@@ -2453,8 +2474,8 @@ pub fn multishift_qr<T: RealField>(
 	let mut stack = stack;
 	let non_convergence_limit_window = 5;
 	let non_convergence_limit_shift = 6;
-	let ref dat1 = from_f64::<T>(0.75);
-	let ref dat2 = from_f64::<T>(-0.4375);
+	let dat1 = &from_f64::<T>(0.75);
+	let dat2 = &from_f64::<T>(-0.4375);
 	let nmin = Ord::max(15, params.blocking_threshold);
 	let nibble = params.nibble_threshold;
 	let nsr = (params.recommended_shift_count)(n, nh);
@@ -2550,8 +2571,7 @@ pub fn multishift_qr<T: RealField>(
 		if k_defl % non_convergence_limit_shift == 0 {
 			for i in (i_shifts + 1..istop).rev().step_by(2) {
 				if i >= ilo + 2 {
-					let ref ss =
-						a[(i, i - 1)].abs1() + a[(i - 1, i - 2)].abs1();
+					let ss = &(a[(i, i - 1)].abs1() + a[(i - 1, i - 2)].abs1());
 					let aa = dat1 * ss + &a[(i, i)];
 					let bb = ss.copy();
 					let cc = dat2 * ss;
@@ -2582,7 +2602,7 @@ pub fn multishift_qr<T: RealField>(
 					0,
 					ns,
 				) as usize;
-				ns = ns - ierr;
+				ns -= ierr;
 				if ns < 2 {
 					let aa = a[(istop - 2, istop - 2)].copy();
 					let bb = a[(istop - 2, istop - 1)].copy();
@@ -2687,12 +2707,12 @@ pub fn lahqr<T: RealField>(
 	let mut z = z;
 	let mut w_re = w_re;
 	let mut w_im = w_im;
-	let ref one = one::<T>();
-	let ref eps = epsilon;
-	let ref small_num = zero_threshold / eps;
+	let one = &one::<T>();
+	let eps = &epsilon;
+	let small_num = &(zero_threshold / eps);
 	let non_convergence_limit = 10;
-	let ref dat1 = from_f64::<T>(0.75);
-	let ref dat2 = from_f64::<T>(-0.4375);
+	let dat1 = &from_f64::<T>(0.75);
+	let dat2 = &from_f64::<T>(-0.4375);
 	if nh == 0 {
 		return 0;
 	}
@@ -2735,22 +2755,22 @@ pub fn lahqr<T: RealField>(
 			let mut tst = a[(i - 1, i - 1)].abs() + a[(i, i)].abs();
 			if tst == zero() {
 				if i >= ilo + 2 {
-					tst = tst + a[(i - 1, i - 2)].abs();
+					tst += a[(i - 1, i - 2)].abs();
 				}
 				if i + 1 < ihi {
-					tst = tst + a[(i + 1, i)].abs();
+					tst += a[(i + 1, i)].abs();
 				}
 			}
 			if a[(i, i - 1)].abs() <= (eps * tst) {
-				let ref ab = a[(i, i - 1)].abs().fmax(a[(i - 1, i)].abs());
-				let ref ba = a[(i, i - 1)].abs().fmin(a[(i - 1, i)].abs());
-				let ref aa = a[(i, i)]
+				let ab = &a[(i, i - 1)].abs().fmax(a[(i - 1, i)].abs());
+				let ba = &a[(i, i - 1)].abs().fmin(a[(i - 1, i)].abs());
+				let aa = &a[(i, i)]
 					.abs()
 					.fmax((&a[(i, i)] - &a[(i - 1, i - 1)]).abs());
-				let ref bb = a[(i, i)]
+				let bb = &a[(i, i)]
 					.abs()
 					.fmin((&a[(i, i)] - &a[(i - 1, i - 1)]).abs());
-				let ref s = aa + ab;
+				let s = &(aa + ab);
 				if ba * (ab / s) <= (eps * (bb * (aa / s))).fmax(small_num) {
 					a[(i, i - 1)] = zero();
 					istart = i;
@@ -2816,10 +2836,10 @@ pub fn lahqr<T: RealField>(
 		}
 		let (a00, a01, a10, a11);
 		k_defl += 1;
-		if k_defl % non_convergence_limit == 0 {
+		if k_defl.is_multiple_of(non_convergence_limit) {
 			let mut s = a[(istop - 1, istop - 2)].abs();
 			if istop > ilo + 2 {
-				s = s + a[(istop - 2, istop - 3)].abs();
+				s += a[(istop - 2, istop - 3)].abs();
 			}
 			a00 = dat1 * &s + &a[(istop - 1, istop - 1)];
 			a01 = dat2 * &s;
@@ -2856,11 +2876,11 @@ pub fn lahqr<T: RealField>(
 					&mut head,
 					v.rb_mut().subrows_mut(1, 2),
 				);
-				let ref tau = tau.recip();
-				let ref v0 = *tau;
-				let ref v1 = v[1];
-				let ref v2 = v[2];
-				let ref refsum = v0 * &a[(i, i - 1)] + v1 * &a[(i + 1, i - 1)];
+				let tau = &tau.recip();
+				let v0 = tau;
+				let v1 = &v[1];
+				let v2 = &v[2];
+				let refsum = &(v0 * &a[(i, i - 1)] + v1 * &a[(i + 1, i - 1)]);
 				if (&a[(i + 1, i - 1)] - refsum * v1).abs()
 					+ (refsum * v2).abs()
 					<= eps
@@ -2911,31 +2931,33 @@ pub fn lahqr<T: RealField>(
 					a[(i + 2, i - 1)] = zero();
 				}
 			}
-			let ref t1 = t1;
-			let ref v2 = v[1];
-			let ref t2 = t1 * v2;
+			let t1 = &t1;
+			let v2 = &v[1];
+			let t2 = &(t1 * v2);
 			if nr == 3 {
-				let ref v3 = v[2];
-				let ref t3 = t1 * v3;
+				let v3 = &v[2];
+				let t3 = &(t1 * v3);
 				for j in i..istop_m {
-					let ref sum =
-						&a[(i, j)] + v2 * &a[(i + 1, j)] + v3 * &a[(i + 2, j)];
+					let sum = &(&a[(i, j)]
+						+ v2 * &a[(i + 1, j)]
+						+ v3 * &a[(i + 2, j)]);
 					a[(i, j)] -= sum * t1;
 					a[(i + 1, j)] -= sum * t2;
 					a[(i + 2, j)] -= sum * t3;
 				}
 				for j in istart_m..Ord::min(i + 4, istop) {
-					let ref sum =
-						&a[(j, i)] + v2 * &a[(j, i + 1)] + v3 * &a[(j, i + 2)];
+					let sum = &(&a[(j, i)]
+						+ v2 * &a[(j, i + 1)]
+						+ v3 * &a[(j, i + 2)]);
 					a[(j, i)] -= sum * t1;
 					a[(j, i + 1)] -= sum * t2;
 					a[(j, i + 2)] -= sum * t3;
 				}
 				if let Some(mut z) = z.rb_mut() {
 					for j in 0..n {
-						let ref sum = &z[(j, i)]
+						let sum = &(&z[(j, i)]
 							+ v2 * &z[(j, i + 1)] + v3
-							* &z[(j, i + 2)];
+							* &z[(j, i + 2)]);
 						z[(j, i)] -= sum * t1;
 						z[(j, i + 1)] -= sum * t2;
 						z[(j, i + 2)] -= sum * t3;
@@ -2943,18 +2965,18 @@ pub fn lahqr<T: RealField>(
 				}
 			} else {
 				for j in i..istop_m {
-					let ref sum = &a[(i, j)] + v2 * &a[(i + 1, j)];
+					let sum = &(&a[(i, j)] + v2 * &a[(i + 1, j)]);
 					a[(i, j)] -= sum * t1;
 					a[(i + 1, j)] -= sum * t2;
 				}
 				for j in istart_m..Ord::min(i + 3, istop) {
-					let ref sum = &a[(j, i)] + v2 * &a[(j, i + 1)];
+					let sum = &(&a[(j, i)] + v2 * &a[(j, i + 1)]);
 					a[(j, i)] -= sum * t1;
 					a[(j, i + 1)] -= sum * t2;
 				}
 				if let Some(mut z) = z.rb_mut() {
 					for j in 0..n {
-						let ref sum = &z[(j, i)] + v2 * &z[(j, i + 1)];
+						let sum = &(&z[(j, i)] + v2 * &z[(j, i + 1)]);
 						z[(j, i)] -= sum * t1;
 						z[(j, i + 1)] -= sum * t2;
 					}
@@ -3160,7 +3182,8 @@ mod tests {
 							assert!(
 								c2 == 0.0
 									|| (a2 == d2
-										&& b2 != 0.0 && (b2 > 0.0) != (c2 > 0.0)),
+										&& b2 != 0.0 && (b2 > 0.0)
+										!= (c2 > 0.0)),
 								"({a:e}, {b:e}, {c:e}, {d:e}) -> \
 								 ({a2:e}, {b2:e}, {c2:e}, {d2:e})"
 							);
@@ -3410,14 +3433,14 @@ mod tests {
 				wr.as_mut(),
 				wi.as_mut(),
 				Par::Seq,
-				MemStack::new(&mut MemBuffer::new(
-					hessenberg_schur_scratch::<f32>(
-						n,
-						true,
-						ParShape::Seq,
-						Default::default(),
-					),
-				)),
+				MemStack::new(&mut MemBuffer::new(hessenberg_schur_scratch::<
+					f32,
+				>(
+					n,
+					true,
+					ParShape::Seq,
+					Default::default(),
+				))),
 				Default::default(),
 			)
 			.unwrap();
@@ -3439,14 +3462,19 @@ mod tests {
 				let (residual, norm, orthogonality) = recv
 					.recv_timeout(Duration::from_secs(120))
 					.unwrap_or_else(|_| {
-						panic!("n = {n}, 2^{exponent}: real Schur did not finish")
+						panic!(
+							"n = {n}, 2^{exponent}: real Schur did not finish"
+						)
 					});
 				let bound = if exponent == -100 {
 					smlnum
 				} else {
 					10.0 * n_eps * norm
 				};
-				assert!(residual <= bound, "n = {n}, 2^{exponent}: residual {residual}, bound {bound}");
+				assert!(
+					residual <= bound,
+					"n = {n}, 2^{exponent}: residual {residual}, bound {bound}"
+				);
 				assert!(
 					orthogonality <= 10.0 * n_eps,
 					"n = {n}, 2^{exponent}: orthogonality {orthogonality}"

@@ -1,8 +1,8 @@
 use super::*;
 use crate::utils::bound::{Array, Dim, Partition};
 use crate::{ContiguousFwd, Idx, IdxInc};
-use equator::{assert, debug_assert};
 use colmat_traits::Real;
+use equator::{assert, debug_assert};
 /// see [`super::RowRef`]
 pub struct Ref<'a, T, Cols = usize, CStride = isize> {
 	pub(crate) trans: ColRef<'a, T, Cols, CStride>,
@@ -69,7 +69,7 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowRef<'a, T, Cols, CStride> {
 	/// creates a `RowRef` from pointers to the column vector data, number of
 	/// rows, and row stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatRef::from_raw_parts(ptr, 1, ncols, 0, col_stride)`]
 	#[inline(always)]
@@ -79,11 +79,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowRef<'a, T, Cols, CStride> {
 		ncols: Cols,
 		col_stride: CStride,
 	) -> Self {
-		Self {
-			0: Ref {
-				trans: ColRef::from_raw_parts(ptr, ncols, col_stride),
-			},
-		}
+		Self(Ref {
+			trans: ColRef::from_raw_parts(ptr, ncols, col_stride),
+		})
 	}
 
 	/// returns a pointer to the row data
@@ -137,7 +135,7 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowRef<'a, T, Cols, CStride> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the row bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `col < self.ncols()`
@@ -250,6 +248,9 @@ impl<'a, T, Cols: Shape, CStride: Stride> RowRef<'a, T, Cols, CStride> {
 		<RowRef<'a, T, Cols, CStride> as RowIndex<ColRange>>::get(self, col)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	/// returns a reference to the element at the given index, or a subrow if
 	/// `col` is a range, without bound checks
 	///

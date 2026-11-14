@@ -189,7 +189,7 @@ impl<I: Index, T: ComplexField> Llt<I, T> {
 }
 impl<I: Index, T: ComplexField> Lu<I, T> {
 	/// Borrows the saved numeric factors and their symbolic owner.
-
+	///
 	/// # Examples
 	/// ```
 	/// use colmat::{Par, sparse::{SparseColMat, Triplet}};

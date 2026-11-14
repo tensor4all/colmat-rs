@@ -3,6 +3,9 @@ use crate::internal_prelude::*;
 use crate::linalg::matmul::internal::*;
 use linalg::matmul::triangular::BlockStructure;
 use pulp::Simd;
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::neg_cmp_op_on_partial_ord)]
+// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 #[inline(always)]
 fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 	simd: T::SimdCtx<S>,
@@ -44,7 +47,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 						let Ak = A10.col(k);
 						let D = D[k].real();
 						let D = if is_llt { one() } else { D };
-						let Ajk = simd.splat(&A_0[(j, k)].conj().mul_real(-D));
+						let Ajk = simd.splat(A_0[(j, k)].conj().mul_real(-D));
 						let Aik = simd.read(Ak, idx_tail);
 						Aij = simd.mul_add(Ajk, Aik, Aij);
 					}
@@ -57,7 +60,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 						let Ak = A10.col(k);
 						let D = D[k].real();
 						let D = if is_llt { one() } else { D };
-						let Ajk = simd.splat(&A_0[(j, k)].conj().mul_real(-D));
+						let Ajk = simd.splat(A_0[(j, k)].conj().mul_real(-D));
 						let A0k = simd.read(Ak, i0);
 						let Aik = simd.read(Ak, idx_tail);
 						A0j = simd.mul_add(Ajk, A0k, A0j);
@@ -74,7 +77,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 						let Ak = A10.col(k);
 						let D = D[k].real();
 						let D = if is_llt { one() } else { D };
-						let Ajk = simd.splat(&A_0[(j, k)].conj().mul_real(-D));
+						let Ajk = simd.splat(A_0[(j, k)].conj().mul_real(-D));
 						let A0k = simd.read(Ak, i0);
 						let A1k = simd.read(Ak, i1);
 						let Aik = simd.read(Ak, idx_tail);
@@ -95,7 +98,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 						let Ak = A10.col(k);
 						let D = D[k].real();
 						let D = if is_llt { one() } else { D };
-						let Ajk = simd.splat(&A_0[(j, k)].conj().mul_real(-D));
+						let Ajk = simd.splat(A_0[(j, k)].conj().mul_real(-D));
 						let A0k = simd.read(Ak, i0);
 						let A1k = simd.read(Ak, i1);
 						let A2k = simd.read(Ak, i2);
@@ -142,7 +145,6 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 					}
 				}
 			}
-			let j = j;
 			let diag = if is_llt {
 				if !(diag > zero()) {
 					*D = diag.to_cplx();
@@ -160,7 +162,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 		let diag = D.real();
 		{
 			let mut Aj = Aj.rb_mut();
-			let inv = simd.splat_real(&diag.recip());
+			let inv = simd.splat_real(diag.recip());
 			for i in indices.clone() {
 				let mut Aij = simd.read(Aj.rb(), i);
 				Aij = simd.mul_real(Aij, inv);
@@ -175,6 +177,7 @@ fn simd_cholesky_row_batch<'N, T: ComplexField, S: Simd>(
 	}
 	Ok(count)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(always)]
 fn simd_cholesky_matrix<T: ComplexField, S: Simd>(
 	simd: T::SimdCtx<S>,
@@ -296,6 +299,7 @@ fn simd_cholesky<T: ComplexField>(
 		)
 	}
 }
+#[allow(clippy::neg_cmp_op_on_partial_ord)] // a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 fn cholesky_fallback<T: ComplexField>(
 	A: MatMut<'_, T>,
 	D: RowMut<'_, T>,
@@ -315,7 +319,7 @@ fn cholesky_fallback<T: ComplexField>(
 			for k in 0..j {
 				let D = D[k].real();
 				let D = if is_llt { one() } else { D };
-				sum = sum + A[(j, k)].conj() * A[(i, k)].mul_real(D);
+				sum += A[(j, k)].conj() * A[(i, k)].mul_real(D);
 			}
 			A[(i, j)] = &A[(i, j)] - sum;
 		}
@@ -364,6 +368,7 @@ fn cholesky_fallback<T: ComplexField>(
 	}
 	Ok(count)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub(crate) fn cholesky_recursion_right_looking<T: ComplexField>(
 	A: MatMut<'_, T>,
 	D: RowMut<'_, T>,
@@ -496,6 +501,7 @@ pub(crate) fn cholesky_recursion_right_looking<T: ComplexField>(
 		Ok(count)
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub(crate) fn cholesky_block_left_looking<T: ComplexField>(
 	A: MatMut<'_, T>,
 	D: RowMut<'_, T>,
@@ -535,6 +541,10 @@ pub(crate) fn cholesky_block_left_looking<T: ComplexField>(
 	// it either: the only test that reaches a factorization of `n >= block_size` compares a team
 	// against `Par::Seq` through this same driver, so no test would notice a broken left-looking
 	// branch. Keep the right-looking recursion until someone has both a reason and numbers.
+	// The dead branch is the point, so the constant condition is allowed here rather than removed.
+	#[allow(clippy::overly_complex_bool_expr)]
+	// both operands are kept as written: the constant records an upstream construction that is under review
+	// both operands are kept as written: the constant records an upstream construction that is under review
 	if true || n < right_looking_threshold {
 		cholesky(A, D, signs, par)
 	} else {
@@ -757,9 +767,7 @@ pub fn cholesky_in_place<T: ComplexField>(
 			&& regularization.dynamic_regularization_epsilon > zero(),
 		&regularization.dynamic_regularization_epsilon,
 		&regularization.dynamic_regularization_delta,
-		regularization
-			.dynamic_regularization_signs
-			.map(|signs| signs),
+		regularization.dynamic_regularization_signs,
 		par,
 	) {
 		Ok(count) => Ok(LdltInfo {
@@ -803,7 +811,7 @@ mod tests {
 						),
 					}
 					.rand::<Mat<c64>>(rng);
-					let A = &A * &A.adjoint();
+					let A = &A * A.adjoint();
 					let A = A.as_ref().as_shape(n, n);
 					let mut L = A.cloned();
 					let mut L = L.as_mut();
@@ -844,7 +852,7 @@ mod tests {
 					),
 				}
 				.rand::<Mat<c64>>(rng);
-				let A = &A * &A.adjoint();
+				let A = &A * A.adjoint();
 				let A = A.as_ref();
 				let mut L = A.cloned();
 				let mut L = L.as_mut();

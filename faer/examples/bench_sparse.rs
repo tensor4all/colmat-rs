@@ -1,24 +1,35 @@
 #![allow(non_snake_case, dead_code)]
-use curl::easy::Easy;
-use diol::prelude::*;
-use colmat::{Par, Side};
 use colmat::reborrow::*;
 use colmat::sparse::*;
+use colmat::{Par, Side};
+use curl::easy::Easy;
+use diol::prelude::*;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::sync::LazyLock;
 #[cfg(suitesparse)]
 use suitesparse_sys::*;
-static MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(
-	|| {
+static MAP: LazyLock<HashMap<&'static str, &'static str>> =
+	LazyLock::new(|| {
 		HashMap::from([
-		("nd24k", "http://sparse-files.engr.tamu.edu/MM/ND/nd24k.tar.gz"),
-		("nd3k", "http://sparse-files.engr.tamu.edu/MM/ND/nd3k.tar.gz"),
-		("af shell7", "http://sparse-files.engr.tamu.edu/MM/Schenk_AFE/af_shell7.tar.gz"),
-		("G3 circuit", "http://sparse-files.engr.tamu.edu/MM/AMD/G3_circuit.tar.gz"),
-	])
-	},
-);
+			(
+				"nd24k",
+				"http://sparse-files.engr.tamu.edu/MM/ND/nd24k.tar.gz",
+			),
+			(
+				"nd3k",
+				"http://sparse-files.engr.tamu.edu/MM/ND/nd3k.tar.gz",
+			),
+			(
+				"af shell7",
+				"http://sparse-files.engr.tamu.edu/MM/Schenk_AFE/af_shell7.tar.gz",
+			),
+			(
+				"G3 circuit",
+				"http://sparse-files.engr.tamu.edu/MM/AMD/G3_circuit.tar.gz",
+			),
+		])
+	});
 fn download(name: &str, sym: bool) -> SparseColMat<usize, f64> {
 	let url = MAP[name];
 	let mut dst = Vec::new();

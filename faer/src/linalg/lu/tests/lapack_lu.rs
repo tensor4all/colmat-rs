@@ -242,7 +242,7 @@ fn lu_case(
 						30.0,
 					);
 				}
-				if m == n && (5..=8).contains(&kind) || m == n && kind == 1 {
+				if !(m != n || !(5..=8).contains(&kind) && kind != 1) {
 					let want = known_solution(n, 3);
 					for mode in 0..3 {
 						let op = op(input.as_ref(), mode);

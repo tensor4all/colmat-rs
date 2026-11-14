@@ -64,7 +64,7 @@ impl<'a, T, Dim: Shape, Stride: crate::Stride> DiagRef<'a, T, Dim, Stride> {
 	/// creates a `DiagRef` from pointers to the diagonal data, dimension, and
 	/// stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatRef::from_raw_parts(ptr, dim, 1, stride, 0)`]
 	#[inline(always)]
@@ -74,11 +74,9 @@ impl<'a, T, Dim: Shape, Stride: crate::Stride> DiagRef<'a, T, Dim, Stride> {
 		dim: Dim,
 		stride: Stride,
 	) -> Self {
-		Self {
-			0: Ref {
-				inner: ColRef::from_raw_parts(ptr, dim, stride),
-			},
-		}
+		Self(Ref {
+			inner: ColRef::from_raw_parts(ptr, dim, stride),
+		})
 	}
 
 	/// returns the stride of the diagonal, specified in number of elements, not

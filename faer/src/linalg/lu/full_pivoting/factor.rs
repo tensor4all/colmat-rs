@@ -1,6 +1,6 @@
 use crate::internal_prelude::*;
-use crate::utils::cost::{ParThreshold, rate};
 use crate::perm::{swap_cols_idx, swap_rows_idx};
+use crate::utils::cost::{ParThreshold, rate};
 use crate::utils::thread::par_split_indices;
 use crate::utils::thread::with_width;
 use colmat_traits::{Real, RealReg};
@@ -45,6 +45,7 @@ fn best_score<T: ComplexField, S: Simd>(
 		simd.iselect(is_better, indices, best_indices),
 	)
 }
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 #[inline(always)]
 fn best_score_2d<T: ComplexField, S: Simd>(
 	simd: &SimdCtx<T, S>,
@@ -191,6 +192,8 @@ fn best_in_mat_simd<T: ComplexField>(
 			let simd = SimdCtx::<'_, T, S>::new(T::simd_ctx(simd), M);
 			let mut best_row = simd.isplat(T::Index::truncate(0));
 			let mut best_col = simd.isplat(T::Index::truncate(0));
+			#[allow(clippy::needless_borrows_for_generic_args)]
+			// `ByRef` covers `T` and `&T`; the borrow is the type hint
 			let mut best_val = simd.splat_real(&zero());
 			for j in N.indices() {
 				let col = data.col(j);
@@ -248,6 +251,8 @@ fn update_and_best_in_mat_simd<T: ComplexField>(
 				SimdCtx::<'_, T, S>::new_align(T::simd_ctx(simd), M, align);
 			let mut best_row = simd.isplat(T::Index::truncate(0));
 			let mut best_col = simd.isplat(T::Index::truncate(0));
+			#[allow(clippy::needless_borrows_for_generic_args)]
+			// `ByRef` covers `T` and `&T`; the borrow is the type hint
 			let mut best_val = simd.splat_real(&zero());
 			let mut data = data;
 			for j in N.indices() {
@@ -425,7 +430,7 @@ fn lu_in_place_unblocked<T: ComplexField>(
 			swap_cols_idx(A.rb_mut(), k, max_col);
 			n_trans += 1;
 		}
-		let ref inv = A[(k, k)].recip();
+		let inv = &A[(k, k)].recip();
 		if transpose {
 			for j in k + 1..n {
 				A[(k, j)] *= inv;
@@ -460,19 +465,23 @@ fn lu_in_place_unblocked<T: ComplexField>(
 							simd_align(k + 1),
 						);
 				},
-		#[cfg(feature = "rayon")]
+				#[cfg(feature = "rayon")]
 				_ => {
-				let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+					let nthreads =
+						core::num::NonZeroUsize::new(par.degree()).unwrap();
 					use rayon::prelude::*;
 					let nthreads = nthreads.get();
 					// one entry per block, from the call's scratch (no allocation per step, #111); every
 					// entry is written by its block
 					let best = &mut best[..nthreads];
 					let full_cols = A11.ncols();
-					crate::utils::thread::for_each(par, 
+					crate::utils::thread::for_each(
+						par,
 						nthreads,
 						best.par_iter_mut()
-							.zip_eq(A11.rb_mut().par_col_partition_mut(nthreads))
+							.zip_eq(
+								A11.rb_mut().par_col_partition_mut(nthreads),
+							)
 							.zip_eq(rhs.par_partition(nthreads))
 							.enumerate(),
 						|(idx, (((max_row, max_col, max_score), A11), rhs))| {
@@ -484,7 +493,9 @@ fn lu_in_place_unblocked<T: ComplexField>(
 										rhs,
 										simd_align(k + 1),
 									);
-								b += par_split_indices(full_cols, idx, nthreads).0;
+								b +=
+									par_split_indices(full_cols, idx, nthreads)
+										.0;
 								(a, b, c)
 							};
 						},
@@ -576,9 +587,11 @@ pub fn lu_in_place_scratch<I: Index, T: ComplexField>(
 	_ = params;
 	let size = Ord::min(nrows, ncols);
 	// the transpositions, and one pivot candidate per block of a parallel step
-	StackReq::new::<usize>(size)
-		.array(2)
-		.and(StackReq::new::<(usize, usize, T::Real)>(par.degree()))
+	StackReq::new::<usize>(size).array(2).and(StackReq::new::<(
+		usize,
+		usize,
+		T::Real,
+	)>(par.degree()))
 }
 /// Whether `lu_in_place` factors a matrix with these strides through a
 /// column-major copy rather than in place.
@@ -624,7 +637,10 @@ pub(crate) fn row_major_takes_the_copy(
 /// the predicate this replaced warned on every row-major input.
 #[cfg(any(feature = "perf-warn", test))]
 #[inline]
-pub(crate) fn has_generic_strides(row_stride: isize, col_stride: isize) -> bool {
+pub(crate) fn has_generic_strides(
+	row_stride: isize,
+	col_stride: isize,
+) -> bool {
 	row_stride.unsigned_abs() != 1 && col_stride.unsigned_abs() != 1
 }
 #[derive(Copy, Clone, Debug)]
@@ -634,6 +650,9 @@ pub struct FullPivLuInfo {
 	/// [rank truncation](FullPivLuParams#rank-truncation) option stopped the factorization
 	pub rank: usize,
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 /// # Pivot ties
 ///
 /// When several entries of the remaining block share the largest magnitude,
@@ -691,7 +710,8 @@ pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 	params: Spec<FullPivLuParams, T>,
 ) -> (FullPivLuInfo, PermRef<'out, I>, PermRef<'out, I>) {
 	#[cfg(feature = "perf-warn")]
-	if has_generic_strides(mat.row_stride(), mat.col_stride()) && crate::__perf_warn!(LU_WARN)
+	if has_generic_strides(mat.row_stride(), mat.col_stride())
+		&& crate::__perf_warn!(LU_WARN)
 	{
 		log::warn!(
 			target : "faer_perf",
@@ -723,29 +743,31 @@ pub fn lu_in_place<'out, I: Index, T: ComplexField>(
 	let row_transpositions = row_transpositions.as_mut();
 	let (mut col_transpositions, stack) = stack.make_with(size, |_| 0);
 	let col_transpositions = col_transpositions.as_mut();
-	let (mut best, _) = stack.make_with(par.degree(), |_| (0usize, 0usize, zero::<T::Real>()));
+	let (mut best, _) =
+		stack.make_with(par.degree(), |_| (0usize, 0usize, zero::<T::Real>()));
 	let best = best.as_mut();
-	let (n_transpositions, rank) = if mat.row_stride().abs() < mat.col_stride().abs() {
-		lu_in_place_unblocked(
-			mat,
-			row_transpositions,
-			col_transpositions,
-			best,
-			par,
-			false,
-			params,
-		)
-	} else {
-		lu_in_place_unblocked(
-			mat.transpose_mut(),
-			col_transpositions,
-			row_transpositions,
-			best,
-			par,
-			true,
-			params,
-		)
-	};
+	let (n_transpositions, rank) =
+		if mat.row_stride().abs() < mat.col_stride().abs() {
+			lu_in_place_unblocked(
+				mat,
+				row_transpositions,
+				col_transpositions,
+				best,
+				par,
+				false,
+				params,
+			)
+		} else {
+			lu_in_place_unblocked(
+				mat.transpose_mut(),
+				col_transpositions,
+				row_transpositions,
+				best,
+				par,
+				true,
+				params,
+			)
+		};
 	for i in 0..M {
 		row_perm[i] = I::truncate(i);
 	}
@@ -785,114 +807,119 @@ mod tests {
 	#[test]
 	fn test_flu() {
 		let rng = &mut StdRng::seed_from_u64(0);
-		let mut run = |mut par: Par<'_>| {
-			let par_shape = par.shape();
-			for m in [8, 16, 24, 32, 128, 255, 256, 257] {
-				let n = 8;
-				let approx_eq = CwiseMat(ApproxEq {
-					abs_tol: 1e-10,
-					rel_tol: 1e-10,
-				});
-				let A = CwiseMatDistribution {
-					nrows: m,
-					ncols: n,
-					dist: ComplexDistribution::new(
-						StandardNormal,
-						StandardNormal,
-					),
-				}
-				.rand::<Mat<c64>>(rng);
-				let A = A.as_ref();
-				let mut LU = A.cloned();
-				let row_perm = &mut *vec![0usize; m];
-				let row_perm_inv = &mut *vec![0usize; m];
-				let col_perm = &mut *vec![0usize; n];
-				let col_perm_inv = &mut *vec![0usize; n];
-				let (_, p, q) = lu_in_place(
-					LU.as_mut(),
-					row_perm,
-					row_perm_inv,
-					col_perm,
-					col_perm_inv,
-					par.reborrow(),
-					MemStack::new(&mut MemBuffer::new(lu_in_place_scratch::<
-						usize,
-						c64,
-					>(
-						n, n, par_shape, default()
-					))),
-					default(),
-				);
-				let mut L = LU.as_ref().cloned();
-				let mut U = LU.as_ref().cloned();
-				for j in 0..n {
-					for i in 0..j {
-						L[(i, j)] = c64::ZERO;
+		let mut run =
+			|mut par: Par<'_>| {
+				let par_shape = par.shape();
+				for m in [8, 16, 24, 32, 128, 255, 256, 257] {
+					let n = 8;
+					let approx_eq = CwiseMat(ApproxEq {
+						abs_tol: 1e-10,
+						rel_tol: 1e-10,
+					});
+					let A = CwiseMatDistribution {
+						nrows: m,
+						ncols: n,
+						dist: ComplexDistribution::new(
+							StandardNormal,
+							StandardNormal,
+						),
 					}
-					L[(j, j)] = c64::ONE;
-				}
-				for j in 0..n {
-					for i in j + 1..m {
-						U[(i, j)] = c64::ZERO;
+					.rand::<Mat<c64>>(rng);
+					let A = A.as_ref();
+					let mut LU = A.cloned();
+					let row_perm = &mut *vec![0usize; m];
+					let row_perm_inv = &mut *vec![0usize; m];
+					let col_perm = &mut *vec![0usize; n];
+					let col_perm_inv = &mut *vec![0usize; n];
+					let (_, p, q) = lu_in_place(
+						LU.as_mut(),
+						row_perm,
+						row_perm_inv,
+						col_perm,
+						col_perm_inv,
+						par.reborrow(),
+						MemStack::new(&mut MemBuffer::new(
+							lu_in_place_scratch::<usize, c64>(
+								n,
+								n,
+								par_shape,
+								default(),
+							),
+						)),
+						default(),
+					);
+					let mut L = LU.as_ref().cloned();
+					let mut U = LU.as_ref().cloned();
+					for j in 0..n {
+						for i in 0..j {
+							L[(i, j)] = c64::ZERO;
+						}
+						L[(j, j)] = c64::ONE;
 					}
-				}
-				let L = L.as_ref();
-				let U = U.as_ref();
-				let U = U.subrows(0, n);
-				assert!(p.inverse() * L * U * q ~ A);
-			}
-			for n in [16, 24, 32, 128, 255, 256, 257] {
-				let approx_eq = CwiseMat(ApproxEq {
-					abs_tol: 1e-10,
-					rel_tol: 1e-10,
-				});
-				let A = CwiseMatDistribution {
-					nrows: n,
-					ncols: n,
-					dist: StandardNormal,
-				}
-				.rand::<Mat<f64>>(rng);
-				let A = A.as_ref();
-				let mut LU = A.cloned();
-				let row_perm = &mut *vec![0usize; n];
-				let row_perm_inv = &mut *vec![0usize; n];
-				let col_perm = &mut *vec![0usize; n];
-				let col_perm_inv = &mut *vec![0usize; n];
-				let (_, p, q) = lu_in_place(
-					LU.as_mut(),
-					row_perm,
-					row_perm_inv,
-					col_perm,
-					col_perm_inv,
-					par.reborrow(),
-					MemStack::new(&mut MemBuffer::new(lu_in_place_scratch::<
-						usize,
-						f64,
-					>(
-						n, n, par_shape, default()
-					))),
-					default(),
-				);
-				let mut L = LU.as_ref().cloned();
-				let mut U = LU.as_ref().cloned();
-				for j in 0..n {
-					for i in 0..j {
-						L[(i, j)] = 0.0;
+					for j in 0..n {
+						for i in j + 1..m {
+							U[(i, j)] = c64::ZERO;
+						}
 					}
-					L[(j, j)] = 1.0;
+					let L = L.as_ref();
+					let U = U.as_ref();
+					let U = U.subrows(0, n);
+					assert!(p.inverse() * L * U * q ~ A);
 				}
-				for j in 0..n {
-					for i in j + 1..n {
-						U[(i, j)] = 0.0;
+				for n in [16, 24, 32, 128, 255, 256, 257] {
+					let approx_eq = CwiseMat(ApproxEq {
+						abs_tol: 1e-10,
+						rel_tol: 1e-10,
+					});
+					let A = CwiseMatDistribution {
+						nrows: n,
+						ncols: n,
+						dist: StandardNormal,
 					}
+					.rand::<Mat<f64>>(rng);
+					let A = A.as_ref();
+					let mut LU = A.cloned();
+					let row_perm = &mut *vec![0usize; n];
+					let row_perm_inv = &mut *vec![0usize; n];
+					let col_perm = &mut *vec![0usize; n];
+					let col_perm_inv = &mut *vec![0usize; n];
+					let (_, p, q) = lu_in_place(
+						LU.as_mut(),
+						row_perm,
+						row_perm_inv,
+						col_perm,
+						col_perm_inv,
+						par.reborrow(),
+						MemStack::new(&mut MemBuffer::new(
+							lu_in_place_scratch::<usize, f64>(
+								n,
+								n,
+								par_shape,
+								default(),
+							),
+						)),
+						default(),
+					);
+					let mut L = LU.as_ref().cloned();
+					let mut U = LU.as_ref().cloned();
+					for j in 0..n {
+						for i in 0..j {
+							L[(i, j)] = 0.0;
+						}
+						L[(j, j)] = 1.0;
+					}
+					for j in 0..n {
+						for i in j + 1..n {
+							U[(i, j)] = 0.0;
+						}
+					}
+					let L = L.as_ref();
+					let U = U.as_ref();
+					assert!(p.inverse() * L * U * q ~ A);
 				}
-				let L = L.as_ref();
-				let U = U.as_ref();
-				assert!(p.inverse() * L * U * q ~ A);
-			}
-		};
+			};
 		run(Par::Seq);
-		crate::team::with_team(8, |par| run(par));
+		crate::team::with_team(8, run);
 	}
 	/// The pivot search breaks a tie the way the scalar search does: the smallest column, then the
 	/// smallest row. Without that, which lane wins depends on the lane count, so an AVX2 build and

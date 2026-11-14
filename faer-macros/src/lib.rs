@@ -146,8 +146,8 @@ impl visit_mut::VisitMut for MathCtx {
 	fn visit_expr_mut(&mut self, i: &mut syn::Expr) {
 		visit_mut::visit_expr_mut(self, i);
 		match i {
-			Expr::Unary(unary) => match unary.op {
-				syn::UnOp::Neg(minus) => {
+			Expr::Unary(unary) => {
+				if let syn::UnOp::Neg(minus) = unary.op {
 					*i = Expr::Call(ExprCall {
 						attrs: vec![],
 						func: Box::new(ident_expr(&Ident::new(
@@ -165,8 +165,7 @@ impl visit_mut::VisitMut for MathCtx {
 							})
 							.collect(),
 					})
-				},
-				_ => {},
+				}
 			},
 			Expr::Binary(binop) => {
 				let func = match binop.op {

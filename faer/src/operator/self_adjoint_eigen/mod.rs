@@ -38,14 +38,14 @@ fn iterate_lanczos<T: ComplexField>(
 				h[i] = r;
 			}
 		}
-		let ref f =
-			from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>();
+		let f =
+			&(from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>());
 		loop {
 			let mut all_true = true;
 			for i in 0..j {
 				if !converged[i] {
 					all_true = false;
-					let ref r = V.col(i).adjoint() * Vnext.rb();
+					let r = &(V.col(i).adjoint() * Vnext.rb());
 					zip!(Vnext.rb_mut(), V.col(i))
 						.for_each(|unzip!(y, x): Zip!(&mut T, &T)| *y -= r * x);
 					if i + 1 == j {
@@ -60,7 +60,7 @@ fn iterate_lanczos<T: ComplexField>(
 		}
 		let norm = Vnext.norm_l2();
 		if norm > zero() {
-			let ref norm_inv = norm.recip();
+			let norm_inv = &norm.recip();
 			zip!(&mut Vnext)
 				.for_each(|unzip!(v): Zip![&mut _]| *v = v.mul_real(norm_inv));
 		} else {
@@ -70,6 +70,7 @@ fn iterate_lanczos<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 	eigvecs: MatMut<'_, T>,
 	eigvals: &mut [T],
@@ -101,7 +102,7 @@ pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 		let mut residual = residual.as_mat_mut().col_mut(0);
 		let f = v0.norm_l2();
 		if f > min_positive() {
-			let ref f = f.recip();
+			let f = &f.recip();
 			zip!(V.rb_mut().col_mut(0), v0)
 				.for_each(|unzip!(y, x): Zip!(&mut T, &T)| *y = x.mul_real(f));
 		} else {
@@ -111,7 +112,15 @@ pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 			let f = n.sqrt().recip();
 			zip!(V.rb_mut().col_mut(0)).for_each(|unzip!(y)| *y = f.copy());
 		}
-		iterate_lanczos(A, H.as_mut(), V.as_mut(), 1, min_dim, par.reborrow(), stack);
+		iterate_lanczos(
+			A,
+			H.as_mut(),
+			V.as_mut(),
+			1,
+			min_dim,
+			par.reborrow(),
+			stack,
+		);
 		let mut k = min_dim;
 		for _ in 0..restarts {
 			iterate_lanczos(
@@ -123,7 +132,7 @@ pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 				par.reborrow(),
 				stack,
 			);
-			let ref Hmm = H[(max_dim, max_dim - 1)].copy();
+			let Hmm = &H[(max_dim, max_dim - 1)].copy();
 			let n = max_dim - active;
 			Q.fill(zero());
 			Q.rb_mut().diagonal_mut().fill(one());
@@ -167,7 +176,7 @@ pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 					perm::swap_cols_idx(Q_slice.rb_mut(), i, j);
 				}
 			}
-			let ref Hmm_abs = Hmm.abs();
+			let Hmm_abs = &Hmm.abs();
 			for j in 0..n {
 				residual[active + j] =
 					Hmm_abs * Q[(max_dim - 1, active + j)].abs();
@@ -288,7 +297,7 @@ pub fn partial_self_adjoint_eigen_imp<T: ComplexField>(
 		}
 		active
 	} else {
-		return full::partial_full_spectrum(eigvecs, eigvals, A, n_eigval, par, stack);
+		full::partial_full_spectrum(eigvecs, eigvals, A, n_eigval, par, stack)
 	}
 }
 
@@ -299,6 +308,8 @@ mod tests {
 	use crate::stats::prelude::*;
 	use dyn_stack::MemBuffer;
 	use equator::assert;
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_small_cplx() {
 		let rng = &mut StdRng::seed_from_u64(1);

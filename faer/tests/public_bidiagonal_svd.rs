@@ -1,6 +1,6 @@
 mod common;
-use common::*;
 use colmat::linalg::svd::*;
+use common::*;
 
 fn check<T: ComplexField>(make: fn(f64, f64) -> T) {
 	for n in SIZES {

@@ -27,6 +27,9 @@ struct Check;
 impl WithSimd for Check {
 	type Output = usize;
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[inline(always)]
 	fn with_simd<S: Simd>(self, simd: S) -> usize {
 		let lanes = core::mem::size_of::<<fx128 as ComplexField>::SimdVec<S>>()

@@ -1,7 +1,10 @@
 use crate::assert;
 use crate::internal_prelude::*;
 use linalg::matmul::triangular::BlockStructure;
-pub fn reconstruct_scratch<T: ComplexField>(dim: usize, par: ParShape) -> StackReq {
+pub fn reconstruct_scratch<T: ComplexField>(
+	dim: usize,
+	par: ParShape,
+) -> StackReq {
 	_ = (dim, par);
 	StackReq::EMPTY
 }

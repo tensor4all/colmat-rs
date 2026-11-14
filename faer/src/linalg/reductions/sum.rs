@@ -34,7 +34,7 @@ fn sum_simd_pairwise_rows<T: ComplexField>(
 		with_dim!(N, data.nrows());
 		sum_simd(data.as_row_shape(N))
 	} else {
-		let split_point = ((data.nrows() + 1) / 2).next_power_of_two();
+		let split_point = data.nrows().div_ceil(2).next_power_of_two();
 		let (head, tail) = data.split_at_row(split_point);
 		let acc0 = sum_simd_pairwise_rows(head);
 		let acc1 = sum_simd_pairwise_rows(tail);
@@ -47,7 +47,7 @@ fn sum_simd_pairwise_cols<T: ComplexField>(
 	if data.ncols() == 1 {
 		sum_simd_pairwise_rows(data.col(0))
 	} else {
-		let split_point = ((data.ncols() + 1) / 2).next_power_of_two();
+		let split_point = data.ncols().div_ceil(2).next_power_of_two();
 		let (head, tail) = data.split_at_col(split_point);
 		let acc0 = sum_simd_pairwise_cols(head);
 		let acc1 = sum_simd_pairwise_cols(tail);

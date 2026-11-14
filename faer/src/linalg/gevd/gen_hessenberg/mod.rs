@@ -83,6 +83,7 @@ pub(crate) fn trot<T: ComplexField>(
 ) {
 	rot(c, -s.conj(), x.transpose_mut(), y.transpose_mut());
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn generalized_hessenberg_unblocked<T: ComplexField>(
 	A: MatMut<'_, T>,
 	B: MatMut<'_, T>,
@@ -174,7 +175,14 @@ fn apply_U_from_the_right<T: ComplexField>(
 	let (M1, M2) = M.rb().split_at_col(n);
 	utils::thread::join_raw(
 		|mut par| {
-			matmul(T1.rb_mut(), Accum::Replace, M1.rb(), U11, one(), par.reborrow());
+			matmul(
+				T1.rb_mut(),
+				Accum::Replace,
+				M1.rb(),
+				U11,
+				one(),
+				par.reborrow(),
+			);
 			tr::matmul(
 				T1.rb_mut(),
 				tr::BlockStructure::Rectangular,
@@ -205,6 +213,8 @@ fn apply_U_from_the_right<T: ComplexField>(
 	);
 	M.copy_from(tmp);
 }
+#[allow(clippy::explicit_counter_loop)]
+// counter is the reversed index the body computes from, not an enumerate position
 /// computes a matrix pair $(A, B)$'s generalized hessenberg decomposition such
 /// that
 /// - B is an upper triangular matrix
@@ -298,12 +308,12 @@ pub fn generalized_hessenberg<T: ComplexField>(
 			let mut len = 2 + j - jcol;
 			let jrow = j + n2nb * nnb + 2;
 			for i in (jrow..n).rev() {
-				let ref c = A[(i, j)].real();
-				let ref s = B[(i, j)].copy();
+				let c = &A[(i, j)].real();
+				let s = &B[(i, j)].copy();
 				let col = nblst - (n - i) - 1;
 				for jj in nblst - len..nblst {
-					let ref temp0 = work0[(jj, col)].copy();
-					let ref temp1 = work0[(jj, col + 1)].copy();
+					let temp0 = &work0[(jj, col)].copy();
+					let temp1 = &work0[(jj, col + 1)].copy();
 					work0[(jj, col + 1)] = temp1.mul_real(c) - s * temp0;
 					work0[(jj, col)] = temp0.mul_real(c) + s.conj() * temp1;
 				}
@@ -323,13 +333,13 @@ pub fn generalized_hessenberg<T: ComplexField>(
 					2 * nnb,
 				);
 				for i in (j0..j0 + nnb).rev() {
-					let ref c = A[(i, j)].real();
-					let ref s = B[(i, j)].copy();
+					let c = &A[(i, j)].real();
+					let s = &B[(i, j)].copy();
 					col -= 1;
 					start -= 1;
 					for jj in start..start + len {
-						let ref temp0 = U[(jj, col)].copy();
-						let ref temp1 = U[(jj, col + 1)].copy();
+						let temp0 = &U[(jj, col)].copy();
+						let temp1 = &U[(jj, col + 1)].copy();
 						U[(jj, col + 1)] = temp1.mul_real(c) - s * temp0;
 						U[(jj, col)] = s.conj() * temp1 + temp0.mul_real(c);
 					}
@@ -339,10 +349,10 @@ pub fn generalized_hessenberg<T: ComplexField>(
 			}
 			for jj in (j + 1..n).rev() {
 				for i in (j + 2..Ord::min(n, jj + 2)).rev() {
-					let ref c = A[(i, j)].real();
-					let ref s = B[(i, j)].copy();
-					let ref temp0 = B[(i - 1, jj)].copy();
-					let ref temp1 = B[(i, jj)].copy();
+					let c = &A[(i, j)].real();
+					let s = &B[(i, j)].copy();
+					let temp0 = &B[(i - 1, jj)].copy();
+					let temp1 = &B[(i, jj)].copy();
 					B[(i, jj)] = temp1.mul_real(c) - s.conj() * temp0;
 					B[(i - 1, jj)] = temp0.mul_real(c) + s * temp1;
 				}
@@ -371,24 +381,24 @@ pub fn generalized_hessenberg<T: ComplexField>(
 			let mut i = n - 1 - j;
 			while i > jj + 1 {
 				i -= 3;
-				let ref c0 = A[(j + i + 1, j)].real();
-				let ref s0 = -&B[(j + i + 1, j)];
-				let ref c1 = A[(j + i + 2, j)].real();
-				let ref s1 = -&B[(j + i + 2, j)];
-				let ref c2 = A[(j + i + 3, j)].real();
-				let ref s2 = -&B[(j + i + 3, j)];
+				let c0 = &A[(j + i + 1, j)].real();
+				let s0 = &-&B[(j + i + 1, j)];
+				let c1 = &A[(j + i + 2, j)].real();
+				let s1 = &-&B[(j + i + 2, j)];
+				let c2 = &A[(j + i + 3, j)].real();
+				let s2 = &-&B[(j + i + 3, j)];
 				for k in top..n {
-					let ref temp0 = A[(k, j + i + 0)].copy();
-					let ref temp1 = A[(k, j + i + 1)].copy();
-					let ref temp2 = A[(k, j + i + 2)].copy();
-					let ref temp3 = A[(k, j + i + 3)].copy();
+					let temp0 = &A[(k, (j + i))].copy();
+					let temp1 = &A[(k, j + i + 1)].copy();
+					let temp2 = &A[(k, j + i + 2)].copy();
+					let temp3 = &A[(k, j + i + 3)].copy();
 					A[(k, j + i + 3)] = temp3.mul_real(c2) + temp2 * s2.conj();
 					let temp2 = temp2.mul_real(c2) - temp3 * s2;
 					A[(k, j + i + 2)] = temp2.mul_real(c1) + temp1 * s1.conj();
 					let temp1 = temp1.mul_real(c1) - temp2 * s1;
 					A[(k, j + i + 1)] = temp1.mul_real(c0) + temp0 * s0.conj();
 					let temp0 = temp0.mul_real(c0) - temp1 * s0;
-					A[(k, j + i + 0)] = temp0;
+					A[(k, (j + i))] = temp0;
 				}
 			}
 			for i in (1..jj + 1).rev() {
@@ -607,12 +617,8 @@ pub fn generalized_hessenberg<T: ComplexField>(
 			let mut idx = 0usize;
 			while j0 > jcol + nnb {
 				j0 -= nnb;
-				let topq;
-				if Q_is_I {
-					topq = Ord::max(1, j0 - jcol);
-				} else {
-					topq = 0;
-				}
+
+				let topq = if Q_is_I { Ord::max(1, j0 - jcol) } else { 0 };
 				let U =
 					work1.rb().submatrix(0, idx * 2 * nnb, 2 * nnb, 2 * nnb);
 				apply_U_from_the_right(
@@ -640,14 +646,14 @@ pub fn generalized_hessenberg<T: ComplexField>(
 				let mut len = 2 + j - jcol;
 				let jrow = j + n2nb * nnb + 2;
 				for i in (jrow..n).rev() {
-					let ref c = A[(i, j)].real();
-					let ref s = B[(i, j)].copy();
+					let c = &A[(i, j)].real();
+					let s = &B[(i, j)].copy();
 					A[(i, j)] = zero();
 					B[(i, j)] = zero();
 					let col = nblst - (n - i) - 1;
 					for jj in nblst - len..nblst {
-						let ref temp0 = work0[(jj, col)].copy();
-						let ref temp1 = work0[(jj, col + 1)].copy();
+						let temp0 = &work0[(jj, col)].copy();
+						let temp1 = &work0[(jj, col + 1)].copy();
 						work0[(jj, col + 1)] =
 							temp1.mul_real(c) - temp0 * s.conj();
 						work0[(jj, col)] = temp0.mul_real(c) + temp1 * s;
@@ -668,15 +674,15 @@ pub fn generalized_hessenberg<T: ComplexField>(
 						2 * nnb,
 					);
 					for i in (j0..j0 + nnb).rev() {
-						let ref c = A[(i, j)].real();
-						let ref s = B[(i, j)].copy();
+						let c = &A[(i, j)].real();
+						let s = &B[(i, j)].copy();
 						A[(i, j)] = zero();
 						B[(i, j)] = zero();
 						col -= 1;
 						start -= 1;
 						for jj in start..start + len {
-							let ref temp0 = U[(jj, col)].copy();
-							let ref temp1 = U[(jj, col + 1)].copy();
+							let temp0 = &U[(jj, col)].copy();
+							let temp1 = &U[(jj, col + 1)].copy();
 							U[(jj, col + 1)] =
 								temp1.mul_real(c) - temp0 * s.conj();
 							U[(jj, col)] = temp0.mul_real(c) + temp1 * s;
@@ -770,12 +776,8 @@ pub fn generalized_hessenberg<T: ComplexField>(
 			let mut idx = 0usize;
 			while j0 > jcol + nnb {
 				j0 -= nnb;
-				let topq;
-				if Z_is_I {
-					topq = Ord::max(1, j0 - jcol);
-				} else {
-					topq = 0;
-				}
+
+				let topq = if Z_is_I { Ord::max(1, j0 - jcol) } else { 0 };
 				let U =
 					work1.rb().submatrix(0, idx * 2 * nnb, 2 * nnb, 2 * nnb);
 				apply_U_from_the_right(

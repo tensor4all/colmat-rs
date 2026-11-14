@@ -1,7 +1,7 @@
 use super::bound::{Dim, Idx};
 use crate::internal_prelude::*;
-use core::marker::PhantomData;
 use colmat_traits::SimdCapabilities;
+use core::marker::PhantomData;
 use pulp::Simd;
 pub struct SimdCtx<'N, T: ComplexField, S: Simd> {
 	pub ctx: T::SimdCtx<S>,
@@ -173,7 +173,7 @@ impl<'N, T: ComplexField, S: Simd> SimdCtx<'N, T, S> {
 			offset: 0,
 			head_end: 0,
 			body_end: *len / stride,
-			tail_end: (*len + stride - 1) / stride,
+			tail_end: len.div_ceil(stride),
 			head_mask: T::simd_and_mask(
 				&simd,
 				T::simd_index_greater_than_or_equal(&simd, iota, head_start),
@@ -231,7 +231,7 @@ impl<'N, T: ComplexField, S: Simd> SimdCtx<'N, T, S> {
 					offset,
 					head_end: 1,
 					body_end: full_len / stride,
-					tail_end: (full_len + stride - 1) / stride,
+					tail_end: full_len.div_ceil(stride),
 					head_mask: T::simd_and_mask(
 						&simd,
 						T::simd_index_greater_than_or_equal(
@@ -385,6 +385,7 @@ impl<'N, T: ComplexField, S: Simd> SimdCtx<'N, T, S> {
 		self.tail_mask
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	pub fn indices(
 		&self,
@@ -429,6 +430,7 @@ impl<'N, T: ComplexField, S: Simd> SimdCtx<'N, T, S> {
 		)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	pub fn batch_indices<const BATCH: usize>(
 		&self,

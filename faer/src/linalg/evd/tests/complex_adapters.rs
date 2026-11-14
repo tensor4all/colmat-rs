@@ -27,6 +27,7 @@ fn vectors_call(
 ) -> Result<(), EvdError> {
 	eigenvectors_from_schur_cplx(t, q, x, par, stack, p)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn evd_call(
 	a: MatRef<'_, Scalar>,
 	mut wr: ColMut<'_, Real>,

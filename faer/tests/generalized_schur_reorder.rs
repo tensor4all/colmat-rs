@@ -1,7 +1,7 @@
 mod common;
-use common::*;
 use colmat::MatMut;
 use colmat::linalg::gevd;
+use common::*;
 fn scaled_close<T: ComplexField>(
 	got: MatRef<'_, T>,
 	expected: MatRef<'_, T>,

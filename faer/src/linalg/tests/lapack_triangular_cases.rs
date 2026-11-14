@@ -9,6 +9,7 @@
 // See COPYING.LAPACK.BSD.
 
 use crate::linalg::triangular_solve as ts;
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn triangular_case(
 	run: &mut Run,
 	n: usize,

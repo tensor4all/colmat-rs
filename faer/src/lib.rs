@@ -36,10 +36,10 @@
 //! ```
 //! use colmat::{Mat, Scale, mat};
 //! let a = mat![
-//! 	[1.0, 5.0, 9.0], //
-//! 	[2.0, 6.0, 10.0],
-//! 	[3.0, 7.0, 11.0],
-//! 	[4.0, 8.0, 12.0f64],
+//!     [1.0, 5.0, 9.0], //
+//!     [2.0, 6.0, 10.0],
+//!     [3.0, 7.0, 11.0],
+//!     [4.0, 8.0, 12.0f64],
 //! ];
 //! let b = Mat::from_fn(4, 3, |i, j| (i + j) as f64);
 //! let add = &a + &b;
@@ -113,7 +113,7 @@
 //! - $V$ has shape $(n, n)$ and is a unitary matrix,
 //! - $S$ has shape $(m, n)$ and is zero everywhere except the main diagonal,
 //!   with nonnegative
-//! diagonal values in nonincreasing order,
+//!   diagonal values in nonincreasing order,
 //! - and finally:
 //!
 //! $$A = U S V^H$$
@@ -146,7 +146,7 @@
 //! multiple methods are provided to compute the eigendecomposition:
 //! * [`Mat::self_adjoint_eigen`] can be used with either real or complex
 //!   matrices,
-//! producing an eigendecomposition of the same type,
+//!   producing an eigendecomposition of the same type,
 //! * [`Mat::eigen`] can be used with real or complex matrices, but always
 //!   produces complex values.
 //!
@@ -247,7 +247,7 @@
 //! - `npy`: enables conversions to/from numpy's matrix file format
 //! - `perf-warn`: produces performance warnings when matrix operations are
 //!   called with suboptimal
-//! data layout
+//!   data layout
 //! - `nightly`: requires the nightly compiler. enables experimental simd
 //!   features such as avx512
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -271,9 +271,9 @@ macro_rules! repeat_n {
 		iter::repeat_n($e, $n)
 	};
 }
+use colmat_traits::*;
 use core::num::NonZeroUsize;
 use equator::{assert, debug_assert};
-use colmat_traits::*;
 /// shorthand for `<_ as Auto::<T>>::auto()`
 #[macro_export]
 macro_rules! auto {
@@ -383,12 +383,12 @@ macro_rules! with_dim {
 /// let b = mat![[7.0, 9.0, 11.0], [8.0, 10.0, 12.0]];
 /// let mut sum = Mat::<f64>::zeros(nrows, ncols);
 /// zip!(&mut sum, &a, &b).for_each(|unzip!(sum, a, b)| {
-/// 	*sum = a + b;
+///     *sum = a + b;
 /// });
 /// for i in 0..nrows {
-/// 	for j in 0..ncols {
-/// 		assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
-/// 	}
+///     for j in 0..ncols {
+///         assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
+///     }
 /// }
 /// ```
 #[macro_export]
@@ -413,14 +413,14 @@ macro_rules! zip {
 /// let b = mat![[7.0, 9.0, 11.0], [8.0, 10.0, 12.0]];
 /// let mut sum = Mat::<f64>::zeros(nrows, ncols);
 /// zip!(&mut sum, &a, &b).for_each(
-/// 	|unzip!(sum, a, b): Zip!(&mut f64, &f64, &f64)| {
-/// 		*sum = a + b;
-/// 	},
+///     |unzip!(sum, a, b): Zip!(&mut f64, &f64, &f64)| {
+///         *sum = a + b;
+///     },
 /// );
 /// for i in 0..nrows {
-/// 	for j in 0..ncols {
-/// 		assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
-/// 	}
+///     for j in 0..ncols {
+///         assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
+///     }
 /// }
 /// ```
 #[macro_export]
@@ -446,12 +446,12 @@ macro_rules! Zip {
 /// let b = mat![[7.0, 9.0, 11.0], [8.0, 10.0, 12.0]];
 /// let mut sum = Mat::<f64>::zeros(nrows, ncols);
 /// zip!(&mut sum, &a, &b).for_each(|unzip!(sum, a, b)| {
-/// 	*sum = a + b;
+///     *sum = a + b;
 /// });
 /// for i in 0..nrows {
-/// 	for j in 0..ncols {
-/// 		assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
-/// 	}
+///     for j in 0..ncols {
+///         assert_eq!(sum[(i, j)], a[(i, j)] + b[(i, j)]);
+///     }
 /// }
 /// ```
 #[macro_export]
@@ -481,10 +481,10 @@ macro_rules! __transpose_impl {
 /// ```
 /// use colmat::mat;
 /// let matrix = mat![
-/// 	[1.0, 5.0, 9.0], //
-/// 	[2.0, 6.0, 10.0],
-/// 	[3.0, 7.0, 11.0],
-/// 	[4.0, 8.0, 12.0f64],
+///     [1.0, 5.0, 9.0], //
+///     [2.0, 6.0, 10.0],
+///     [3.0, 7.0, 11.0],
+///     [4.0, 8.0, 12.0f64],
 /// ];
 /// assert_eq!(matrix[(0, 0)], 1.0);
 /// assert_eq!(matrix[(1, 0)], 2.0);
@@ -515,6 +515,7 @@ macro_rules! mat {
         @ alloc $($unsafe:ident)? ($stack:ident) ($var:pat) (uninit::<$ty:ty >, $($arg:expr),+
         $(,)?)
     ) => {
+        #[allow(clippy::macro_metavars_in_unsafe)] // caller metavars are read inside the arm's `unsafe` block
         let (mut __mat__, $stack) = $($unsafe)? { $crate::linalg::temp_mat_uninit::<$ty, _, _
         > ($($arg,)* $stack,) }; let $var = $crate::mat::AsMatMut::as_mat_mut(&mut __mat__);
     };
@@ -548,6 +549,7 @@ macro_rules! col {
         @ alloc $($unsafe:ident)? ($stack:ident) ($var:pat) (uninit::<$ty:ty >, $($arg:expr),+
         $(,)?)
     ) => {
+        #[allow(clippy::macro_metavars_in_unsafe)] // caller metavars are read inside the arm's `unsafe` block
         let (mut __mat__, $stack) = $($unsafe)? { $crate::linalg::temp_mat_uninit::<$ty, _, _
         > ($($arg,)* 1, $stack,) }; let $var = $crate::mat::AsMatMut::as_mat_mut(&mut __mat__).col_mut(0);
     };
@@ -582,6 +584,7 @@ macro_rules! row {
         @ alloc $($unsafe:ident)? ($stack:ident) ($var:pat) (uninit::<$ty:ty >, $($arg:expr),+
         $(,)?)
     ) => {
+        #[allow(clippy::macro_metavars_in_unsafe)] // caller metavars are read inside the arm's `unsafe` block
         let (mut __mat__, $stack) = $($unsafe)? { $crate::linalg::temp_mat_uninit::<$ty, _, _
         > ($($arg,)* 1, $stack,) }; let $var = $crate::mat::AsMatMut::as_mat_mut(&mut __mat__).col_mut(0).transpose_mut();
     };
@@ -728,7 +731,7 @@ pub trait Unbind<I = usize>:
 	Send + Sync + Copy + core::fmt::Debug + seal::Seal
 {
 	/// creates new value
-	/// # safety
+	/// # Safety
 	/// safety invariants must be upheld
 	unsafe fn new_unbound(idx: I) -> Self;
 	/// returns the unbound value, unconstrained by safety invariants
@@ -821,7 +824,7 @@ pub trait Shape:
 		unsafe { IdxInc::<Self>::new_unbound(idx) }
 	}
 	/// assumes the index is valid
-	/// # safety
+	/// # Safety
 	/// the index must be valid
 	#[inline(always)]
 	unsafe fn unchecked_idx(self, idx: usize) -> Idx<Self> {
@@ -829,7 +832,7 @@ pub trait Shape:
 		unsafe { Idx::<Self>::new_unbound(idx) }
 	}
 	/// assumes the index is valid
-	/// # safety
+	/// # Safety
 	/// the index must be valid
 	#[inline(always)]
 	unsafe fn unchecked_idx_inc(self, idx: usize) -> IdxInc<Self> {
@@ -1089,8 +1092,12 @@ pub enum Par<'team> {
 	/// build without it has no way to make a team, so this variant is never constructed
 	#[cfg(not(feature = "threadteam"))]
 	#[doc(hidden)]
-	__Lifetime(core::convert::Infallible, core::marker::PhantomData<&'team ()>),
+	__Lifetime(
+		core::convert::Infallible,
+		core::marker::PhantomData<&'team ()>,
+	),
 }
+#[allow(clippy::large_enum_variant)] // public enum shape; boxing a variant would change memory layout and the API
 /// the shape of a [`Par`]: which kind of parallelism and how many threads, without the
 /// right to run anything. `Copy`, so workspace queries and thresholds can use it freely; it
 /// cannot be passed to any function that executes work.
@@ -1281,7 +1288,9 @@ pub mod prelude {
 	pub use super::linalg::solvers::{DenseSolve, Solve, SolveLstsq};
 	#[cfg(feature = "sparse")]
 	pub use super::prelude_sp::*;
-	pub use super::{Par, ParShape, Scale, c32, c64, col, mat, row, unzip, zip};
+	pub use super::{
+		Par, ParShape, Scale, c32, c64, col, mat, row, unzip, zip,
+	};
 	pub use col::{Col, ColMut, ColRef};
 	pub use mat::{Mat, MatMut, MatRef, MatUninitMut};
 	pub use reborrow::{IntoConst, Reborrow, ReborrowMut};
@@ -1437,8 +1446,8 @@ mod into_range {
 	}
 }
 mod sort;
-pub extern crate dyn_stack;
 pub extern crate colmat_traits as traits;
+pub extern crate dyn_stack;
 #[doc(hidden)]
 pub extern crate generativity;
 pub extern crate num_complex as complex;
@@ -1452,7 +1461,10 @@ extern crate self as colmat;
 #[macro_export]
 #[doc(hidden)]
 macro_rules! simd_iter {
-	(for ($batch_id:tt, $i:pat $(,)?) in [$indices:expr; $batch_size:expr] $b:block $(,)?) => {#[allow(non_upper_case_globals, unconditional_panic)] 'out:{
+	// Each `if const` arm below binds `$batch_id` to a different index and all of them are checked,
+	// so a caller's `acc[IDX]` is out of bounds in the dead arms of a shorter `$batch_size`. Same
+	// reason as `unconditional_panic` on this list.
+	(for ($batch_id:tt, $i:pat $(,)?) in [$indices:expr; $batch_size:expr] $b:block $(,)?) => {#[allow(non_upper_case_globals, unconditional_panic, clippy::out_of_bounds_indexing)] 'out:{
 		let (__head__, __body_batch__, __body_item__, __tail__) = &$indices;
 		let __body_batch__ = __body_batch__.clone();
 		let mut __body_item__ = __body_item__.clone();

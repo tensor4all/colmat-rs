@@ -7,12 +7,12 @@
 //! eigenvector matrix but not the scaled copy is insufficient, and the call
 //! panics as on any insufficient scratch.
 mod common;
-use common::*;
 use colmat::linalg::evd::{
 	eigenvectors_from_schur_cplx, eigenvectors_from_schur_real,
 	eigenvectors_from_schur_scratch,
 };
 use colmat::linalg::temp_mat_scratch;
+use common::*;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 const SIZES: [usize; 3] = [2, 8, 33];
@@ -100,7 +100,7 @@ fn real<T: RealField>(scales: [f64; 3]) {
 						zero()
 					};
 					let norm = if paired {
-						x.col(j).norm_l2().hypot(&x.col(j + 1).norm_l2())
+						x.col(j).norm_l2().hypot(x.col(j + 1).norm_l2())
 					} else {
 						x.col(j).norm_l2()
 					};

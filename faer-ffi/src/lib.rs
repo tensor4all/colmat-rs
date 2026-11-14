@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
-use core::ffi::c_void;
 use colmat::dyn_stack::StackReq;
 use colmat::{c32, c64, cx128, fx128};
+use core::ffi::c_void;
 trait RealField: colmat::traits::RealField + Copy + 'static {}
 impl<T: colmat::traits::RealField + Copy + 'static> RealField for T {}
 trait ComplexField: colmat::traits::ComplexField + Copy + 'static {}
@@ -370,7 +370,6 @@ impl Team {
 		let r = {
 			let mut exec = team.exec(self.threads);
 			exec.team(|token| f(colmat::Par::Team(token)))
-				.ok()
 				.expect("a team token for the handle's own team")
 		};
 		*held = Some(team.into_pool());
@@ -457,6 +456,11 @@ macro_rules! funcs {
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				/// The caller must pass valid pointers and the lengths that describe them, as the operation
+				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
+				/// only the overlap the operation allows.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _ $ty0_list>] $inputs -> $output_ty { type $ty0 = $ty0_list;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -472,12 +476,22 @@ macro_rules! funcs {
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				/// The caller must pass valid pointers and the lengths that describe them, as the operation
+				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
+				/// only the overlap the operation allows.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u32_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u32;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				/// The caller must pass valid pointers and the lengths that describe them, as the operation
+				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
+				/// only the overlap the operation allows.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u64_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u64;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -503,6 +517,7 @@ macro_rules! cerr {
 			Unknown,
 		}
 
+		#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 		impl Into<$name> for Result<$ok_path, $err_path> {
 			fn into(self) -> $name {
 				match self {
@@ -732,6 +747,7 @@ pub mod linalg {
 		Ok { padding: usize },
 		NoConvergence { padding: usize },
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<SvdStatus> for Result<(), la::svd::SvdError> {
 		fn into(self) -> SvdStatus {
 			match self {
@@ -742,6 +758,7 @@ pub mod linalg {
 			}
 		}
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<EvdStatus> for Result<(), la::evd::EvdError> {
 		fn into(self) -> EvdStatus {
 			match self {
@@ -752,6 +769,7 @@ pub mod linalg {
 			}
 		}
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<GevdStatus> for Result<(), la::gevd::GevdError> {
 		fn into(self) -> GevdStatus {
 			match self {
@@ -792,7 +810,9 @@ pub mod linalg {
 			blocking_threshold: usize,
 			par_threshold: usize,
 		}
-		#[repr(colmat::linalg::lu::partial_pivoting::factor::PartialPivLuParams)]
+		#[repr(
+			colmat::linalg::lu::partial_pivoting::factor::PartialPivLuParams
+		)]
 		pub struct PartialPivLuParams {
 			recursion_threshold: usize,
 			block_size: usize,
@@ -815,7 +835,9 @@ pub mod linalg {
 			par_threshold: usize,
 			blocking_threshold: usize,
 		}
-		#[repr(colmat::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams)]
+		#[repr(
+			colmat::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams
+		)]
 		pub struct GeneralizedHessenbergParams {
 			block_size: usize,
 			blocking_threshold: usize,
@@ -909,7 +931,9 @@ pub mod linalg {
 	impl From<GevdFromSchurParams> for la::gevd::GevdFromSchurParams {
 		#[allow(unused_variables)]
 		fn from(value: GevdFromSchurParams) -> la::gevd::GevdFromSchurParams {
-			la::gevd::GevdFromSchurParams { ..colmat::auto!(f32) }
+			la::gevd::GevdFromSchurParams {
+				..colmat::auto!(f32)
+			}
 		}
 	}
 	impl From<la::gevd::GevdFromSchurParams> for GevdFromSchurParams {
@@ -956,7 +980,8 @@ pub mod linalg {
 	impl LdltRegularization {
 		fn faer<'a, T: RealField>(
 			self,
-		) -> colmat::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T> {
+		) -> colmat::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T>
+		{
 			{
 				colmat::linalg::cholesky::ldlt::factor::LdltRegularization {
 					dynamic_regularization_delta: real(
@@ -1187,7 +1212,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn llt_reconstruct_scratch<T>(dim: usize, team: *const Team) -> Layout {
+		pub fn llt_reconstruct_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::llt::reconstruct::reconstruct_scratch::<T>(
 				dim,
 				Team::shape(team),
@@ -1210,8 +1238,11 @@ pub mod linalg {
 			})
 		}
 		pub fn llt_inverse_scratch<T>(dim: usize, team: *const Team) -> Layout {
-			la::cholesky::llt::inverse::inverse_scratch::<T>(dim, Team::shape(team))
-				.into()
+			la::cholesky::llt::inverse::inverse_scratch::<T>(
+				dim,
+				Team::shape(team),
+			)
+			.into()
 		}
 		pub fn llt_inverse<T>(
 			A_inv: MatMut,
@@ -1320,7 +1351,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn piv_llt_inverse_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn piv_llt_inverse_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::llt_pivoting::inverse::inverse_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1411,7 +1445,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn ldlt_reconstruct_scratch<T>(dim: usize, team: *const Team) -> Layout {
+		pub fn ldlt_reconstruct_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::ldlt::reconstruct::reconstruct_scratch::<T>(
 				dim,
 				Team::shape(team),
@@ -1435,9 +1472,15 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn ldlt_inverse_scratch<T>(dim: usize, team: *const Team) -> Layout {
-			la::cholesky::ldlt::inverse::inverse_scratch::<T>(dim, Team::shape(team))
-				.into()
+		pub fn ldlt_inverse_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
+			la::cholesky::ldlt::inverse::inverse_scratch::<T>(
+				dim,
+				Team::shape(team),
+			)
+			.into()
 		}
 		pub fn ldlt_inverse<T>(
 			A_inv: MatMut,
@@ -1532,7 +1575,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn lblt_reconstruct_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn lblt_reconstruct_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::lblt::reconstruct::reconstruct_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1565,7 +1611,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn lblt_inverse_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn lblt_inverse_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::lblt::inverse::inverse_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1805,7 +1854,9 @@ pub mod linalg {
 			mem: MemAlloc,
 		) {
 			with_team_par(team, |mut par| {
-				la::qr::no_pivoting::solve::solve_transpose_in_place_with_conj::<T>(
+				la::qr::no_pivoting::solve::solve_transpose_in_place_with_conj::<
+					T,
+				>(
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
@@ -2065,7 +2116,10 @@ pub mod linalg {
 			mem: MemAlloc,
 		) {
 			with_team_par(team, |mut par| {
-				la::qr::col_pivoting::solve::solve_lstsq_in_place_with_conj::<I, T>(
+				la::qr::col_pivoting::solve::solve_lstsq_in_place_with_conj::<
+					I,
+					T,
+				>(
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
@@ -2759,6 +2813,10 @@ pub mod linalg {
 		}
 	});
 }
+/// # Safety
+/// `size` must be nonzero (`std::alloc::alloc` takes a sized layout), and `align` a power of two.
+/// A non-null result is owned by the caller and must be handed back to `libfaer_v0_23_dealloc`
+/// exactly once with the same `size` and `align`; a null result must not be deallocated.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_alloc(
 	size: usize,
@@ -2830,8 +2888,13 @@ pub unsafe extern "C" fn libfaer_v0_23_alloc(
 /// libfaer_v0_23_team_set_threads(team, 2);     // not while an operation uses the handle
 /// libfaer_v0_23_team_destroy(team);
 /// ```
+/// # Safety
+/// The handle owns worker threads that outlive the call: it must be released with
+/// `libfaer_v0_23_team_destroy` exactly once.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn libfaer_v0_23_team_create(threads: usize) -> *mut Team {
+pub unsafe extern "C" fn libfaer_v0_23_team_create(
+	threads: usize,
+) -> *mut Team {
 	let threads = threads.max(1);
 	Box::into_raw(Box::new(Team {
 		threads,
@@ -2845,6 +2908,9 @@ pub unsafe extern "C" fn libfaer_v0_23_team_create(threads: usize) -> *mut Team 
 /// running. Dropping the pool ends its workers: they are dedicated to this handle (not threadteam's
 /// process-wide cache of shared workers), so when `destroy` returns every worker thread of the
 /// handle has been joined.
+/// # Safety
+/// `team` must be null or a handle returned by `libfaer_v0_23_team_create` that is not used by
+/// any running operation, and it must not be destroyed twice.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_team_destroy(team: *mut Team) {
 	if !team.is_null() {
@@ -2862,12 +2928,21 @@ pub unsafe extern "C" fn libfaer_v0_23_team_destroy(team: *mut Team) {
 /// (`*_scratch`) made before the change no longer describes an operation of the new width: some
 /// sizes depend on the number of participants (full-pivot LU sizes one pivot candidate per
 /// participant), so query the scratch again after setting the width.
+/// # Safety
+/// `team` must be a live handle, and no operation may be using it while its width changes.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn libfaer_v0_23_team_set_threads(team: *mut Team, threads: usize) {
+pub unsafe extern "C" fn libfaer_v0_23_team_set_threads(
+	team: *mut Team,
+	threads: usize,
+) {
 	if let Some(team) = unsafe { team.as_mut() } {
 		team.set_threads(threads.max(1));
 	}
 }
+/// # Safety
+/// `ptr` must be a non-null pointer to a block currently allocated by `libfaer_v0_23_alloc`, with
+/// this same `size` and `align`, that no longer aliases anything the caller still uses, and that is
+/// freed only once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_dealloc(
 	ptr: *mut c_void,
@@ -2952,7 +3027,8 @@ mod tests {
 	/// (threadteam 0.5, Linux), so a mask that still names a single CPU after a call is the
 	/// observable form of "the call did not leave the team".
 	fn mask() -> Option<String> {
-		let status = std::fs::read_to_string("/proc/thread-self/status").ok()?;
+		let status =
+			std::fs::read_to_string("/proc/thread-self/status").ok()?;
 		Some(
 			status
 				.lines()
@@ -2962,7 +3038,12 @@ mod tests {
 	}
 
 	/// `(a * b)` on `n` x `n` f64 matrices, through the C entry point.
-	fn matmul(c: &mut colmat::Mat<f64>, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>, team: *const Team) {
+	fn matmul(
+		c: &mut colmat::Mat<f64>,
+		a: &colmat::Mat<f64>,
+		b: &colmat::Mat<f64>,
+		team: *const Team,
+	) {
 		let alpha = 1.0f64;
 		let c = MatMut {
 			ptr: c.as_ptr_mut() as *mut c_void,
@@ -2997,7 +3078,11 @@ mod tests {
 	}
 
 	/// The sequential product, from the Rust API.
-	fn want(n: usize, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>) -> colmat::Mat<f64> {
+	fn want(
+		n: usize,
+		a: &colmat::Mat<f64>,
+		b: &colmat::Mat<f64>,
+	) -> colmat::Mat<f64> {
 		let mut c = colmat::Mat::<f64>::zeros(n, n);
 		colmat::linalg::matmul::matmul(
 			c.as_mut(),
@@ -3012,7 +3097,11 @@ mod tests {
 
 	fn close(x: &colmat::Mat<f64>, y: &colmat::Mat<f64>) -> bool {
 		let (n, m) = (x.nrows(), x.ncols());
-		(0..n).all(|i| (0..m).all(|j| (x[(i, j)] - y[(i, j)]).abs() <= 1e-10 * (1.0 + x[(i, j)].abs())))
+		(0..n).all(|i| {
+			(0..m).all(|j| {
+				(x[(i, j)] - y[(i, j)]).abs() <= 1e-10 * (1.0 + x[(i, j)].abs())
+			})
+		})
 	}
 
 	/// faer's dispatch counters are process wide, and both tests dispatch (one reads the counters,
@@ -3063,8 +3152,12 @@ mod tests {
 	fn the_team_handle_is_entered_per_call_and_left_again() {
 		let _turn = TEAM_TURN.lock().unwrap_or_else(|e| e.into_inner());
 		let n = 512;
-		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 31 + j * 7) % 13) as f64 - 6.0);
-		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 5 + j * 11) % 17) as f64 - 8.0);
+		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 31 + j * 7) % 13) as f64 - 6.0
+		});
+		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 5 + j * 11) % 17) as f64 - 8.0
+		});
 		let expected = want(n, &a, &b);
 
 		// (a) no team: the sequential product, and no region on a team
@@ -3075,13 +3168,23 @@ mod tests {
 		matmul(&mut got, &a, &b, core::ptr::null());
 		let serial = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a null handle must give the sequential product");
-		assert_eq!(mask(), before, "a null handle must not touch the calling thread");
+		assert!(
+			close(&expected, &got),
+			"a null handle must give the sequential product"
+		);
+		assert_eq!(
+			mask(),
+			before,
+			"a null handle must not touch the calling thread"
+		);
 		let teamless = serial.run.iter().skip(2).sum::<usize>()
 			+ serial.split.iter().skip(2).sum::<usize>()
 			+ serial.gemm_tiled
 			+ serial.gemm_team_kernel;
-		assert_eq!(teamless, 0, "a null handle must not run on a team: {serial:?}");
+		assert_eq!(
+			teamless, 0,
+			"a null handle must not run on a team: {serial:?}"
+		);
 
 		// the control: a held team narrows the mask, and hands it back when it goes. threadteam
 		// places its leader only where the caller's mask is at least as wide as the team, and that
@@ -3091,16 +3194,25 @@ mod tests {
 		let placed = {
 			let before = mask();
 			let inside = colmat::team::with_team(width, |_| mask());
-			assert_eq!(mask(), before, "a dropped team must hand the mask back");
+			assert_eq!(
+				mask(),
+				before,
+				"a dropped team must hand the mask back"
+			);
 			inside.is_some() && inside != before
 		};
 		// Deliberately a failure, not a skip: the placement is the observable the check below needs,
 		// so a host where threadteam cannot pin (a mask wider than its `cpu_set_t`, or affinity
 		// syscalls denied) must say so instead of reporting coverage it does not have.
 		if cpus >= width {
-			assert!(placed, "threadteam placed no leader on a mask of {cpus} CPUs");
+			assert!(
+				placed,
+				"threadteam placed no leader on a mask of {cpus} CPUs"
+			);
 		} else {
-			eprintln!("a mask of {cpus} CPU(s) cannot hold a team of {width}: placement is not checked");
+			eprintln!(
+				"a mask of {cpus} CPU(s) cannot hold a team of {width}: placement is not checked"
+			);
 		}
 
 		// (b) and (c): the same product on the handle, no team left behind
@@ -3113,12 +3225,18 @@ mod tests {
 		matmul(&mut got, &a, &b, team);
 		let parallel = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a team handle must give the sequential product");
+		assert!(
+			close(&expected, &got),
+			"a team handle must give the sequential product"
+		);
 		let on_team = parallel.run.iter().skip(2).sum::<usize>()
 			+ parallel.split.iter().skip(2).sum::<usize>()
 			+ parallel.gemm_tiled
 			+ parallel.gemm_team_kernel;
-		assert!(on_team > 0, "the handle ran no region on its team: {parallel:?}");
+		assert!(
+			on_team > 0,
+			"the handle ran no region on its team: {parallel:?}"
+		);
 		if placed {
 			assert_eq!(
 				mask(),
@@ -3136,13 +3254,23 @@ mod tests {
 		matmul(&mut got, &a, &b, team);
 		let one = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a one-participant team must give the same product");
+		assert!(
+			close(&expected, &got),
+			"a one-participant team must give the same product"
+		);
 		assert_eq!(
-			one.run.iter().skip(2).sum::<usize>() + one.split.iter().skip(2).sum::<usize>() + one.gemm_tiled + one.gemm_team_kernel,
+			one.run.iter().skip(2).sum::<usize>()
+				+ one.split.iter().skip(2).sum::<usize>()
+				+ one.gemm_tiled
+				+ one.gemm_team_kernel,
 			0,
 			"a one-participant team must be sequential: {one:?}"
 		);
-		assert_eq!(mask(), before, "a one-participant team must not place the caller");
+		assert_eq!(
+			mask(),
+			before,
+			"a one-participant team must not place the caller"
+		);
 		unsafe {
 			libfaer_v0_23_team_destroy(team);
 			libfaer_v0_23_team_destroy(core::ptr::null_mut());
@@ -3153,11 +3281,19 @@ mod tests {
 	/// which is what threadteam requires a team to fit into before it places its leader.
 	fn cpus() -> usize {
 		let Some(list) = mask() else { return 1 };
-		let Some(list) = list.split(':').nth(1) else { return 1 };
-		list.split(',').map(|item| match item.split_once('-') {
-			Some((lo, hi)) => hi.trim().parse::<usize>().unwrap_or(0) - lo.trim().parse::<usize>().unwrap_or(0) + 1,
-			None => 1,
-		}).sum()
+		let Some(list) = list.split(':').nth(1) else {
+			return 1;
+		};
+		list.split(',')
+			.map(|item| match item.split_once('-') {
+				Some((lo, hi)) => {
+					hi.trim().parse::<usize>().unwrap_or(0)
+						- lo.trim().parse::<usize>().unwrap_or(0)
+						+ 1
+				},
+				None => 1,
+			})
+			.sum()
 	}
 
 	fn perm_of(n: usize) -> Vec<u32> {
@@ -3178,9 +3314,18 @@ mod tests {
 		let width = cpus().clamp(2, 4);
 		let team = unsafe { libfaer_v0_23_team_create(width) };
 		let seq = unsafe {
-			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(n, n, core::ptr::null(), params)
+			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(
+				n,
+				n,
+				core::ptr::null(),
+				params,
+			)
 		};
-		let par = unsafe { la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(n, n, team, params) };
+		let par = unsafe {
+			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(
+				n, n, team, params,
+			)
+		};
 		assert!(
 			par.len_bytes > seq.len_bytes,
 			"a query with a team must size more than the sequential one: {} vs {}",
@@ -3193,42 +3338,80 @@ mod tests {
 		// handle there), not something a mask that is restored after a drop could show.
 		let before = mask();
 		unsafe {
-			la::libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(n, n, team);
+			la::libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(
+				n, n, team,
+			);
 		};
 		assert_eq!(mask(), before, "a scratch query must not enter a team");
 
 		// a factorization on exactly the queried buffer, with the same team
-		let mut a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
+		let mut a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 7 + j * 3) % 11) as f64 - 5.0
+		});
 		let mut row_fwd = vec![0u32; n];
 		let mut row_bwd = vec![0u32; n];
 		let (mut col_fwd, mut col_bwd) = (vec![0u32; n], vec![0u32; n]);
 		let mem = unsafe {
 			MemAlloc {
-				ptr: std::alloc::alloc(core::alloc::Layout::from_size_align(par.len_bytes, par.align_bytes).unwrap()) as *mut c_void,
+				ptr: std::alloc::alloc(
+					core::alloc::Layout::from_size_align(
+						par.len_bytes,
+						par.align_bytes,
+					)
+					.unwrap(),
+				) as *mut c_void,
 				len_bytes: par.len_bytes,
 			}
 		};
 		assert!(!mem.ptr.is_null());
 		let status = unsafe {
 			la::libfaer_v0_23_full_piv_lu_factor_in_place_u32_f64(
-				MatMut { ptr: a.as_ptr_mut() as *mut c_void, nrows: n, ncols: n, row_stride: a.row_stride(), col_stride: a.col_stride() },
-				SliceMut { ptr: row_fwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: row_bwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: col_fwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: col_bwd.as_mut_ptr() as *mut c_void, len: n },
+				MatMut {
+					ptr: a.as_ptr_mut() as *mut c_void,
+					nrows: n,
+					ncols: n,
+					row_stride: a.row_stride(),
+					col_stride: a.col_stride(),
+				},
+				SliceMut {
+					ptr: row_fwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: row_bwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: col_fwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: col_bwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
 				team,
 				mem,
 				params,
 			)
 		};
-		assert!(matches!(status, la::FullPivLuStatus::Ok { .. }), "the factorization on the queried buffer failed");
+		assert!(
+			matches!(status, la::FullPivLuStatus::Ok { .. }),
+			"the factorization on the queried buffer failed"
+		);
 		for perm in [&row_fwd, &row_bwd, &col_fwd, &col_bwd] {
 			let mut sorted = perm.clone();
-				sorted.sort_unstable();
+			sorted.sort_unstable();
 			assert_eq!(sorted, perm_of(n), "not a permutation");
 		}
 		unsafe {
-			std::alloc::dealloc(mem.ptr as *mut u8, core::alloc::Layout::from_size_align(par.len_bytes, par.align_bytes).unwrap());
+			std::alloc::dealloc(
+				mem.ptr as *mut u8,
+				core::alloc::Layout::from_size_align(
+					par.len_bytes,
+					par.align_bytes,
+				)
+				.unwrap(),
+			);
 			libfaer_v0_23_team_destroy(team);
 		}
 	}

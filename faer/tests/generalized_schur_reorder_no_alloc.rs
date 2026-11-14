@@ -1,9 +1,9 @@
 //! Counting allocator follows the existing svd_values_no_alloc test pattern.
 #![cfg(feature = "std")]
 mod common;
-use common::*;
 use colmat::MatMut;
 use colmat::linalg::gevd;
+use common::*;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};

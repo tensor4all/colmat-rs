@@ -12,14 +12,14 @@ use crate::perm::{swap_cols_idx, swap_rows_idx};
 /// let mut a = colmat::mat![[f64::NAN]];
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// assert_eq!(
-/// 	balance_in_place(
-/// 		a.as_mut(),
-/// 		&mut [0],
-/// 		&mut [1.0],
-/// 		Par::Seq,
-/// 		MemStack::new(&mut mem)
-/// 	),
-/// 	Err(BalanceError::NonFiniteInput)
+///     balance_in_place(
+///         a.as_mut(),
+///         &mut [0],
+///         &mut [1.0],
+///         Par::Seq,
+///         MemStack::new(&mut mem)
+///     ),
+///     Err(BalanceError::NonFiniteInput)
 /// );
 /// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -40,12 +40,12 @@ pub enum BalanceError {
 /// let (mut perm, mut scale) = ([0; 2], [0.0; 2]);
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// balance_in_place_with(
-/// 	a.cloned().as_mut(),
-/// 	&mut perm,
-/// 	&mut scale,
-/// 	BalanceJob::Scale,
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
+///     a.cloned().as_mut(),
+///     &mut perm,
+///     &mut scale,
+///     BalanceJob::Scale,
+///     Par::Seq,
+///     MemStack::new(&mut mem),
 /// )
 /// .unwrap();
 /// assert_eq!(perm, [0, 1]);
@@ -105,11 +105,11 @@ pub fn balance_scratch() -> StackReq {
 /// let (mut perm, mut scale) = ([0; 2], [0.0; 2]);
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// let active = balance_in_place(
-/// 	a.as_mut(),
-/// 	&mut perm,
-/// 	&mut scale,
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
+///     a.as_mut(),
+///     &mut perm,
+///     &mut scale,
+///     Par::Seq,
+///     MemStack::new(&mut mem),
 /// )
 /// .unwrap();
 /// assert_eq!(active, 0..2);
@@ -167,20 +167,20 @@ pub fn balance_in_place<T: ComplexField>(
 /// let mut mem = MemBuffer::new(balance_scratch());
 /// // permute only: the entries move, the scales stay one
 /// let active = balance_in_place_with(
-/// 	a.as_mut(),
-/// 	&mut perm,
-/// 	&mut scale,
-/// 	BalanceJob::Permute,
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
+///     a.as_mut(),
+///     &mut perm,
+///     &mut scale,
+///     BalanceJob::Permute,
+///     Par::Seq,
+///     MemStack::new(&mut mem),
 /// )
 /// .unwrap();
 /// assert_eq!(active, 0..2);
 /// assert_eq!(scale, [1.0, 1.0]);
 /// for i in 0..2 {
-/// 	for j in 0..2 {
-/// 		assert_eq!(a[(i, j)], original[(perm[i], perm[j])]);
-/// 	}
+///     for j in 0..2 {
+///         assert_eq!(a[(i, j)], original[(perm[i], perm[j])]);
+///     }
 /// }
 /// ```
 pub fn balance_in_place_with<T: ComplexField>(
@@ -249,8 +249,8 @@ pub fn balance_in_place_with<T: ComplexField>(
 			let mut c = zero::<T::Real>();
 			let mut r = zero::<T::Real>();
 			for j in lo..hi {
-				c = c.hypot(&a[(j, i)].abs());
-				r = r.hypot(&a[(i, j)].abs());
+				c = c.hypot(a[(j, i)].abs());
+				r = r.hypot(a[(i, j)].abs());
 			}
 			if c == zero() || r == zero() || !c.is_finite() || !r.is_finite() {
 				continue;
@@ -321,7 +321,7 @@ pub fn balance_in_place_with<T: ComplexField>(
 /// # Examples
 /// ```
 /// let _buffer = dyn_stack::MemBuffer::new(
-/// 	colmat::linalg::evd::balance_eigenvectors_scratch::<f64>(3),
+///     colmat::linalg::evd::balance_eigenvectors_scratch::<f64>(3),
 /// );
 /// ```
 pub fn balance_eigenvectors_scratch<T: ComplexField>(dim: usize) -> StackReq {
@@ -345,11 +345,11 @@ pub fn balance_eigenvectors_scratch<T: ComplexField>(dim: usize) -> StackReq {
 /// let mut x = colmat::mat![[1.0f64], [2.0]];
 /// let mut mem = MemBuffer::new(balance_eigenvectors_scratch::<f64>(2));
 /// balance_eigenvectors_in_place(
-/// 	x.as_mut(),
-/// 	&[1, 0],
-/// 	&[2.0, 0.5],
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
+///     x.as_mut(),
+///     &[1, 0],
+///     &[2.0, 0.5],
+///     Par::Seq,
+///     MemStack::new(&mut mem),
 /// );
 /// assert_eq!(x, colmat::mat![[1.0], [2.0]]);
 /// ```

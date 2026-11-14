@@ -26,7 +26,11 @@ pub fn inverse<I: Index, T: ComplexField>(
 	));
 	let (mut tmp, _) = unsafe { temp_mat_uninit::<T, _, _>(n, n, stack) };
 	let mut tmp = tmp.as_mat_mut();
-	linalg::triangular_inverse::invert_lower_triangular(out.rb_mut(), L, par.reborrow());
+	linalg::triangular_inverse::invert_lower_triangular(
+		out.rb_mut(),
+		L,
+		par.reborrow(),
+	);
 	let L_inv = out.rb();
 	linalg::matmul::triangular::matmul(
 		tmp.rb_mut(),

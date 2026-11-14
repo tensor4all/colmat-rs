@@ -218,7 +218,7 @@ mod tests {
 				dist: ComplexDistribution::new(StandardNormal, StandardNormal),
 			}
 			.rand::<Mat<c64>>(rng);
-			for block_size in [1, Ord::max(Ord::min(Ord::min(m, n), 8), 1)] {
+			for block_size in [1, Ord::min(m, n).clamp(1, 8)] {
 				check(a.as_ref(), block_size);
 			}
 		}
@@ -242,7 +242,7 @@ mod tests {
 			}
 			let (_, _, rank) = packed(a.as_ref(), Ord::min(m, n));
 			assert!(rank == r);
-			check(a.as_ref(), Ord::max(Ord::min(Ord::min(m, n), 4), 1));
+			check(a.as_ref(), Ord::min(m, n).clamp(1, 4));
 		}
 	}
 }

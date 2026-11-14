@@ -85,17 +85,15 @@ pub mod npy {
 		fn parse_npyz(
 			data: &[u8],
 			npyz: npyz::NpyFile<&[u8]>,
-		) -> Result<(NpyDType, usize, usize, usize, bool, bool), std::io::Error> {
-			let ver_major = data[6] - b'\x00';
+		) -> Result<(NpyDType, usize, usize, usize, bool, bool), std::io::Error>
+		{
+			let ver_major = data[6];
 			let length = if ver_major <= 1 {
 				2usize
 			} else if ver_major <= 3 {
 				4usize
 			} else {
-				return Err(std::io::Error::new(
-					std::io::ErrorKind::Other,
-					"unsupported version",
-				));
+				return Err(std::io::Error::other("unsupported version"));
 			};
 			let header_len = if length == 2 {
 				u16::from_le_bytes(data[8..10].try_into().unwrap()) as usize
@@ -131,13 +129,13 @@ pub mod npy {
 				npyz::DType::Plain(str) => match str.endianness() {
 					npyz::Endianness::Little => cfg!(target_endian = "big"),
 					npyz::Endianness::Big => cfg!(target_endian = "little"),
-				npyz::Endianness::Irrelevant => false,
-			},
+					npyz::Endianness::Irrelevant => false,
+				},
 				_ => false,
 			};
 			let order = npyz.header().order();
 			let shape = npyz.shape();
-			let nrows = shape.get(0).copied().unwrap_or(1) as usize;
+			let nrows = shape.first().copied().unwrap_or(1) as usize;
 			let ncols = shape.get(1).copied().unwrap_or(1) as usize;
 			let prefix_len = 8 + length + header_len;
 			let fortran_order = order == npyz::Order::Fortran;
@@ -188,7 +186,10 @@ pub mod npy {
 		#[inline]
 		pub fn as_aligned_ref<T: FromNpy>(&self) -> MatRef<'_, T> {
 			assert!(self.is_aligned());
-			assert!(!self.swap_bytes, "cannot view a non-native-endian npy buffer in place, use to_mat");
+			assert!(
+				!self.swap_bytes,
+				"cannot view a non-native-endian npy buffer in place, use to_mat"
+			);
 			assert!(self.dtype == T::DTYPE);
 			if self.fortran_order {
 				MatRef::from_column_major_slice(
@@ -213,25 +214,26 @@ pub mod npy {
 		/// matrix containing the data
 		#[inline]
 		pub fn to_mat<T: FromNpy>(&self) -> Mat<T> {
-		assert!(self.dtype == T::DTYPE);
-		let mut mat = Mat::<T>::with_capacity(self.nrows, self.ncols);
-		unsafe { mat.set_dims(self.nrows, self.ncols) };
-		let data = &self.aligned_bytes[self.prefix_len..];
-		let size = core::mem::size_of::<T>();
-		let swap = self.swap_bytes;
-		for j in 0..self.ncols {
-			for i in 0..self.nrows {
-				// read byte by byte rather than through an aligned cast
-				let offset = if self.fortran_order {
-					(j * self.nrows + i) * size
-				} else {
-					(i * self.ncols + j) * size
-				};
-				mat[(i, j)] = T::from_npy_bytes(&data[offset..offset + size], swap);
+			assert!(self.dtype == T::DTYPE);
+			let mut mat = Mat::<T>::with_capacity(self.nrows, self.ncols);
+			unsafe { mat.set_dims(self.nrows, self.ncols) };
+			let data = &self.aligned_bytes[self.prefix_len..];
+			let size = core::mem::size_of::<T>();
+			let swap = self.swap_bytes;
+			for j in 0..self.ncols {
+				for i in 0..self.nrows {
+					// read byte by byte rather than through an aligned cast
+					let offset = if self.fortran_order {
+						(j * self.nrows + i) * size
+					} else {
+						(i * self.ncols + j) * size
+					};
+					mat[(i, j)] =
+						T::from_npy_bytes(&data[offset..offset + size], swap);
+				}
 			}
+			mat
 		}
-		mat
-	}
 	}
 
 	#[cfg(test)]
@@ -241,7 +243,12 @@ pub mod npy {
 		#[repr(align(64))]
 		struct Aligned([u8; 1024]);
 
-		fn build(descr: &str, fortran: bool, shape: &str, payload: &[u8]) -> Vec<u8> {
+		fn build(
+			descr: &str,
+			fortran: bool,
+			shape: &str,
+			payload: &[u8],
+		) -> Vec<u8> {
 			let mut header = format!(
 				"{{'descr': '{}', 'fortran_order': {}, 'shape': {}, }}",
 				descr,
@@ -290,7 +297,8 @@ pub mod npy {
 		#[test]
 		fn to_mat_reads_unaligned_c_order() {
 			let payload = f64_bytes(1.5, false);
-			let file = build(&descr(native_marker()), false, "(1, 1)", &payload);
+			let file =
+				build(&descr(native_marker()), false, "(1, 1)", &payload);
 			let mut storage = vec![0u8; file.len() + 1];
 			storage[1..].copy_from_slice(&file);
 			let npy = Npy::new(&storage[1..]).unwrap();
@@ -314,7 +322,8 @@ pub mod npy {
 		#[test]
 		fn to_mat_converts_foreign_endian() {
 			let payload = f64_bytes(1.5, true);
-			let file = build(&descr(foreign_marker()), false, "(1, 1)", &payload);
+			let file =
+				build(&descr(foreign_marker()), false, "(1, 1)", &payload);
 			let mut storage = Aligned([0; 1024]);
 			storage.0[..file.len()].copy_from_slice(&file);
 			let npy = Npy::new(&storage.0[..file.len()]).unwrap();
@@ -329,7 +338,8 @@ pub mod npy {
 		#[should_panic]
 		fn as_aligned_ref_rejects_foreign_endian() {
 			let payload = f64_bytes(1.5, true);
-			let file = build(&descr(foreign_marker()), false, "(1, 1)", &payload);
+			let file =
+				build(&descr(foreign_marker()), false, "(1, 1)", &payload);
 			let mut storage = Aligned([0; 1024]);
 			storage.0[..file.len()].copy_from_slice(&file);
 			let npy = Npy::new(&storage.0[..file.len()]).unwrap();
@@ -341,13 +351,16 @@ pub mod npy {
 		#[test]
 		fn as_aligned_ref_reads_native_endian() {
 			let payload = f64_bytes(3.5, false);
-			let file = build(&descr(native_marker()), false, "(1, 1)", &payload);
+			let file =
+				build(&descr(native_marker()), false, "(1, 1)", &payload);
 			let mut storage = Aligned([0; 1024]);
 			storage.0[..file.len()].copy_from_slice(&file);
 			let npy = Npy::new(&storage.0[..file.len()]).unwrap();
 			core::assert!(npy.is_aligned());
 			core::assert!(npy.is_native_endian());
-			core::assert!((npy.as_aligned_ref::<f64>()[(0, 0)] - 3.5).abs() < 1e-15);
+			core::assert!(
+				(npy.as_aligned_ref::<f64>()[(0, 0)] - 3.5).abs() < 1e-15
+			);
 		}
 	}
 }

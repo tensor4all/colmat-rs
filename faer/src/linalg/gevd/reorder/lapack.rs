@@ -12,6 +12,7 @@ macro_rules! suite {
 			fn scalar(re: Real, im: Real) -> Scalar {
 				($make)(re, im)
 			}
+			#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 			fn reorder(
 				s: MatMut<'_, Scalar>,
 				t: MatMut<'_, Scalar>,

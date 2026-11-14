@@ -75,7 +75,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 	/// creates a `ColMut` from pointers to the column vector data, number of
 	/// rows, and row stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatMut::from_raw_parts(ptr, nrows, 1, row_stride, 0)`]
 	#[inline(always)]
@@ -85,16 +85,14 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 		nrows: Rows,
 		row_stride: RStride,
 	) -> Self {
-		Self {
-			0: Mut {
-				imp: ColView {
-					ptr: NonNull::new_unchecked(ptr),
-					nrows,
-					row_stride,
-				},
-				__marker: PhantomData,
+		Self(Mut {
+			imp: ColView {
+				ptr: NonNull::new_unchecked(ptr),
+				nrows,
+				row_stride,
 			},
-		}
+			__marker: PhantomData,
+		})
 	}
 
 	/// returns a pointer to the column data
@@ -159,7 +157,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the column bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -228,6 +226,9 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 		)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`ColRef::get_unchecked`]
@@ -409,6 +410,7 @@ impl<
 			other.as_row_shape(M).canonical(),
 			Conj::get::<RhsT>(),
 		);
+		#[allow(clippy::extra_unused_lifetimes)] // the lifetime appears inside `Dim<'M>` argument types
 		pub fn imp<'M, 'N, T: ComplexField>(
 			this: ColMut<'_, T, Dim<'M>>,
 			other: ColRef<'_, T, Dim<'M>>,
@@ -461,6 +463,9 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 		self.rb().ptr_at(row) as *mut T
 	}
 
+	///
+	/// # Safety
+	/// `row` must be in bounds of the view, and no other borrow of the element may be live while the returned pointer is used.
 	#[inline(always)]
 	#[track_caller]
 	/// see [`ColRef::ptr_inbounds_at`]
@@ -538,6 +543,9 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 		<ColMut<'a, T, Rows, RStride> as ColIndex<RowRange>>::get(self, row)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view and must not overlap any other live borrow of the same elements.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`ColRef::get_unchecked`]
@@ -653,6 +661,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColMut<'a, T, Rows, RStride> {
 		}
 	}
 
+	#[allow(clippy::wrong_self_convention)] // the name is upstream API; renaming it would break callers
 	pub(crate) unsafe fn as_type<U>(self) -> ColMut<'a, U, Rows, RStride> {
 		ColMut::from_raw_parts_mut(
 			self.as_ptr_mut() as *mut U,

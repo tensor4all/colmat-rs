@@ -372,7 +372,7 @@ fn max_diff<T: Entry>(a: MatRef<'_, T>, b: MatRef<'_, T>) -> f64 {
 /// - The permutation and the transposition count are equal: the row-major leaf
 ///   runs the column-major leaf on a copy of its panel, so its pivot search is
 ///   the same, ties included.
-/// With `k = min(m, n)`, `eps` the `f64` machine epsilon and `rho =
+///   With `k = min(m, n)`, `eps` the `f64` machine epsilon and `rho =
 /// max(1, |LU|_max / |A|_max)` the growth of the computed factor:
 ///
 /// - Factor, `|LU_row - LU_col|_max <= 16 * k * eps * rho * |A|_max`. The leaf

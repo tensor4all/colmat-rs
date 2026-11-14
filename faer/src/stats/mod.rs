@@ -110,12 +110,12 @@ mod rand {
 			let r_diag = qr.R().diagonal().column_vector();
 			let mut q = qr.compute_Q(Par::Seq);
 			for j in 0..self.dim {
-				let ref r = r_diag[j];
-				let ref r = if *r == zero() {
+				let r = &r_diag[j];
+				let r = &(if *r == zero() {
 					one()
 				} else {
 					r.mul_real(r.abs().recip())
-				};
+				});
 				z!(q.as_mut().col_mut(j)).for_each(|uz!(q)| {
 					*q *= r;
 				});

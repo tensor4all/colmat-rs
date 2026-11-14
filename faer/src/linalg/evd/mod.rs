@@ -23,8 +23,9 @@ pub(crate) mod tridiag_evd;
 use crate::assert;
 use crate::internal_prelude::*;
 pub use balance::{
-	BalanceError, BalanceJob, balance_eigenvectors_in_place, balance_eigenvectors_scratch,
-	balance_in_place, balance_in_place_with, balance_scratch,
+	BalanceError, BalanceJob, balance_eigenvectors_in_place,
+	balance_eigenvectors_scratch, balance_in_place, balance_in_place_with,
+	balance_scratch,
 };
 use hessenberg::HessenbergParams;
 use linalg::matmul::triangular::BlockStructure;
@@ -194,12 +195,12 @@ pub fn self_adjoint_evd_scratch<T: ComplexField>(
 /// use colmat::Par;
 /// use colmat::linalg::evd::*;
 /// let _buffer =
-/// 	dyn_stack::MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(
-/// 		3,
-/// 		ComputeEigenvectors::Yes,
-/// 		colmat::ParShape::Seq,
-/// 		Default::default(),
-/// 	));
+///     dyn_stack::MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(
+///         3,
+///         ComputeEigenvectors::Yes,
+///         colmat::ParShape::Seq,
+///         Default::default(),
+///     ));
 /// ```
 pub fn tridiagonal_self_adjoint_evd_scratch<T: ComplexField>(
 	dim: usize,
@@ -230,6 +231,8 @@ pub fn tridiagonal_self_adjoint_evd_scratch<T: ComplexField>(
 		},
 	])
 }
+#[allow(clippy::missing_transmute_annotations)]
+// the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 /// computes the matrix $A$'s eigendecomposition, assuming it is tridiagonal and
 /// self-adjoint
 ///
@@ -353,6 +356,8 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 	}
 	Ok(())
 }
+#[allow(clippy::neg_cmp_op_on_partial_ord)]
+// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 /// Scales the lower triangle of `a` by a power of two so that its largest
 /// entry is at least `sqrt(min_positive) / eps`, and returns the reciprocal
 /// factor, which takes the eigenvalues of the scaled matrix back to the input
@@ -372,7 +377,7 @@ fn normalize_lower_range<T: ComplexField>(mut a: MatMut<'_, T>) -> T::Real {
 	for j in 0..n {
 		anorm = anorm.fmax(a.rb().col(j).subrows(j, n - j).norm_max());
 	}
-	let ref lo = min_positive::<T::Real>().sqrt() / eps::<T::Real>();
+	let lo = &(min_positive::<T::Real>().sqrt() / eps::<T::Real>());
 	// a zero matrix needs no scaling, and its spectrum is exactly zero; a NaN
 	// norm also falls through the loop below unchanged
 	if anorm == zero() || !(anorm < *lo) {
@@ -384,12 +389,12 @@ fn normalize_lower_range<T: ComplexField>(mut a: MatMut<'_, T>) -> T::Real {
 	// stage overflows. The inverse is accumulated instead: it is at least
 	// `2^-128` in `f32` and `2^-640` in `f64`, both representable, so each
 	// product is exact.
-	let ref step = from_f64::<T::Real>(4294967296.0);
-	let ref inv_step = step.recip();
+	let step = &from_f64::<T::Real>(4294967296.0);
+	let inv_step = &step.recip();
 	let mut unscale = one::<T::Real>();
 	while anorm < *lo {
-		anorm = anorm * step;
-		unscale = unscale * inv_step;
+		anorm *= step;
+		unscale *= inv_step;
 		for j in 0..n {
 			for i in j..n {
 				a[(i, j)] = a[(i, j)].mul_real(step);
@@ -398,6 +403,8 @@ fn normalize_lower_range<T: ComplexField>(mut a: MatMut<'_, T>) -> T::Real {
 	}
 	unscale
 }
+#[allow(clippy::missing_transmute_annotations)]
+// the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 /// computes the matrix $A$'s eigendecomposition, assuming it is self-adjoint
 ///
 /// the eigenvalues are stored in $S$, and the eigenvectors in $U$ such that the
@@ -444,7 +451,7 @@ pub fn self_adjoint_evd<T: ComplexField>(
 	let (mut trid, stack) = unsafe { temp_mat_uninit::<T, _, _>(n, n, stack) };
 	let mut trid = trid.as_mat_mut();
 	trid.copy_from_triangular_lower(A);
-	let ref unscale = normalize_lower_range(trid.rb_mut());
+	let unscale = &normalize_lower_range(trid.rb_mut());
 	let bs = linalg::qr::no_pivoting::factor::recommended_block_size::<T>(n, n);
 	let (mut householder, stack) =
 		unsafe { temp_mat_uninit::<T, _, _>(bs, n - 1, stack) };
@@ -651,7 +658,7 @@ pub fn pseudoinverse_from_self_adjoint_evd_with_tolerance<T: ComplexField>(
 	for j in 0..n {
 		let x = s[j].absmax();
 		if x > tol {
-			let ref p = s[j].real().recip();
+			let p = &s[j].real().recip();
 			u_trunc.rb_mut().col_mut(len).copy_from(u.col(j));
 			z!(up_trunc.rb_mut().col_mut(len), u.col(j))
 				.for_each(|uz!(dst, src)| *dst = src.mul_real(p));
@@ -739,7 +746,7 @@ fn normalize_eigenvectors<T: ComplexField>(
 	while j < n {
 		let paired = T::IS_REAL && j + 1 < n && h[(j + 1, j)] != zero::<T>();
 		let nrm = if paired {
-			u.rb().col(j).norm_l2().hypot(&u.rb().col(j + 1).norm_l2())
+			u.rb().col(j).norm_l2().hypot(u.rb().col(j + 1).norm_l2())
 		} else {
 			u.rb().col(j).norm_l2()
 		};
@@ -825,18 +832,18 @@ fn range_scaling<T: ComplexField>(
 	let mut k = 0i32;
 	let mut mm = m;
 	while mm >= two {
-		mm = mm * &half;
+		mm *= &half;
 		k -= 1;
 	}
 	while mm < one {
-		mm = mm * &two;
+		mm *= &two;
 		k += 1;
 	}
 	let pow = |e: i32| {
 		let base = if e >= 0 { two.copy() } else { half.copy() };
 		let mut f = one.copy();
 		for _ in 0..e.unsigned_abs() {
-			f = f * &base;
+			f *= &base;
 		}
 		f
 	};
@@ -923,7 +930,7 @@ fn evd_from_real_schur_in_range<T: RealField>(
 		}
 		k -= 1;
 		if k == 0 || A[(k, k - 1)] == zero() {
-			let ref p = A[(k, k)].copy();
+			let p = &A[(k, k)].copy();
 			V[(k, k)] = one();
 			for i in 0..k {
 				V[(i, k)] = -&A[(i, k)];
@@ -941,8 +948,8 @@ fn evd_from_real_schur_in_range<T: RealField>(
 			// to be preserved.
 			V[(k, k)] *= scale;
 		} else {
-			let ref p = A[(k, k)].copy();
-			let ref q = A[(k, k - 1)].abs().sqrt() * A[(k - 1, k)].abs().sqrt();
+			let p = &A[(k, k)].copy();
+			let q = &(A[(k, k - 1)].abs().sqrt() * A[(k - 1, k)].abs().sqrt());
 			if A[(k - 1, k)].abs() >= A[(k, k - 1)].abs() {
 				V[(k - 1, k - 1)] = one();
 				V[(k, k)] = q / &A[(k - 1, k)];
@@ -1010,11 +1017,11 @@ fn evd_from_cplx_schur_in_range<T: ComplexField>(
 			break;
 		}
 		k -= 1;
-		let ref p = if conj_A == Conj::Yes {
+		let p = &(if conj_A == Conj::Yes {
 			A[(k, k)].conj()
 		} else {
 			A[(k, k)].copy()
-		};
+		});
 		V[(k, k)] = one();
 		if conj_A == Conj::Yes {
 			for i in 0..k {
@@ -1049,7 +1056,7 @@ fn solve_real_shifted_upper_quasi_triangular_system<T: RealField>(
 	let n = A.nrows();
 	let one = one::<T>;
 	let zero = zero::<T>;
-	let ref p = p;
+	let p = &p;
 	let mut x = x;
 	// While the shift `A[i, i] - p` is clamped to `eps_norm`, back
 	// substitution can grow the solution by `1 / eps_norm` per row and
@@ -1210,10 +1217,7 @@ fn solve_shifted_2x2_cplx<T: RealField>(
 	}
 	if cmax < *smin {
 		let inv = smin.recip();
-		return (
-			(&r0.0 * &inv, &r0.1 * &inv),
-			(&r1.0 * &inv, &r1.1 * &inv),
-		);
+		return ((&r0.0 * &inv, &r0.1 * &inv), (&r1.0 * &inv, &r1.1 * &inv));
 	}
 	// pivot row `p`, pivot column `q`; the other row and column are `1 - p`, `1 - q`
 	let (rp, ro) = if p == 0 { (r0, r1) } else { (r1, r0) };
@@ -1242,8 +1246,8 @@ fn solve_cplx_shifted_upper_quasi_triangular_system<T: RealField>(
 	let n = A.nrows();
 	let one = one::<T>;
 	let zero = zero::<T>;
-	let ref p = p;
-	let ref q = q;
+	let p = &p;
+	let q = &q;
 	let mut x = x;
 	let big = sqrt_max_positive::<T>();
 	let mut scale = one();
@@ -1270,11 +1274,11 @@ fn solve_cplx_shifted_upper_quasi_triangular_system<T: RealField>(
 					z_im = zero();
 					z = z_re.copy();
 				}
-				let ref z = z;
-				let ref z_re = (z_re / z) / z;
-				let ref z_im = (-z_im / z) / z;
-				let ref x_re = x[(i, 0)].copy();
-				let ref x_im = x[(i, 1)].copy();
+				let z = &z;
+				let z_re = &((z_re / z) / z);
+				let z_im = &((-z_im / z) / z);
+				let x_re = &x[(i, 0)].copy();
+				let x_im = &x[(i, 1)].copy();
 				x[(i, 0)] = x_re * z_re - x_im * z_im;
 				x[(i, 1)] = x_re * z_im + x_im * z_re;
 				let a0 = x[(i, 0)].abs();
@@ -1299,14 +1303,14 @@ fn solve_cplx_shifted_upper_quasi_triangular_system<T: RealField>(
 				x[(i - 1, 1)] = &x[(i - 1, 1)] - im0;
 				x[(i, 0)] = &x[(i, 0)] - re1;
 				x[(i, 1)] = &x[(i, 1)] - im1;
-				let ref a_re = &A[(i, i)] - p;
-				let ref a_im = -q;
-				let ref b = A[(i - 1, i)];
-				let ref c = A[(i, i - 1)];
-				let ref r0_re = x[(i - 1, 0)];
-				let ref r0_im = x[(i - 1, 1)];
-				let ref r1_re = x[(i, 0)];
-				let ref r1_im = x[(i, 1)];
+				let a_re = &(&A[(i, i)] - p);
+				let a_im = &-q;
+				let b = &A[(i - 1, i)];
+				let c = &A[(i, i - 1)];
+				let r0_re = &x[(i - 1, 0)];
+				let r0_im = &x[(i - 1, 1)];
+				let r1_re = &x[(i, 0)];
+				let r1_im = &x[(i, 1)];
 				// `?LALN2`'s complex 2 x 2 solve (#145): complete pivoting, the
 				// second pivot kept at least `eps_norm`, and `eps_norm * I` for a
 				// block whose entries are all below it. Inverting the block through
@@ -1407,7 +1411,7 @@ fn solve_shifted_upper_triangular_system<T: ComplexField>(
 	let mut scale = one::<T::Real>();
 	let one = one::<T>;
 	let zero = zero::<T>;
-	let ref p = p;
+	let p = &p;
 	let mut x = x;
 	let big = sqrt_max_positive::<T::Real>();
 	if par.degree() == 0 || n < params.recursion_threshold {
@@ -1548,7 +1552,7 @@ pub fn evd_scratch<T: ComplexField>(
 /// use colmat::Par;
 /// use colmat::linalg::evd::hessenberg_schur_scratch;
 /// let req =
-/// 	hessenberg_schur_scratch::<f64>(3, true, colmat::ParShape::Seq, Default::default());
+///     hessenberg_schur_scratch::<f64>(3, true, colmat::ParShape::Seq, Default::default());
 /// let _buffer = dyn_stack::MemBuffer::new(req);
 /// ```
 pub fn hessenberg_schur_scratch<T: ComplexField>(
@@ -1583,19 +1587,19 @@ pub fn hessenberg_schur_scratch<T: ComplexField>(
 /// let mut z = Mat::identity(2, 2);
 /// let (mut wr, mut wi) = (Col::zeros(2), Col::zeros(2));
 /// let mut mem = MemBuffer::new(hessenberg_schur_scratch::<f64>(
-/// 	2,
-/// 	true,
-/// 	colmat::ParShape::Seq,
-/// 	Default::default(),
+///     2,
+///     true,
+///     colmat::ParShape::Seq,
+///     Default::default(),
 /// ));
 /// hessenberg_schur_real(
-/// 	h.as_mut(),
-/// 	Some(z.as_mut()),
-/// 	wr.as_mut(),
-/// 	wi.as_mut(),
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
-/// 	Default::default(),
+///     h.as_mut(),
+///     Some(z.as_mut()),
+///     wr.as_mut(),
+///     wi.as_mut(),
+///     Par::Seq,
+///     MemStack::new(&mut mem),
+///     Default::default(),
 /// )
 /// .unwrap();
 /// assert!(wi[0] > 0.0 && wi[1] < 0.0);
@@ -1667,18 +1671,18 @@ pub fn hessenberg_schur_real<T: RealField>(
 /// let mut h = Mat::<c64>::identity(2, 2);
 /// let mut w = Col::zeros(2);
 /// let mut mem = MemBuffer::new(hessenberg_schur_scratch::<c64>(
-/// 	2,
-/// 	false,
-/// 	colmat::ParShape::Seq,
-/// 	Default::default(),
+///     2,
+///     false,
+///     colmat::ParShape::Seq,
+///     Default::default(),
 /// ));
 /// hessenberg_schur_cplx(
-/// 	h.as_mut(),
-/// 	None,
-/// 	w.as_mut(),
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
-/// 	Default::default(),
+///     h.as_mut(),
+///     None,
+///     w.as_mut(),
+///     Par::Seq,
+///     MemStack::new(&mut mem),
+///     Default::default(),
 /// )
 /// .unwrap();
 /// assert_eq!(w[0], c64::new(1.0, 0.0));
@@ -1787,16 +1791,16 @@ pub fn reorder_schur_scratch<T: ComplexField>(dim: usize) -> StackReq {
 /// let mut t = colmat::mat![[1.0f64, 0.0], [0.0, 2.0]];
 /// let mut mem = MemBuffer::new(reorder_schur_scratch::<f64>(2));
 /// assert_eq!(
-/// 	reorder_schur_real(
-/// 		t.as_mut(),
-/// 		None,
-/// 		0,
-/// 		1,
-/// 		Par::Seq,
-/// 		MemStack::new(&mut mem)
-/// 	)
-/// 	.unwrap(),
-/// 	1
+///     reorder_schur_real(
+///         t.as_mut(),
+///         None,
+///         0,
+///         1,
+///         Par::Seq,
+///         MemStack::new(&mut mem)
+///     )
+///     .unwrap(),
+///     1
 /// );
 /// assert_eq!(t[(1, 1)], 1.0);
 /// ```
@@ -1914,15 +1918,15 @@ pub fn reorder_schur_real<T: RealField>(
 /// let mut t = Mat::<c64>::identity(2, 2);
 /// let mut mem = MemBuffer::new(reorder_schur_scratch::<c64>(2));
 /// assert_eq!(
-/// 	reorder_schur_cplx(
-/// 		t.as_mut(),
-/// 		None,
-/// 		0,
-/// 		1,
-/// 		Par::Seq,
-/// 		MemStack::new(&mut mem)
-/// 	),
-/// 	1
+///     reorder_schur_cplx(
+///         t.as_mut(),
+///         None,
+///         0,
+///         1,
+///         Par::Seq,
+///         MemStack::new(&mut mem)
+///     ),
+///     1
 /// );
 /// ```
 pub fn reorder_schur_cplx<T: ComplexField>(
@@ -1983,12 +1987,12 @@ pub fn eigenvectors_from_schur_scratch<T: ComplexField>(
 /// let mut x = Mat::zeros(2, 2);
 /// let mut mem = MemBuffer::new(eigenvectors_from_schur_scratch::<f64>(2));
 /// eigenvectors_from_schur_real(
-/// 	t.as_ref(),
-/// 	None,
-/// 	x.as_mut(),
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
-/// 	Default::default(),
+///     t.as_ref(),
+///     None,
+///     x.as_mut(),
+///     Par::Seq,
+///     MemStack::new(&mut mem),
+///     Default::default(),
 /// )
 /// .unwrap();
 /// assert!((x.col(1).norm_l2() - 1.0).abs() < 1e-14);
@@ -2052,12 +2056,12 @@ pub fn eigenvectors_from_schur_real<T: RealField>(
 /// let mut x = Mat::zeros(2, 2);
 /// let mut mem = MemBuffer::new(eigenvectors_from_schur_scratch::<c64>(2));
 /// eigenvectors_from_schur_cplx(
-/// 	t.as_ref(),
-/// 	None,
-/// 	x.as_mut(),
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
-/// 	Default::default(),
+///     t.as_ref(),
+///     None,
+///     x.as_mut(),
+///     Par::Seq,
+///     MemStack::new(&mut mem),
+///     Default::default(),
 /// )
 /// .unwrap();
 /// assert_eq!(x, t);
@@ -2125,7 +2129,9 @@ fn geev_scaling<T: ComplexField>(A: MatRef<'_, T>) -> Option<T::Real> {
 	let mut anrm = zero::<T::Real>();
 	for j in 0..n {
 		for i in 0..n {
-			anrm = anrm.fmax(A[(i, j)].real().abs()).fmax(A[(i, j)].imag().abs());
+			anrm = anrm
+				.fmax(A[(i, j)].real().abs())
+				.fmax(A[(i, j)].imag().abs());
 		}
 	}
 	let smlnum = min_positive::<T::Real>().sqrt() / eps::<T::Real>();
@@ -2139,16 +2145,18 @@ fn geev_scaling<T: ComplexField>(A: MatRef<'_, T>) -> Option<T::Real> {
 	if anrm < smlnum {
 		// `anrm * f` in `[smlnum, 2 smlnum)`
 		while &anrm * &f < smlnum {
-			f = f * &two;
+			f *= &two;
 		}
 	} else {
 		// `anrm * f` in `(bignum / 2, bignum]`
 		while &anrm * &f > bignum {
-			f = f * &half;
+			f *= &half;
 		}
 	}
 	Some(f)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::missing_transmute_annotations)] // the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 fn evd_imp<T: ComplexField>(
 	A: MatRef<'_, T>,
 	s: ColMut<'_, T>,
@@ -2231,7 +2239,7 @@ fn evd_imp<T: ComplexField>(
 	}
 	if const { T::IS_REAL } {
 		let (info, _, _) = schur::real_schur::multishift_qr::<T::Real>(
-			unsafe { core::mem::transmute(Z.is_some()) },
+			Z.is_some(),
 			unsafe { core::mem::transmute(H.rb_mut()) },
 			unsafe { core::mem::transmute(Z.rb_mut()) },
 			unsafe { core::mem::transmute(s.rb_mut()) },
@@ -2384,6 +2392,7 @@ pub fn evd_cplx<T: RealField>(
 		params.config,
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the matrix $A$'s eigendecomposition
 ///
 /// the eigenvalues are stored in $S$, the left eigenvectors in $U_L$, and the
@@ -2514,9 +2523,9 @@ mod general_tests {
 					let ur = ur.col(i);
 					let ul = ul.col(i);
 					let s = Scale(s_re[i]);
-					assert!((& ur * s).as_mat() ~ (mat * & ur).as_mat());
+					assert!((ur * s).as_mat() ~ (mat * ur).as_mat());
 					assert!(
-						(& ul.adjoint() * s).as_mat() ~ (& ul.adjoint() * mat).as_mat()
+						(ul.adjoint() * s).as_mat() ~ (ul.adjoint() * mat).as_mat()
 					);
 					i += 1;
 				} else {
@@ -2735,9 +2744,9 @@ mod eig_2131_tests {
 					);
 					j += 1;
 				} else {
-					let nrm = v.norm_l2().hypot(&u.col(j + 1).norm_l2());
+					let nrm = v.norm_l2().hypot(u.col(j + 1).norm_l2());
 					assert!((nrm - one::<T>()).abs() < tol);
-					let nrm = vl.norm_l2().hypot(&ul.col(j + 1).norm_l2());
+					let nrm = vl.norm_l2().hypot(ul.col(j + 1).norm_l2());
 					assert!((nrm - one::<T>()).abs() < tol);
 					j += 2;
 				}
@@ -3073,9 +3082,8 @@ mod range_limit_vector_tests {
 		let s = 2.0f64.powi(1023);
 		let t = crate::mat![[s, -s, 1.0], [s, s, 0.0], [0.0, 0.0, -s]];
 		if let Some(x) = try_real_vectors::<f64>(t.as_ref()) {
-			let unit = Mat::from_fn(3, 3, |i, j| {
-				Complex::new(t[(i, j)] / s, 0.0)
-			});
+			let unit =
+				Mat::from_fn(3, 3, |i, j| Complex::new(t[(i, j)] / s, 0.0));
 			let v = real_pair(x.as_ref(), 0);
 			assert_eigenvector(
 				unit.as_ref(),
@@ -3109,10 +3117,12 @@ mod range_limit_vector_tests {
 	/// reciprocal overflowed. Both are scaled into range before the substitution now.
 	#[test]
 	fn jordan_chains_at_both_ends_of_the_range() {
-		const CHAIN_3X3: [[f64; 3]; 3] = [[1.0, 1.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]];
+		const CHAIN_3X3: [[f64; 3]; 3] =
+			[[1.0, 1.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]];
 		fn real<T: RealField>(scale: T, tol: T) {
 			let unit = unit::<T, 3>(&CHAIN_3X3);
-			let x = real_vectors::<T>(scaled_real(unit.as_ref(), &scale).as_ref());
+			let x =
+				real_vectors::<T>(scaled_real(unit.as_ref(), &scale).as_ref());
 			let lambda = Complex::new(one::<T>(), zero::<T>());
 			for j in 0..3 {
 				let v = real_column(x.as_ref(), j);
@@ -3258,7 +3268,10 @@ mod self_adjoint_tests {
 		}
 		.rand::<Mat<f64>>(rng);
 		let mat = &mat + mat.adjoint();
-		let pinv = mat.self_adjoint_eigen(Side::Lower, Par::Seq).unwrap().pseudoinverse(Par::Seq);
+		let pinv = mat
+			.self_adjoint_eigen(Side::Lower, Par::Seq)
+			.unwrap()
+			.pseudoinverse(Par::Seq);
 		let err = &mat * &pinv - Mat::<f64>::identity(n, n);
 		assert!(err.norm_max() < 1e-10);
 	}
@@ -3352,7 +3365,8 @@ mod tridiagonal_range_tests {
 		let mut s = vec![0.0; n];
 		let mut u = Mat::<f64>::zeros(n, n);
 		let mut params = Spec::<SelfAdjointEvdParams, f64>::default();
-		params.recursion_threshold = threshold;
+
+		params.config.recursion_threshold = threshold;
 		let mut mem =
 			MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(
 				n,
@@ -3443,7 +3457,7 @@ mod geev_scaling_tests {
 	//! `f64` on the dimensionless matrix `a / scale`, exact for a power of two. The left side is
 	//! checked as the right eigenvectors of `a^H`; the `u_left` branch of `evd_imp` itself is
 	//! exercised by the LAPACK nonsymmetric EVD tests.
-	use crate::{assert, c32, c64, Mat, Par};
+	use crate::{Mat, Par, assert, c32, c64};
 	use num_complex::Complex64 as Z;
 
 	/// GET22's `||a u - u diag(w)||_1 / (||a||_1 ||u||_1 eps)` for one side
@@ -3484,12 +3498,18 @@ mod geev_scaling_tests {
 			.collect();
 		let mut state = 0x2545_f491_4f6c_dd1du64;
 		let mut next = move || {
-			state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+			state = state
+				.wrapping_mul(6364136223846793005)
+				.wrapping_add(1442695040888963407);
 			// a multiple of `2^-10` in `[-1, 1)`, exact in every precision
 			((state >> 54) as f64 - 512.0) / 512.0
 		};
 		let rand = (0..n)
-			.map(|_| (0..n).map(|_| Z::new(next(), if cplx { next() } else { 0.0 })).collect())
+			.map(|_| {
+				(0..n)
+					.map(|_| Z::new(next(), if cplx { next() } else { 0.0 }))
+					.collect()
+			})
 			.collect();
 		[grcar, rand]
 	}
@@ -3502,16 +3522,52 @@ mod geev_scaling_tests {
 			for unit in unit(n, $cplx) {
 				for e in $scales {
 					let scale = 2.0f64.powi(e);
-					let a = Mat::<$t>::from_fn(n, n, |i, j| $mk(unit[i][j] * scale));
-					for (side, m) in [("right", a.clone()), ("left", a.adjoint().to_owned())] {
-						let dimless: Vec<Vec<Z>> = (0..n).map(|i| (0..n).map(|j| $z(m[(i, j)]) / scale).collect()).collect();
+					let a =
+						Mat::<$t>::from_fn(
+							n,
+							n,
+							|i, j| $mk(unit[i][j] * scale),
+						);
+					for (side, m) in
+						[("right", a.clone()), ("left", a.adjoint().to_owned())]
+					{
+						let dimless: Vec<Vec<Z>> = (0..n)
+							.map(|i| {
+								(0..n).map(|j| $z(m[(i, j)]) / scale).collect()
+							})
+							.collect();
 						let evd = m.eigen(Par::Seq).unwrap();
-						let w: Vec<Z> = (0..n).map(|i| Z::new(evd.S()[i].re as f64, evd.S()[i].im as f64) / scale).collect();
-						let u: Vec<Vec<Z>> = (0..n).map(|i| (0..n).map(|j| Z::new(evd.U()[(i, j)].re as f64, evd.U()[(i, j)].im as f64)).collect()).collect();
+						let w: Vec<Z> = (0..n)
+							.map(|i| {
+								Z::new(
+									evd.S()[i].re as f64,
+									evd.S()[i].im as f64,
+								) / scale
+							})
+							.collect();
+						let u: Vec<Vec<Z>> = (0..n)
+							.map(|i| {
+								(0..n)
+									.map(|j| {
+										Z::new(
+											evd.U()[(i, j)].re as f64,
+											evd.U()[(i, j)].im as f64,
+										)
+									})
+									.collect()
+							})
+							.collect();
 						// `f64::max` drops a NaN, so a nonfinite result is rejected first
-						assert!(w.iter().all(|w| w.is_finite()) && u.iter().flatten().all(|u| u.is_finite()));
+						assert!(
+							w.iter().all(|w| w.is_finite())
+								&& u.iter().flatten().all(|u| u.is_finite())
+						);
 						let r = get22(&dimless, &u, &w, $eps);
-						assert!(r <= thresh, "{} scale 2^{e} {side}: GET22 {r}", stringify!($t));
+						assert!(
+							r <= thresh,
+							"{} scale 2^{e} {side}: GET22 {r}",
+							stringify!($t)
+						);
 					}
 				}
 			}
@@ -3526,7 +3582,9 @@ mod geev_scaling_tests {
 	#[test]
 	fn defective_double_eigenvalue_has_small_residuals() {
 		let jordan = |a: [[f64; 3]; 3], n: usize| -> Vec<Vec<Z>> {
-			(0..n).map(|i| (0..n).map(|j| Z::new(a[i][j], 0.0)).collect()).collect()
+			(0..n)
+				.map(|i| (0..n).map(|j| Z::new(a[i][j], 0.0)).collect())
+				.collect()
 		};
 		let cases = [
 			(jordan([[2.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0; 3]], 2)),
@@ -3538,9 +3596,20 @@ mod geev_scaling_tests {
 			let n = a.len();
 			let m = Mat::<f64>::from_fn(n, n, |i, j| a[i][j].re);
 			let evd = m.eigen(Par::Seq).unwrap();
-			let w: Vec<Z> = (0..n).map(|i| Z::new(evd.S()[i].re, evd.S()[i].im)).collect();
-			let u: Vec<Vec<Z>> = (0..n).map(|i| (0..n).map(|j| Z::new(evd.U()[(i, j)].re, evd.U()[(i, j)].im)).collect()).collect();
-			assert!(w.iter().all(|w| w.is_finite()) && u.iter().flatten().all(|u| u.is_finite()));
+			let w: Vec<Z> = (0..n)
+				.map(|i| Z::new(evd.S()[i].re, evd.S()[i].im))
+				.collect();
+			let u: Vec<Vec<Z>> = (0..n)
+				.map(|i| {
+					(0..n)
+						.map(|j| Z::new(evd.U()[(i, j)].re, evd.U()[(i, j)].im))
+						.collect()
+				})
+				.collect();
+			assert!(
+				w.iter().all(|w| w.is_finite())
+					&& u.iter().flatten().all(|u| u.is_finite())
+			);
 			let r = get22(a, &u, &w, f64::EPSILON);
 			assert!(r <= 20.0, "{a:?}: GET22 {r}");
 		}
@@ -3582,10 +3651,38 @@ mod geev_scaling_tests {
 
 	#[test]
 	fn evd_scales_its_input_into_range() {
-		check!(f32, |z: Z| z.re as f32, |x: f32| Z::new(x as f64, 0.0), f32::EPSILON as f64, [-120, -100, 0, 100, 120], false);
-		check!(c32, |z: Z| c32::new(z.re as f32, z.im as f32), |x: c32| Z::new(x.re as f64, x.im as f64), f32::EPSILON as f64, [-120, -100, 0, 100, 120], true);
-		check!(f64, |z: Z| z.re, |x: f64| Z::new(x, 0.0), f64::EPSILON, [-1010, -1000, -960, 0, 960, 1015], false);
-		check!(c64, |z: Z| c64::new(z.re, z.im), |x: c64| Z::new(x.re, x.im), f64::EPSILON, [-1010, -1000, -960, 0, 960, 1015], true);
+		check!(
+			f32,
+			|z: Z| z.re as f32,
+			|x: f32| Z::new(x as f64, 0.0),
+			f32::EPSILON as f64,
+			[-120, -100, 0, 100, 120],
+			false
+		);
+		check!(
+			c32,
+			|z: Z| c32::new(z.re as f32, z.im as f32),
+			|x: c32| Z::new(x.re as f64, x.im as f64),
+			f32::EPSILON as f64,
+			[-120, -100, 0, 100, 120],
+			true
+		);
+		check!(
+			f64,
+			|z: Z| z.re,
+			|x: f64| Z::new(x, 0.0),
+			f64::EPSILON,
+			[-1010, -1000, -960, 0, 960, 1015],
+			false
+		);
+		check!(
+			c64,
+			|z: Z| c64::new(z.re, z.im),
+			|x: c64| Z::new(x.re, x.im),
+			f64::EPSILON,
+			[-1010, -1000, -960, 0, 960, 1015],
+			true
+		);
 	}
 }
 
@@ -3609,8 +3706,10 @@ mod dense_range_tests {
 	/// `f64::MIN_POSITIVE * 2^-1` (just below the normal range, like the
 	/// reported `2e-308`) and `f64::MIN_POSITIVE * 2^-30` (deep in the
 	/// subnormal range)
-	const SCALES: [f64; 2] =
-		[f64::MIN_POSITIVE / 2.0, f64::MIN_POSITIVE / (1u64 << 30) as f64];
+	const SCALES: [f64; 2] = [
+		f64::MIN_POSITIVE / 2.0,
+		f64::MIN_POSITIVE / (1u64 << 30) as f64,
+	];
 	/// the smallest `f32` subnormal `2^-149`, and `f32::MIN_POSITIVE * 2^-20 =
 	/// 2^-146` (`f32::MIN_POSITIVE * 2^-30` is below `2^-149` and rounds to
 	/// zero). With these, a scale factor accumulated in `f32` reaches `2^128`,
@@ -3642,7 +3741,8 @@ mod dense_range_tests {
 		] {
 			{
 				let mut params = Spec::<SelfAdjointEvdParams, T>::default();
-				params.recursion_threshold = threshold;
+
+				params.config.recursion_threshold = threshold;
 				let mut w = Diag::<T>::zeros(n);
 				let mut u = Mat::<T>::zeros(n, n);
 				let mut mem = MemBuffer::new(self_adjoint_evd_scratch::<T>(
@@ -3707,16 +3807,18 @@ mod dense_range_tests {
 						let id = if i == j { 1.0 } else { 0.0 };
 						let d = if i == j { ratios[i] } else { 0.0 };
 						let e: f64 =
-							abs(&(&gram[(i, j)] - from_real::<T>(&from_f64(id))))
-								.into();
+							abs(&(&gram[(i, j)]
+								- from_real::<T>(&from_f64(id))))
+							.into();
 						assert!(
 							e <= tol,
 							"s = {s:e}, {label}: (U^H U)[{i}, {j}] = {:?}",
 							gram[(i, j)],
 						);
-						let e: f64 =
-							abs(&(&proj[(i, j)] - from_real::<T>(&from_f64(d))))
-								.into();
+						let e: f64 = abs(
+							&(&proj[(i, j)] - from_real::<T>(&from_f64(d)))
+						)
+						.into();
 						assert!(
 							e <= tol,
 							"s = {s:e}, {label}: (U^H (A / s) U)[{i}, {j}] = \
@@ -3731,9 +3833,8 @@ mod dense_range_tests {
 
 	/// `J - I` of size `n`, with eigenvalues `[-1, ..., -1, n - 1]`
 	fn ones_minus_identity<T: ComplexField>(n: usize) -> (Mat<T>, Vec<f64>) {
-		let unit = Mat::<T>::from_fn(n, n, |i, j| {
-			if i == j { zero() } else { one() }
-		});
+		let unit =
+			Mat::<T>::from_fn(n, n, |i, j| if i == j { zero() } else { one() });
 		let mut exact = vec![-1.0; n];
 		exact[n - 1] = (n - 1) as f64;
 		(unit, exact)
@@ -3781,11 +3882,16 @@ mod dense_range_tests {
 				q[(i, j)] = 0.8 * x + 0.6 * y;
 			}
 		}
-		let exact: Vec<f64> =
-			(0..n).map(|i| -1.0 + 2.0 * i as f64 / (n - 1) as f64).collect();
-		let d = Mat::<f64>::from_fn(n, n, |i, j| {
-			if i == j { exact[i] } else { 0.0 }
-		});
+		let exact: Vec<f64> = (0..n)
+			.map(|i| -1.0 + 2.0 * i as f64 / (n - 1) as f64)
+			.collect();
+		let d = Mat::<f64>::from_fn(
+			n,
+			n,
+			|i, j| {
+				if i == j { exact[i] } else { 0.0 }
+			},
+		);
 		let unit = &q * &d * q.transpose();
 		let s = f64::MIN_POSITIVE.sqrt();
 		check(unit.as_ref(), s, &exact, 1e-12);
@@ -3809,9 +3915,14 @@ mod dense_range_tests {
 		let d = [2.0, -1.0, 3.0, 0.5];
 		for s in SCALES {
 			let sorted = sorted_spectrum(&d, s);
-			let a = Mat::<f64>::from_fn(4, 4, |i, j| {
-				if i == j { d[i] * s } else { 0.0 }
-			});
+			let a =
+				Mat::<f64>::from_fn(
+					4,
+					4,
+					|i, j| {
+						if i == j { d[i] * s } else { 0.0 }
+					},
+				);
 			for (label, w, _) in evd(a.as_ref()) {
 				assert_eq!(w, sorted, "s = {s:e}, {label}");
 			}
@@ -3892,9 +4003,14 @@ mod dense_range_tests {
 	#[test]
 	fn smallest_f32_subnormal_diagonal() {
 		let q = f32::from_bits(1);
-		let a = Mat::<f32>::from_fn(2, 2, |i, j| {
-			if i == 0 && j == 0 { q } else { 0.0 }
-		});
+		let a =
+			Mat::<f32>::from_fn(
+				2,
+				2,
+				|i, j| {
+					if i == 0 && j == 0 { q } else { 0.0 }
+				},
+			);
 		for (label, w, _) in evd(a.as_ref()) {
 			assert_eq!(w, [0.0, q as f64], "{label}");
 		}

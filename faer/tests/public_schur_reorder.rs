@@ -1,6 +1,6 @@
 mod common;
-use common::*;
 use colmat::linalg::evd::*;
+use common::*;
 
 fn real<T: RealField>() {
 	for n in SIZES {
@@ -395,7 +395,7 @@ fn extreme_diagonal<T: ComplexField>(max: f64, make: fn(f64, f64) -> T) {
 	assert!(t[(1, 0)] == zero::<T>());
 	unitary(q.as_ref());
 	// Halve before the similarity: no intermediate may exceed `max_positive`.
-	let ref half = f(0.5);
+	let half = &f(0.5);
 	let scaled = Mat::from_fn(2, 2, |i, j| t[(i, j)].mul_real(half));
 	let expected = Mat::from_fn(2, 2, |i, j| original[(i, j)].mul_real(half));
 	let back = &q * &scaled * q.adjoint();

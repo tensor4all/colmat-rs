@@ -23,7 +23,9 @@ pub fn reconstruct<T: ComplexField>(
 	assert!(all(out.nrows() == m, out.ncols() == n));
 	let mut out = out;
 	out.fill(zero());
-	out.rb_mut().get_mut(.., ..k).copy_from_triangular_lower(packed.get(.., ..k));
+	out.rb_mut()
+		.get_mut(.., ..k)
+		.copy_from_triangular_lower(packed.get(.., ..k));
 	// $LQ = (Q^\top L^\top)^\top$: the transposed output is the $QR$ basis
 	// applied to $L^\top$.
 	linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
@@ -83,9 +85,12 @@ mod tests {
 				lq.as_ref(),
 				coeff.as_ref(),
 				Par::Seq,
-				MemStack::new(&mut MemBuffer::new(
-					reconstruct_scratch::<c64>(m, n, block_size, ParShape::Seq),
-				)),
+				MemStack::new(&mut MemBuffer::new(reconstruct_scratch::<c64>(
+					m,
+					n,
+					block_size,
+					ParShape::Seq,
+				))),
 			);
 			assert!(rec ~ A);
 		}

@@ -1,7 +1,7 @@
 //! Public finite-pencil regression for safe generalized-Hessenberg rotations.
 mod common;
-use common::*;
 use colmat::linalg::gevd::gen_hessenberg::{self, GeneralizedHessenbergParams};
+use common::*;
 fn normalized<T: ComplexField>(x: &T, scale: &T::Real, imaginary: &T) -> T {
 	from_real::<T>(&(&x.real() / scale))
 		+ imaginary.mul_real(&(&x.imag() / scale))

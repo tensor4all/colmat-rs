@@ -7,10 +7,10 @@ use crate::row::RowRef;
 use crate::utils::bound::Dim;
 use crate::utils::simd::SimdCtx;
 use crate::{Conj, ContiguousFwd, Par, Shape};
+use colmat_traits::{ByRef, ComplexField, Conjugate};
 use core::mem::MaybeUninit;
 use dyn_stack::{MemBuffer, MemStack};
 use equator::assert;
-use colmat_traits::{ByRef, ComplexField, Conjugate};
 use pulp::Simd;
 use reborrow::*;
 const NANO_GEMM_THRESHOLD: usize = 16 * 16 * 16;
@@ -200,6 +200,7 @@ mod matmul_vertical {
 			}
 		}
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub fn matmul_simd<'M, 'N, 'K, T: ComplexField>(
 		dst: MatMut<'_, T, Dim<'M>, Dim<'N>, ContiguousFwd>,
 		beta: Accum,
@@ -290,13 +291,15 @@ mod matmul_vertical {
 							job(row, col_inner);
 						}
 					},
-	#[cfg(feature = "rayon")]
+					#[cfg(feature = "rayon")]
 					_ => {
-					let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+						let nthreads =
+							core::num::NonZeroUsize::new(par.degree()).unwrap();
 						let nthreads = nthreads.get();
 						use rayon::prelude::*;
 						let job_idx = core::sync::atomic::AtomicUsize::new(0);
-						crate::utils::thread::for_each(par.reborrow(), 
+						crate::utils::thread::for_each(
+							par.reborrow(),
 							nthreads,
 							(0..nthreads).into_par_iter(),
 							|_| {
@@ -470,6 +473,7 @@ mod matmul_horizontal {
 			}
 		}
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub fn matmul_simd<'M, 'N, 'K, T: ComplexField>(
 		dst: MatMut<'_, T, Dim<'M>, Dim<'N>>,
 		beta: Accum,
@@ -560,13 +564,15 @@ mod matmul_horizontal {
 							job(row, col_inner);
 						}
 					},
-	#[cfg(feature = "rayon")]
+					#[cfg(feature = "rayon")]
 					_ => {
-					let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+						let nthreads =
+							core::num::NonZeroUsize::new(par.degree()).unwrap();
 						let nthreads = nthreads.get();
 						use rayon::prelude::*;
 						let job_idx = core::sync::atomic::AtomicUsize::new(0);
-						crate::utils::thread::for_each(par.reborrow(), 
+						crate::utils::thread::for_each(
+							par.reborrow(),
 							nthreads,
 							(0..nthreads).into_par_iter(),
 							|_| {
@@ -647,6 +653,7 @@ pub mod dot {
 			rhs: ColRef<'a, T, Dim<'K>, ContiguousFwd>,
 			conj_rhs: Conj,
 		}
+		#[allow(clippy::extra_unused_lifetimes)] // the lifetimes appear inside `Dim<'K>` field types
 		impl<'a, 'K, T: ComplexField> pulp::WithSimd for Impl<'_, '_, T> {
 			type Output = T;
 
@@ -753,6 +760,7 @@ mod matvec_rowmajor {
 	use super::*;
 	use crate::col::ColMut;
 	use colmat_traits::SimdArch;
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub fn matvec<'M, 'K, T: ComplexField>(
 		dst: ColMut<'_, T, Dim<'M>>,
 		beta: Accum,
@@ -773,66 +781,23 @@ mod matvec_rowmajor {
 			crate::utils::cost::rate::matvec(),
 			1,
 		);
-		crate::utils::thread::with_width(par, width, |par| {
-			match par {
-				Par::Seq => {
-					pub struct Impl<'a, 'M, 'K, T: ComplexField> {
-						dst: ColMut<'a, T, Dim<'M>>,
-						beta: Accum,
-						lhs: MatRef<'a, T, Dim<'M>, Dim<'K>, isize, ContiguousFwd>,
-						conj_lhs: Conj,
-						rhs: ColRef<'a, T, Dim<'K>, ContiguousFwd>,
-						conj_rhs: Conj,
-						alpha: &'a T,
-					}
-					impl<'a, 'M, 'K, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'K, T> {
-						type Output = ();
+		crate::utils::thread::with_width(par, width, |par| match par {
+			Par::Seq => {
+				pub struct Impl<'a, 'M, 'K, T: ComplexField> {
+					dst: ColMut<'a, T, Dim<'M>>,
+					beta: Accum,
+					lhs: MatRef<'a, T, Dim<'M>, Dim<'K>, isize, ContiguousFwd>,
+					conj_lhs: Conj,
+					rhs: ColRef<'a, T, Dim<'K>, ContiguousFwd>,
+					conj_rhs: Conj,
+					alpha: &'a T,
+				}
+				impl<'a, 'M, 'K, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'K, T> {
+					type Output = ();
 
-						#[inline(always)]
-						fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
-							let Self {
-								dst,
-								beta,
-								lhs,
-								conj_lhs,
-								rhs,
-								conj_rhs,
-								alpha,
-							} = self;
-							let simd = T::simd_ctx(simd);
-							let mut dst = dst;
-							let K = lhs.ncols();
-							let simd = SimdCtx::new(simd, K);
-							for i in lhs.nrows().indices() {
-								let dst = &mut dst[i];
-								let lhs = lhs.row(i);
-								let rhs = rhs;
-								let mut tmp = if conj_lhs == conj_rhs {
-									dot::inner_prod_no_conj_simd::<T, S>(
-										simd,
-										lhs.transpose(),
-										rhs,
-									)
-								} else {
-									dot::inner_prod_conj_lhs_simd::<T, S>(
-										simd,
-										lhs.transpose(),
-										rhs,
-									)
-								};
-								if conj_rhs == Conj::Yes {
-									tmp = tmp.conj();
-								}
-								tmp = alpha * tmp;
-								if let Accum::Add = beta {
-									tmp = &*dst + tmp;
-								}
-								*dst = tmp;
-							}
-						}
-					}
-					dispatch!(
-						Impl {
+					#[inline(always)]
+					fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+						let Self {
 							dst,
 							beta,
 							lhs,
@@ -840,39 +805,81 @@ mod matvec_rowmajor {
 							rhs,
 							conj_rhs,
 							alpha,
-						},
-						Impl,
-						T
-					);
-				},
-		#[cfg(feature = "rayon")]
-				_ => {
-				let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
-					let nthreads = nthreads.get();
-					use rayon::prelude::*;
-					crate::utils::thread::for_each(par, 
-						nthreads,
-						dst.par_partition_mut(nthreads)
-							.zip_eq(lhs.par_row_partition(nthreads)),
-						|(dst, lhs)| {
-							make_guard!(M);
-							let nrows = dst.nrows().bind(M);
-							let dst = dst.as_row_shape_mut(nrows);
-							let lhs = lhs.as_row_shape(nrows);
-							matvec(
-								dst,
-								beta,
-								lhs,
-								conj_lhs,
-								rhs,
-								conj_rhs,
-								alpha,
-								Par::Seq,
-							);
-						},
-					)
-				},
-			}
+						} = self;
+						let simd = T::simd_ctx(simd);
+						let mut dst = dst;
+						let K = lhs.ncols();
+						let simd = SimdCtx::new(simd, K);
+						for i in lhs.nrows().indices() {
+							let dst = &mut dst[i];
+							let lhs = lhs.row(i);
+							let mut tmp = if conj_lhs == conj_rhs {
+								dot::inner_prod_no_conj_simd::<T, S>(
+									simd,
+									lhs.transpose(),
+									rhs,
+								)
+							} else {
+								dot::inner_prod_conj_lhs_simd::<T, S>(
+									simd,
+									lhs.transpose(),
+									rhs,
+								)
+							};
+							if conj_rhs == Conj::Yes {
+								tmp = tmp.conj();
+							}
+							tmp = alpha * tmp;
+							if let Accum::Add = beta {
+								tmp = &*dst + tmp;
+							}
+							*dst = tmp;
+						}
+					}
+				}
+				dispatch!(
+					Impl {
+						dst,
+						beta,
+						lhs,
+						conj_lhs,
+						rhs,
+						conj_rhs,
+						alpha,
+					},
+					Impl,
+					T
+				);
+			},
+			#[cfg(feature = "rayon")]
+			_ => {
+				let nthreads =
+					core::num::NonZeroUsize::new(par.degree()).unwrap();
+				let nthreads = nthreads.get();
+				use rayon::prelude::*;
+				crate::utils::thread::for_each(
+					par,
+					nthreads,
+					dst.par_partition_mut(nthreads)
+						.zip_eq(lhs.par_row_partition(nthreads)),
+					|(dst, lhs)| {
+						make_guard!(M);
+						let nrows = dst.nrows().bind(M);
+						let dst = dst.as_row_shape_mut(nrows);
+						let lhs = lhs.as_row_shape(nrows);
+						matvec(
+							dst,
+							beta,
+							lhs,
+							conj_lhs,
+							rhs,
+							conj_rhs,
+							alpha,
+							Par::Seq,
+						);
+					},
+				)
+			},
 		});
 	}
 }
@@ -897,7 +904,10 @@ mod matvec_colmajor {
 	/// own, as before. The partition and the order of the reduction are unchanged, so the
 	/// result is bitwise the same.
 	#[cfg(all(feature = "rayon", feature = "std"))]
-	fn with_partials<R>(req: StackReq, f: impl FnOnce(&mut MemStack) -> R) -> R {
+	fn with_partials<R>(
+		req: StackReq,
+		f: impl FnOnce(&mut MemStack) -> R,
+	) -> R {
 		use core::cell::RefCell;
 		std::thread_local! {
 			static PARTIALS: RefCell<Option<(MemBuffer, StackReq)>> = const { RefCell::new(None) };
@@ -908,7 +918,8 @@ mod matvec_colmajor {
 				return None;
 			};
 			let fits = slot.as_ref().is_some_and(|(_, held)| {
-				held.size_bytes() >= req.size_bytes() && held.align_bytes() >= req.align_bytes()
+				held.size_bytes() >= req.size_bytes()
+					&& held.align_bytes() >= req.align_bytes()
 			});
 			if !fits {
 				let grown = slot.as_ref().map_or(req, |(_, held)| held.or(req));
@@ -927,11 +938,15 @@ mod matvec_colmajor {
 
 	/// Without `std` there is no thread-local storage: one buffer per call, as before.
 	#[cfg(all(feature = "rayon", not(feature = "std")))]
-	fn with_partials<R>(req: StackReq, f: impl FnOnce(&mut MemStack) -> R) -> R {
+	fn with_partials<R>(
+		req: StackReq,
+		f: impl FnOnce(&mut MemStack) -> R,
+	) -> R {
 		f(MemStack::new(&mut MemBuffer::new(req)))
 	}
 
 	use colmat_traits::SimdArch;
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub fn matvec<'M, 'K, T: ComplexField>(
 		dst: ColMut<'_, T, Dim<'M>, ContiguousFwd>,
 		beta: Accum,
@@ -952,97 +967,98 @@ mod matvec_colmajor {
 			crate::utils::cost::rate::matvec(),
 			1,
 		);
-		crate::utils::thread::with_width(par, width, |par| {
-			match par {
-				Par::Seq => {
-					pub struct Impl<'a, 'M, 'K, T: ComplexField> {
-						dst: ColMut<'a, T, Dim<'M>, ContiguousFwd>,
-						beta: Accum,
-						lhs: MatRef<'a, T, Dim<'M>, Dim<'K>, ContiguousFwd, isize>,
-						conj_lhs: Conj,
-						rhs: ColRef<'a, T, Dim<'K>>,
-						conj_rhs: Conj,
-						alpha: &'a T,
-					}
-					impl<'a, 'M, 'K, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'K, T> {
-						type Output = ();
+		crate::utils::thread::with_width(par, width, |par| match par {
+			Par::Seq => {
+				pub struct Impl<'a, 'M, 'K, T: ComplexField> {
+					dst: ColMut<'a, T, Dim<'M>, ContiguousFwd>,
+					beta: Accum,
+					lhs: MatRef<'a, T, Dim<'M>, Dim<'K>, ContiguousFwd, isize>,
+					conj_lhs: Conj,
+					rhs: ColRef<'a, T, Dim<'K>>,
+					conj_rhs: Conj,
+					alpha: &'a T,
+				}
+				impl<'a, 'M, 'K, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'K, T> {
+					type Output = ();
 
-						#[inline(always)]
-						fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
-							let Self {
-								dst,
-								beta,
-								lhs,
-								conj_lhs,
-								rhs,
-								conj_rhs,
-								alpha,
-							} = self;
-							let simd = T::simd_ctx(simd);
-							let M = lhs.nrows();
-							let simd = SimdCtx::<T, S>::new(simd, M);
-							let indices = simd.indices();
-							let mut dst = dst;
-							match beta {
-								Accum::Add => {},
-								Accum::Replace => {
-									simd_iter!(for i in [indices] {
-										simd.write(dst.rb_mut(), i, simd.zero());
-									});
-								},
-							}
-							for j in lhs.ncols().indices() {
-								let mut dst = dst.rb_mut();
-								let lhs = lhs.col(j);
-								let rhs = &rhs[j];
-								let rhs = conj_rhs.apply_rt(rhs);
-								let rhs = rhs * alpha;
-								let vrhs = simd.splat(&rhs);
-								if conj_lhs == Conj::Yes {
-									simd_iter!(for i in [indices] {
-										let y = simd.read(dst.rb(), i);
-										let x = simd.read(lhs, i);
-										simd.write(
-											dst.rb_mut(),
-											i,
-											simd.conj_mul_add(x, vrhs, y),
-										);
-									});
-								} else {
-									simd_iter!(for i in [indices] {
-										let y = simd.read(dst.rb(), i);
-										let x = simd.read(lhs, i);
-										simd.write(
-											dst.rb_mut(),
-											i,
-											simd.mul_add(x, vrhs, y),
-										);
-									});
-								}
-							}
-						}
-					}
-					dispatch!(
-						Impl {
+					#[inline(always)]
+					fn with_simd<S: Simd>(self, simd: S) -> Self::Output {
+						let Self {
 							dst,
+							beta,
 							lhs,
 							conj_lhs,
 							rhs,
 							conj_rhs,
-							beta,
 							alpha,
-						},
-						Impl,
-						T
-					)
-				},
-		#[cfg(feature = "rayon")]
-				_ => {
-				let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
-					use rayon::prelude::*;
-					let nthreads = nthreads.get();
-					let req = temp_mat_scratch::<T>(dst.nrows().unbound(), nthreads);
-					with_partials(req, move |stack| {
+						} = self;
+						let simd = T::simd_ctx(simd);
+						let M = lhs.nrows();
+						let simd = SimdCtx::<T, S>::new(simd, M);
+						let indices = simd.indices();
+						let mut dst = dst;
+						match beta {
+							Accum::Add => {},
+							Accum::Replace => {
+								simd_iter!(for i in [indices] {
+									simd.write(dst.rb_mut(), i, simd.zero());
+								});
+							},
+						}
+						for j in lhs.ncols().indices() {
+							let mut dst = dst.rb_mut();
+							let lhs = lhs.col(j);
+							let rhs = &rhs[j];
+							let rhs = conj_rhs.apply_rt(rhs);
+							let rhs = rhs * alpha;
+							let vrhs = simd.splat(&rhs);
+							if conj_lhs == Conj::Yes {
+								simd_iter!(for i in [indices] {
+									let y = simd.read(dst.rb(), i);
+									let x = simd.read(lhs, i);
+									simd.write(
+										dst.rb_mut(),
+										i,
+										simd.conj_mul_add(x, vrhs, y),
+									);
+								});
+							} else {
+								simd_iter!(for i in [indices] {
+									let y = simd.read(dst.rb(), i);
+									let x = simd.read(lhs, i);
+									simd.write(
+										dst.rb_mut(),
+										i,
+										simd.mul_add(x, vrhs, y),
+									);
+								});
+							}
+						}
+					}
+				}
+				dispatch!(
+					Impl {
+						dst,
+						lhs,
+						conj_lhs,
+						rhs,
+						conj_rhs,
+						beta,
+						alpha,
+					},
+					Impl,
+					T
+				)
+			},
+			#[cfg(feature = "rayon")]
+			_ => {
+				let nthreads =
+					core::num::NonZeroUsize::new(par.degree()).unwrap();
+				use rayon::prelude::*;
+				let nthreads = nthreads.get();
+				let req =
+					temp_mat_scratch::<T>(dst.nrows().unbound(), nthreads);
+				with_partials(req, move |stack| {
 					alloca!('stack: {
 						let tmp =
 							unsafe { mat![uninit::<T>, dst.nrows(), nthreads] };
@@ -1052,7 +1068,8 @@ mod matvec_colmajor {
 					make_guard!(Z);
 					let Z = 0usize.bind(Z);
 					let z = IdxInc::new_checked(0, lhs.ncols());
-					crate::utils::thread::for_each(par, 
+					crate::utils::thread::for_each(
+						par,
 						nthreads,
 						tmp.rb_mut()
 							.par_col_iter_mut()
@@ -1087,11 +1104,10 @@ mod matvec_colmajor {
 					);
 					for j in 0..nthreads {
 						zip!(dst.rb_mut(), tmp.rb().col(j))
-							.for_each(|unzip!(dst, src)| *dst = &*dst + &*src)
+							.for_each(|unzip!(dst, src)| *dst = &*dst + src)
 					}
-					});
-				},
-			}
+				});
+			},
 		});
 	}
 }
@@ -1197,6 +1213,7 @@ mod rank_update {
 			T
 		)
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub fn rank_update<'M, 'N, T: ComplexField>(
 		dst: MatMut<'_, T, Dim<'M>, Dim<'N>, ContiguousFwd>,
 		beta: Accum,
@@ -1211,12 +1228,14 @@ mod rank_update {
 			Par::Seq => {
 				rank_update_imp(dst, beta, lhs, conj_lhs, rhs, conj_rhs, alpha);
 			},
-	#[cfg(feature = "rayon")]
+			#[cfg(feature = "rayon")]
 			_ => {
-			let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+				let nthreads =
+					core::num::NonZeroUsize::new(par.degree()).unwrap();
 				let nthreads = nthreads.get();
 				use rayon::prelude::*;
-				crate::utils::thread::for_each(par, 
+				crate::utils::thread::for_each(
+					par,
 					nthreads,
 					dst.par_col_partition_mut(nthreads)
 						.zip(rhs.par_partition(nthreads)),
@@ -1237,6 +1256,7 @@ mod rank_update {
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'M>, Dim<'N>>,
 	beta: Accum,
@@ -1614,9 +1634,9 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 				}
 			}
 		},
-	#[cfg(feature = "rayon")]
+		#[cfg(feature = "rayon")]
 		_ => {
-		let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+			let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
 			use rayon::prelude::*;
 			let nthreads = nthreads.get();
 			let m = *dst.nrows();
@@ -1624,34 +1644,41 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 			let task_count = m * n;
 			let task_per_thread = task_count.msrv_div_ceil(nthreads);
 			let dst = dst.rb();
-			crate::utils::thread::for_each(par, nthreads, (0..nthreads).into_par_iter(), |tid| {
-				let task_idx = tid * task_per_thread;
-				if task_idx >= task_count {
-					return;
-				}
-				let ntasks = Ord::min(task_per_thread, task_count - task_idx);
-				for ij in 0..ntasks {
-					let ij = task_idx + ij;
-					let i = dst.nrows().check(ij % m);
-					let j = dst.ncols().check(ij / m);
-					let mut dst = unsafe { dst.const_cast() };
-					let dst = &mut dst[(i, j)];
-					let mut acc = dot::inner_prod_schoolbook(
-						lhs.row(i),
-						conj_lhs,
-						rhs.col(j),
-						conj_rhs,
-					);
-					acc = alpha * acc;
-					if let Accum::Add = beta {
-						acc = &*dst + acc;
+			crate::utils::thread::for_each(
+				par,
+				nthreads,
+				(0..nthreads).into_par_iter(),
+				|tid| {
+					let task_idx = tid * task_per_thread;
+					if task_idx >= task_count {
+						return;
 					}
-					*dst = acc;
-				}
-			});
+					let ntasks =
+						Ord::min(task_per_thread, task_count - task_idx);
+					for ij in 0..ntasks {
+						let ij = task_idx + ij;
+						let i = dst.nrows().check(ij % m);
+						let j = dst.ncols().check(ij / m);
+						let mut dst = unsafe { dst.const_cast() };
+						let dst = &mut dst[(i, j)];
+						let mut acc = dot::inner_prod_schoolbook(
+							lhs.row(i),
+							conj_lhs,
+							rhs.col(j),
+							conj_rhs,
+						);
+						acc = alpha * acc;
+						if let Accum::Add = beta {
+							acc = &*dst + acc;
+						}
+						*dst = acc;
+					}
+				},
+			);
 		},
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// `alpha * sum_p op(lhs[i, p]) * op(rhs[p, j])` written into the uninitialized slot `(i, j)` of
 /// `dst`: read through raw pointers, written with `ptr::write`, no reference to the slot.
 ///
@@ -1673,8 +1700,10 @@ unsafe fn matmul_uninit_one<T: ComplexField>(
 ) {
 	let mut acc: T = zero();
 	for p in 0..k {
-		let l = unsafe { &*lhs.offset(i as isize * lhs_rs + p as isize * lhs_cs) };
-		let r = unsafe { &*rhs.offset(p as isize * rhs_rs + j as isize * rhs_cs) };
+		let l =
+			unsafe { &*lhs.offset(i as isize * lhs_rs + p as isize * lhs_cs) };
+		let r =
+			unsafe { &*rhs.offset(p as isize * rhs_rs + j as isize * rhs_cs) };
 		acc = &conj_lhs.apply_rt(l) * &conj_rhs.apply_rt(r) + acc;
 	}
 	unsafe {
@@ -1727,8 +1756,19 @@ fn matmul_uninit_imp<T: ComplexField>(
 		// reaches this path through the native fallback below.
 		fill_zero();
 		// SAFETY: `fill_zero` wrote every logical element, so the destination is initialized.
-		let dst = unsafe { MatMut::from_raw_parts_mut(ptr as *mut T, m, n, dst_rs, dst_cs) };
-		matmul_with_conj(dst, Accum::Replace, lhs, conj_lhs, rhs, conj_rhs, alpha, par);
+		let dst = unsafe {
+			MatMut::from_raw_parts_mut(ptr as *mut T, m, n, dst_rs, dst_cs)
+		};
+		matmul_with_conj(
+			dst,
+			Accum::Replace,
+			lhs,
+			conj_lhs,
+			rhs,
+			conj_rhs,
+			alpha,
+			par,
+		);
 		return;
 	}
 	// The native types on x86_64 with AVX2 or AVX-512: `t4a-private-gemm-x86` with
@@ -1825,13 +1865,29 @@ fn matmul_uninit_imp<T: ComplexField>(
 			gemm_call!(C32, num_complex::Complex<f32>);
 		}
 	}
-	if const { T::IS_NATIVE_F64 || T::IS_NATIVE_C64 || T::IS_NATIVE_F32 || T::IS_NATIVE_C32 } {
+	if const {
+		T::IS_NATIVE_F64
+			|| T::IS_NATIVE_C64
+			|| T::IS_NATIVE_F32
+			|| T::IS_NATIVE_C32
+	} {
 		// a native type without that kernel: initialize, then the ordinary product, which
 		// overwrites the zeros without reading them (the zero pass is the cost the kernel route
 		// avoids)
 		fill_zero();
-		let dst = unsafe { MatMut::from_raw_parts_mut(ptr as *mut T, m, n, dst_rs, dst_cs) };
-		matmul_with_conj(dst, Accum::Replace, lhs, conj_lhs, rhs, conj_rhs, alpha, par);
+		let dst = unsafe {
+			MatMut::from_raw_parts_mut(ptr as *mut T, m, n, dst_rs, dst_cs)
+		};
+		matmul_with_conj(
+			dst,
+			Accum::Replace,
+			lhs,
+			conj_lhs,
+			rhs,
+			conj_rhs,
+			alpha,
+			par,
+		);
 		return;
 	}
 	// any other scalar: one dot product per element, by columns (a column per task on a team)
@@ -1849,7 +1905,18 @@ fn matmul_uninit_imp<T: ComplexField>(
 			// SAFETY: the shapes were checked by `precondition`; `dst` is exclusive and does not
 			// overlap the operands (the caller's contract); each column is written by one task
 			unsafe {
-				matmul_uninit_one(dst_w.0, (dst_rs, dst_cs), lhs_w.0, lhs_s, rhs_w.0, rhs_s, k, (i, j), (conj_lhs, conj_rhs), alpha)
+				matmul_uninit_one(
+					dst_w.0,
+					(dst_rs, dst_cs),
+					lhs_w.0,
+					lhs_s,
+					rhs_w.0,
+					rhs_s,
+					k,
+					(i, j),
+					(conj_lhs, conj_rhs),
+					alpha,
+				)
 			}
 		}
 	};
@@ -1859,7 +1926,12 @@ fn matmul_uninit_imp<T: ComplexField>(
 		par => {
 			use rayon::prelude::*;
 			let degree = par.degree();
-			crate::utils::thread::for_each(par, degree, (0..n).into_par_iter(), column);
+			crate::utils::thread::for_each(
+				par,
+				degree,
+				(0..n).into_par_iter(),
+				column,
+			);
 		},
 		#[cfg(not(feature = "threadteam"))]
 		_ => (0..n).for_each(column),
@@ -1901,7 +1973,15 @@ fn matmul_uninit_imp<T: ComplexField>(
 /// ```
 #[track_caller]
 #[inline]
-pub fn matmul_with_conj_uninit<'a, T: ComplexField, M: Shape, N: Shape, K: Shape, RStride: Stride, CStride: Stride>(
+pub fn matmul_with_conj_uninit<
+	'a,
+	T: ComplexField,
+	M: Shape,
+	N: Shape,
+	K: Shape,
+	RStride: Stride,
+	CStride: Stride,
+>(
 	dst: MatUninitMut<'a, T, M, N, RStride, CStride>,
 	lhs: impl AsMatRef<T = T, Rows = M, Cols = K>,
 	conj_lhs: Conj,
@@ -1924,7 +2004,15 @@ pub fn matmul_with_conj_uninit<'a, T: ComplexField, M: Shape, N: Shape, K: Shape
 	);
 	// SAFETY: `matmul_uninit_imp` returned, so every logical element has been written; the view
 	// keeps the destination's exclusive borrow `'a`
-	unsafe { MatMut::from_raw_parts_mut(ptr.cast(), nrows, ncols, row_stride, col_stride) }
+	unsafe {
+		MatMut::from_raw_parts_mut(
+			ptr.cast(),
+			nrows,
+			ncols,
+			row_stride,
+			col_stride,
+		)
+	}
 }
 
 #[track_caller]
@@ -1948,7 +2036,7 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// performs the operation:
 /// - `acc = alpha * lhs * rhs` if `beta` is `Accum::Replace` (in this case, the
 ///   preexisting
-/// values in `acc` are not read)
+///   values in `acc` are not read)
 /// - `acc = acc + alpha * lhs * rhs` if `beta` is `Accum::Add`
 ///
 /// # panics
@@ -1968,18 +2056,18 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
 /// let target = mat![
-/// 	[
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 1)] + lhs[(0, 1)] * rhs[(1, 1)]),
-/// 	],
-/// 	[
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
-/// 	],
+///     [
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 1)] + lhs[(0, 1)] * rhs[(1, 1)]),
+///     ],
+///     [
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
+///     ],
 /// ];
 /// matmul(&mut acc, Accum::Replace, &lhs, &rhs, 2.5, Par::Seq);
 /// zip!(&acc, &target)
-/// 	.for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
+///     .for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
 /// ```
 #[track_caller]
 #[inline]
@@ -2027,13 +2115,14 @@ pub fn matmul<
 		par,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the matrix product `[beta * acc] + alpha * lhs * rhs` (implicitly
 /// conjugating the operands if needed) and stores the result in `acc`
 ///
 /// performs the operation:
 /// - `acc = alpha * lhs * rhs` if `beta` is `Accum::Replace` (in this case, the
 ///   preexisting
-/// values in `acc` are not read)
+///   values in `acc` are not read)
 /// - `acc = acc + alpha * lhs * rhs` if `beta` is `Accum::Add`
 ///
 /// # panics
@@ -2053,27 +2142,27 @@ pub fn matmul<
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
 /// let target = mat![
-/// 	[
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 1)] + lhs[(0, 1)] * rhs[(1, 1)]),
-/// 	],
-/// 	[
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
-/// 	],
+///     [
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 1)] + lhs[(0, 1)] * rhs[(1, 1)]),
+///     ],
+///     [
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
+///     ],
 /// ];
 /// matmul_with_conj(
-/// 	&mut acc,
-/// 	Accum::Replace,
-/// 	&lhs,
-/// 	Conj::No,
-/// 	&rhs,
-/// 	Conj::No,
-/// 	2.5,
-/// 	Par::Seq,
+///     &mut acc,
+///     Accum::Replace,
+///     &lhs,
+///     Conj::No,
+///     &rhs,
+///     Conj::No,
+///     2.5,
+///     Par::Seq,
 /// );
 /// zip!(&acc, &target)
-/// 	.for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
+///     .for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
 /// ```
 #[track_caller]
 #[inline]
@@ -2128,13 +2217,13 @@ mod tests {
 	use crate::stats::prelude::*;
 	use crate::{assert, c32, c64, fx128};
 	use core::mem::MaybeUninit;
-	use std::num::NonZeroUsize;
 	/// Below the flop floor `matmul` runs the sequential kernel whatever budget
 	/// the caller passes, and above it the kernel threads: both must compute the
 	/// same product, at the sizes on each side of the floor.
 	#[test]
 	fn thread_budget_does_not_change_the_product() {
-		for (m, k, n) in [(32, 32, 32), (64, 64, 64), (17, 23, 31), (128, 128, 128)]
+		for (m, k, n) in
+			[(32, 32, 32), (64, 64, 64), (17, 23, 31), (128, 128, 128)]
 		{
 			let lhs = Mat::<f64>::from_fn(m, k, |i, j| {
 				((i * 7 + j * 13) % 11) as f64 * 0.5 - 2.5
@@ -2180,7 +2269,7 @@ mod tests {
 		/// the sequential arm, then the parallel one on a team of four
 		fn for_each_par(mut f: impl FnMut(Par<'_>)) {
 			f(Par::Seq);
-			crate::team::with_team(4, |par| f(par));
+			crate::team::with_team(4, f);
 		}
 		let betas = [Accum::Replace, Accum::Add];
 		#[cfg(not(miri))]
@@ -2288,12 +2377,15 @@ mod tests {
 												}
 												for conj_a in conjs {
 													for conj_b in conjs {
-														for_each_par(|mut par| {
-															for beta in betas {
-																for alpha in
-																	alphas
+														for_each_par(
+															|mut par| {
+																for beta in
+																	betas
 																{
-																	test_matmul_impl(
+																	for alpha in
+																		alphas
+																	{
+																		test_matmul_impl(
 																		reverse_acc_cols,
 																		reverse_acc_rows,
 																		acc_colmajor,
@@ -2308,9 +2400,10 @@ mod tests {
 																		a,
 																		b,
 																	);
+																	}
 																}
-															}
-																										});
+															},
+														);
 													}
 												}
 											}
@@ -2330,7 +2423,15 @@ mod tests {
 		let rhs = mat![[5.0_f64, 6.0], [7.0, 8.0]];
 		let mut data = [MaybeUninit::<f64>::uninit(); 4];
 		let dst = MatUninitMut::from_column_major_slice_mut(&mut data, 2, 2);
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::No,
+			rhs.as_ref(),
+			Conj::No,
+			1.0,
+			Par::Seq,
+		);
 		assert!(result[(0, 0)] == 19.0);
 		assert!(result[(1, 0)] == 43.0);
 		assert!(result[(0, 1)] == 22.0);
@@ -2345,7 +2446,15 @@ mod tests {
 		let rhs = mat![[1.0_f64], [-1.0], [2.0]];
 		let mut data = [MaybeUninit::<f64>::uninit(); 2];
 		let dst = MatUninitMut::from_column_major_slice_mut(&mut data, 2, 1);
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::No,
+			rhs.as_ref(),
+			Conj::No,
+			1.0,
+			Par::Seq,
+		);
 		assert!(result[(0, 0)] == 5.0);
 		assert!(result[(1, 0)] == 11.0);
 	}
@@ -2356,17 +2465,36 @@ mod tests {
 	#[test]
 	fn test_matmul_with_conj_uninit_thin_matches_replace_bits() {
 		let value = |i: usize, j: usize| {
-			let x = (i.wrapping_mul(2_654_435_761).wrapping_add(j * 40_503)) % 1009;
+			let x =
+				(i.wrapping_mul(2_654_435_761).wrapping_add(j * 40_503)) % 1009;
 			x as f64 / 503.0 - 1.0
 		};
 		for (m, k, n) in [(1usize, 141, 282), (1, 141, 141)] {
 			let lhs = Mat::<f64>::from_fn(m, k, &value);
 			let rhs = Mat::<f64>::from_fn(k, n, |i, j| value(i + 17, j + 31));
 			let mut expected = Mat::<f64>::zeros(m, n);
-			matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+			matmul_with_conj(
+				expected.as_mut(),
+				Accum::Replace,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				1.0,
+				Par::Seq,
+			);
 			let mut data = alloc::vec![MaybeUninit::<f64>::uninit(); m * n];
-			let dst = MatUninitMut::from_column_major_slice_mut(&mut data, m, n);
-			let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+			let dst =
+				MatUninitMut::from_column_major_slice_mut(&mut data, m, n);
+			let result = matmul_with_conj_uninit(
+				dst,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				1.0,
+				Par::Seq,
+			);
 			for j in 0..n {
 				for i in 0..m {
 					::core::assert_eq!(
@@ -2378,21 +2506,51 @@ mod tests {
 			}
 		}
 		let value = |i: usize, j: usize| {
-			let x = (i.wrapping_mul(2_654_435_761).wrapping_add(j * 40_503)) % 1009;
-			c64::new(x as f64 / 503.0 - 1.0, ((x * 7 + i) % 211) as f64 / 105.0 - 1.0)
+			let x =
+				(i.wrapping_mul(2_654_435_761).wrapping_add(j * 40_503)) % 1009;
+			c64::new(
+				x as f64 / 503.0 - 1.0,
+				((x * 7 + i) % 211) as f64 / 105.0 - 1.0,
+			)
 		};
 		for (m, k, n) in [(1usize, 141, 282), (1, 141, 141)] {
 			let lhs = Mat::<c64>::from_fn(m, k, &value);
 			let rhs = Mat::<c64>::from_fn(k, n, |i, j| value(i + 17, j + 31));
 			let mut expected = Mat::<c64>::zeros(m, n);
-			matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, c64::new(1.0, 0.0), Par::Seq);
+			matmul_with_conj(
+				expected.as_mut(),
+				Accum::Replace,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				c64::new(1.0, 0.0),
+				Par::Seq,
+			);
 			let mut data = alloc::vec![MaybeUninit::<c64>::uninit(); m * n];
-			let dst = MatUninitMut::from_column_major_slice_mut(&mut data, m, n);
-			let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, c64::new(1.0, 0.0), Par::Seq);
+			let dst =
+				MatUninitMut::from_column_major_slice_mut(&mut data, m, n);
+			let result = matmul_with_conj_uninit(
+				dst,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				c64::new(1.0, 0.0),
+				Par::Seq,
+			);
 			for j in 0..n {
 				for i in 0..m {
-					::core::assert_eq!(result[(i, j)].re.to_bits(), expected[(i, j)].re.to_bits(), "{m}x{k}x{n} c64 ({i}, {j}) re");
-					::core::assert_eq!(result[(i, j)].im.to_bits(), expected[(i, j)].im.to_bits(), "{m}x{k}x{n} c64 ({i}, {j}) im");
+					::core::assert_eq!(
+						result[(i, j)].re.to_bits(),
+						expected[(i, j)].re.to_bits(),
+						"{m}x{k}x{n} c64 ({i}, {j}) re"
+					);
+					::core::assert_eq!(
+						result[(i, j)].im.to_bits(),
+						expected[(i, j)].im.to_bits(),
+						"{m}x{k}x{n} c64 ({i}, {j}) im"
+					);
 				}
 			}
 		}
@@ -2400,13 +2558,38 @@ mod tests {
 
 	#[test]
 	fn test_matmul_with_conj_uninit_strided_and_conjugated() {
-		let lhs = mat![[c64::new(1.0, 2.0), c64::new(2.0, -1.0)], [c64::new(3.0, 1.0), c64::new(-2.0, 4.0)],];
-		let rhs = mat![[c64::new(5.0, -1.0), c64::new(1.0, 3.0)], [c64::new(2.0, 2.0), c64::new(-4.0, 1.0)],];
+		let lhs = mat![
+			[c64::new(1.0, 2.0), c64::new(2.0, -1.0)],
+			[c64::new(3.0, 1.0), c64::new(-2.0, 4.0)],
+		];
+		let rhs = mat![
+			[c64::new(5.0, -1.0), c64::new(1.0, 3.0)],
+			[c64::new(2.0, 2.0), c64::new(-4.0, 1.0)],
+		];
 		let mut expected = Mat::<c64>::zeros(2, 2);
-		matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::Yes, rhs.as_ref(), Conj::No, c64::new(2.0, 0.0), Par::Seq);
+		matmul_with_conj(
+			expected.as_mut(),
+			Accum::Replace,
+			lhs.as_ref(),
+			Conj::Yes,
+			rhs.as_ref(),
+			Conj::No,
+			c64::new(2.0, 0.0),
+			Par::Seq,
+		);
 		let mut data = [MaybeUninit::<c64>::uninit(); 7];
-		let dst = unsafe { MatUninitMut::from_raw_parts_mut(data.as_mut_ptr(), 2, 2, 3, 1) };
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::Yes, rhs.as_ref(), Conj::No, c64::new(2.0, 0.0), Par::Seq);
+		let dst = unsafe {
+			MatUninitMut::from_raw_parts_mut(data.as_mut_ptr(), 2, 2, 3, 1)
+		};
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::Yes,
+			rhs.as_ref(),
+			Conj::No,
+			c64::new(2.0, 0.0),
+			Par::Seq,
+		);
 		for j in 0..2 {
 			for i in 0..2 {
 				assert!((result[(i, j)] - expected[(i, j)]).norm() < 1e-12);
@@ -2419,8 +2602,24 @@ mod tests {
 		let lhs = mat![[1.0_f64, 2.0], [3.0, 4.0]];
 		let rhs = mat![[5.0_f64, 6.0], [7.0, 8.0]];
 		let mut data = [MaybeUninit::<f64>::uninit(); 4];
-		let dst = unsafe { MatUninitMut::from_raw_parts_mut(data.as_mut_ptr().add(1), 2, 2, -1, 2) };
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+		let dst = unsafe {
+			MatUninitMut::from_raw_parts_mut(
+				data.as_mut_ptr().add(1),
+				2,
+				2,
+				-1,
+				2,
+			)
+		};
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::No,
+			rhs.as_ref(),
+			Conj::No,
+			1.0,
+			Par::Seq,
+		);
 		assert!(result[(0, 0)] == 19.0);
 		assert!(result[(1, 0)] == 43.0);
 		assert!(result[(0, 1)] == 22.0);
@@ -2433,7 +2632,15 @@ mod tests {
 		let rhs = Mat::<f64>::zeros(0, 3);
 		let mut data = [MaybeUninit::<f64>::uninit(); 6];
 		let dst = MatUninitMut::from_row_major_slice_mut(&mut data, 2, 3);
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 2.0, Par::Seq);
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::No,
+			rhs.as_ref(),
+			Conj::No,
+			2.0,
+			Par::Seq,
+		);
 		for i in 0..2 {
 			for j in 0..3 {
 				assert!(result[(i, j)] == 0.0);
@@ -2444,11 +2651,21 @@ mod tests {
 	#[test]
 	fn test_matmul_with_conj_uninit_generic_scalar() {
 		let from = |x: f64| <fx128 as ComplexFieldExt>::from_f64(x);
-		let lhs = Mat::<fx128>::from_fn(2, 2, |i, j| from((i + 2 * j + 1) as f64));
-		let rhs = Mat::<fx128>::from_fn(2, 2, |i, j| from((3 * i + j + 1) as f64));
+		let lhs =
+			Mat::<fx128>::from_fn(2, 2, |i, j| from((i + 2 * j + 1) as f64));
+		let rhs =
+			Mat::<fx128>::from_fn(2, 2, |i, j| from((3 * i + j + 1) as f64));
 		let mut data = [MaybeUninit::<fx128>::uninit(); 4];
 		let dst = MatUninitMut::from_column_major_slice_mut(&mut data, 2, 2);
-		let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, from(2.0), Par::Seq);
+		let result = matmul_with_conj_uninit(
+			dst,
+			lhs.as_ref(),
+			Conj::No,
+			rhs.as_ref(),
+			Conj::No,
+			from(2.0),
+			Par::Seq,
+		);
 		assert!(result[(0, 0)] == from(26.0));
 		assert!(result[(1, 0)] == from(36.0));
 		assert!(result[(0, 1)] == from(34.0));
@@ -2463,30 +2680,89 @@ mod tests {
 		tol: f64,
 	) {
 		let nan = <T as ComplexFieldExt>::from_f64(f64::NAN);
-		for (m, k, n) in [(1, 1, 1), (3, 4, 5), (17, 23, 31), (64, 64, 64), (130, 70, 90), (5, 300, 7), (9, 600, 7)] {
-			for (conj_lhs, conj_rhs) in [(Conj::No, Conj::No), (Conj::Yes, Conj::No), (Conj::No, Conj::Yes)] {
+		for (m, k, n) in [
+			(1, 1, 1),
+			(3, 4, 5),
+			(17, 23, 31),
+			(64, 64, 64),
+			(130, 70, 90),
+			(5, 300, 7),
+			(9, 600, 7),
+		] {
+			for (conj_lhs, conj_rhs) in [
+				(Conj::No, Conj::No),
+				(Conj::Yes, Conj::No),
+				(Conj::No, Conj::Yes),
+			] {
 				for row_major in [false, true] {
-					let lhs = Mat::<T>::from_fn(m, k, |i, j| from(((i * 7 + j * 3) % 11) as f64 - 5.0, ((i + 2 * j) % 5) as f64 - 2.0));
-					let rhs = Mat::<T>::from_fn(k, n, |i, j| from(((i * 5 + j) % 13) as f64 - 6.0, ((3 * i + j) % 7) as f64 - 3.0));
+					let lhs = Mat::<T>::from_fn(m, k, |i, j| {
+						from(
+							((i * 7 + j * 3) % 11) as f64 - 5.0,
+							((i + 2 * j) % 5) as f64 - 2.0,
+						)
+					});
+					let rhs = Mat::<T>::from_fn(k, n, |i, j| {
+						from(
+							((i * 5 + j) % 13) as f64 - 6.0,
+							((3 * i + j) % 7) as f64 - 3.0,
+						)
+					});
 					let alpha = from(0.5, -1.5);
 					let mut expected = Mat::<T>::zeros(m, n);
-					matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), conj_lhs, rhs.as_ref(), conj_rhs, alpha, Par::Seq);
+					matmul_with_conj(
+						expected.as_mut(),
+						Accum::Replace,
+						lhs.as_ref(),
+						conj_lhs,
+						rhs.as_ref(),
+						conj_rhs,
+						alpha,
+						Par::Seq,
+					);
 					// a padded leading dimension: three NaN elements between columns (or rows)
-					let (rs, cs, len) = if row_major { (n as isize + 3, 1, m * (n + 3)) } else { (1, m as isize + 3, n * (m + 3)) };
+					let (rs, cs, len) = if row_major {
+						(n as isize + 3, 1, m * (n + 3))
+					} else {
+						(1, m as isize + 3, n * (m + 3))
+					};
 					let mut data = alloc::vec![MaybeUninit::new(nan); len];
-					let dst = unsafe { MatUninitMut::<T>::from_raw_parts_mut(data.as_mut_ptr(), m, n, rs, cs) };
-					let result = matmul_with_conj_uninit(dst, lhs.as_ref(), conj_lhs, rhs.as_ref(), conj_rhs, alpha, Par::Seq);
+					let dst = unsafe {
+						MatUninitMut::<T>::from_raw_parts_mut(
+							data.as_mut_ptr(),
+							m,
+							n,
+							rs,
+							cs,
+						)
+					};
+					let result = matmul_with_conj_uninit(
+						dst,
+						lhs.as_ref(),
+						conj_lhs,
+						rhs.as_ref(),
+						conj_rhs,
+						alpha,
+						Par::Seq,
+					);
 					for j in 0..n {
 						for i in 0..m {
 							let err = dist(result[(i, j)], expected[(i, j)]);
-							::core::assert!(err <= tol * k as f64 * 200.0, "{m}x{k}x{n} ({i}, {j}): {:?} vs {:?}", result[(i, j)], expected[(i, j)]);
+							::core::assert!(
+								err <= tol * k as f64 * 200.0,
+								"{m}x{k}x{n} ({i}, {j}): {:?} vs {:?}",
+								result[(i, j)],
+								expected[(i, j)]
+							);
 						}
 					}
 					let inner = if row_major { n } else { m };
 					for (p, x) in data.iter().enumerate() {
 						if p % (inner + 3) >= inner {
 							let x = unsafe { x.assume_init() };
-							::core::assert!(x != x, "{m}x{k}x{n}: padding element {p} was written");
+							::core::assert!(
+								is_nan(&x),
+								"{m}x{k}x{n}: padding element {p} was written"
+							);
 						}
 					}
 				}
@@ -2496,10 +2772,18 @@ mod tests {
 
 	#[test]
 	fn test_matmul_with_conj_uninit_native_never_reads_destination() {
-		check_uninit_native(|x, _| x as f32, |a: f32, b| (a - b).abs() as f64, 1e-6);
+		check_uninit_native(
+			|x, _| x as f32,
+			|a: f32, b| (a - b).abs() as f64,
+			1e-6,
+		);
 		check_uninit_native(|x, _| x, |a: f64, b| (a - b).abs(), 1e-14);
-		check_uninit_native(|x, y| c32::new(x as f32, y as f32), |a: c32, b| (a - b).norm() as f64, 1e-6);
-		check_uninit_native(|x, y| c64::new(x, y), |a: c64, b| (a - b).norm(), 1e-14);
+		check_uninit_native(
+			|x, y| c32::new(x as f32, y as f32),
+			|a: c32, b| (a - b).norm() as f64,
+			1e-6,
+		);
+		check_uninit_native(c64::new, |a: c64, b| (a - b).norm(), 1e-14);
 	}
 
 	/// The uninitialized entry matches the replace entry on a team: the reference is built with
@@ -2512,16 +2796,49 @@ mod tests {
 	fn test_matmul_with_conj_uninit_team() {
 		crate::utils::team::with_team(3, |mut par| {
 			{
-				let lhs = Mat::<f64>::from_fn(130, 70, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
-				let rhs = Mat::<f64>::from_fn(70, 90, |i, j| ((i * 5 + j) % 13) as f64 - 6.0);
+				let lhs = Mat::<f64>::from_fn(130, 70, |i, j| {
+					((i * 7 + j * 3) % 11) as f64 - 5.0
+				});
+				let rhs = Mat::<f64>::from_fn(70, 90, |i, j| {
+					((i * 5 + j) % 13) as f64 - 6.0
+				});
 				let mut expected = Mat::<f64>::zeros(130, 90);
-				matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, par.reborrow());
-				let mut data = alloc::vec![MaybeUninit::new(f64::NAN); 130 * 90];
-				let dst = MatUninitMut::from_column_major_slice_mut(&mut data, 130, 90);
-				let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, par.reborrow());
+				matmul_with_conj(
+					expected.as_mut(),
+					Accum::Replace,
+					lhs.as_ref(),
+					Conj::No,
+					rhs.as_ref(),
+					Conj::No,
+					1.0,
+					par.reborrow(),
+				);
+				let mut data =
+					alloc::vec![MaybeUninit::new(f64::NAN); 130 * 90];
+				let dst = MatUninitMut::from_column_major_slice_mut(
+					&mut data, 130, 90,
+				);
+				let result = matmul_with_conj_uninit(
+					dst,
+					lhs.as_ref(),
+					Conj::No,
+					rhs.as_ref(),
+					Conj::No,
+					1.0,
+					par.reborrow(),
+				);
 				assert!(result == expected);
 				let mut sequential = Mat::<f64>::zeros(130, 90);
-				matmul_with_conj(sequential.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+				matmul_with_conj(
+					sequential.as_mut(),
+					Accum::Replace,
+					lhs.as_ref(),
+					Conj::No,
+					rhs.as_ref(),
+					Conj::No,
+					1.0,
+					Par::Seq,
+				);
 				// Scaled by the product itself, so the bound states a relative error: a
 				// near-zero entry is compared against the scale of the whole matrix rather
 				// than against a floor that would admit a much larger relative error. An
@@ -2530,21 +2847,31 @@ mod tests {
 				let bound_of = |m: MatRef<'_, f64>| {
 					let scale = (0..90)
 						.flat_map(|j| (0..130).map(move |i| (i, j)))
-						.fold(0.0f64, |scale, (i, j)| scale.max(m[(i, j)].abs()));
-					assert!(scale > 0.0, "a reference of zeros is outside this test");
+						.fold(0.0f64, |scale, (i, j)| {
+							scale.max(m[(i, j)].abs())
+						});
+					assert!(
+						scale > 0.0,
+						"a reference of zeros is outside this test"
+					);
 					1e-12 * scale
 				};
 				let bound = bound_of(sequential.as_ref());
 				for j in 0..90 {
 					for i in 0..130 {
 						let diff = (result[(i, j)] - sequential[(i, j)]).abs();
-						::core::assert!(diff <= bound, "{i}, {j}: {diff} against {bound}");
+						::core::assert!(
+							diff <= bound,
+							"{i}, {j}: {diff} against {bound}"
+						);
 					}
 				}
 				// The same product shrunk by 1e-20, where the largest entry is 1.01e-18:
 				// an all-zero result must exceed the bound, which it cannot do under a
 				// `max(1, ...)` floor (that bound is 1e-12 whatever the entries are).
-				let tiny = Mat::<f64>::from_fn(130, 90, |i, j| 1e-20 * sequential[(i, j)]);
+				let tiny = Mat::<f64>::from_fn(130, 90, |i, j| {
+					1e-20 * sequential[(i, j)]
+				});
 				let tiny_bound = bound_of(tiny.as_ref());
 				let zeros = (0..90)
 					.flat_map(|j| (0..130).map(move |i| (i, j)))
@@ -2556,13 +2883,36 @@ mod tests {
 			}
 			{
 				let from = |x: f64| <fx128 as ComplexFieldExt>::from_f64(x);
-				let lhs = Mat::<fx128>::from_fn(9, 6, |i, j| from((i + 2 * j) as f64));
-				let rhs = Mat::<fx128>::from_fn(6, 11, |i, j| from((3 * i + j) as f64));
+				let lhs = Mat::<fx128>::from_fn(9, 6, |i, j| {
+					from((i + 2 * j) as f64)
+				});
+				let rhs = Mat::<fx128>::from_fn(6, 11, |i, j| {
+					from((3 * i + j) as f64)
+				});
 				let mut expected = Mat::<fx128>::zeros(9, 11);
-				matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, from(1.0), par.reborrow());
-				let mut data = alloc::vec![MaybeUninit::<fx128>::uninit(); 9 * 11];
-				let dst = MatUninitMut::from_column_major_slice_mut(&mut data, 9, 11);
-				let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, from(1.0), par.reborrow());
+				matmul_with_conj(
+					expected.as_mut(),
+					Accum::Replace,
+					lhs.as_ref(),
+					Conj::No,
+					rhs.as_ref(),
+					Conj::No,
+					from(1.0),
+					par.reborrow(),
+				);
+				let mut data =
+					alloc::vec![MaybeUninit::<fx128>::uninit(); 9 * 11];
+				let dst =
+					MatUninitMut::from_column_major_slice_mut(&mut data, 9, 11);
+				let result = matmul_with_conj_uninit(
+					dst,
+					lhs.as_ref(),
+					Conj::No,
+					rhs.as_ref(),
+					Conj::No,
+					from(1.0),
+					par.reborrow(),
+				);
 				assert!(result == expected);
 			}
 		});
@@ -2574,20 +2924,50 @@ mod tests {
 	fn test_matmul_with_conj_uninit_batched() {
 		let (batch, m, k, n) = (3, 5, 4, 6);
 		let batch_stride = m * n + 2;
-		let mut data = alloc::vec![MaybeUninit::new(f64::NAN); batch * batch_stride];
+		let mut data =
+			alloc::vec![MaybeUninit::new(f64::NAN); batch * batch_stride];
 		for b in 0..batch {
 			let lhs = Mat::<f64>::from_fn(m, k, |i, j| (i + j + b) as f64);
-			let rhs = Mat::<f64>::from_fn(k, n, |i, j| (i * j + b) as f64 - 2.0);
+			let rhs =
+				Mat::<f64>::from_fn(k, n, |i, j| (i * j + b) as f64 - 2.0);
 			let mut expected = Mat::<f64>::zeros(m, n);
-			matmul_with_conj(expected.as_mut(), Accum::Replace, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+			matmul_with_conj(
+				expected.as_mut(),
+				Accum::Replace,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				1.0,
+				Par::Seq,
+			);
 			// row major inside each batch slot
-			let dst = unsafe { MatUninitMut::<f64>::from_raw_parts_mut(data.as_mut_ptr().add(b * batch_stride), m, n, n as isize, 1) };
-			let result = matmul_with_conj_uninit(dst, lhs.as_ref(), Conj::No, rhs.as_ref(), Conj::No, 1.0, Par::Seq);
+			let dst = unsafe {
+				MatUninitMut::<f64>::from_raw_parts_mut(
+					data.as_mut_ptr().add(b * batch_stride),
+					m,
+					n,
+					n as isize,
+					1,
+				)
+			};
+			let result = matmul_with_conj_uninit(
+				dst,
+				lhs.as_ref(),
+				Conj::No,
+				rhs.as_ref(),
+				Conj::No,
+				1.0,
+				Par::Seq,
+			);
 			assert!(result == expected);
 		}
 		for b in 0..batch {
 			for p in m * n..batch_stride {
-				assert!(unsafe { data[b * batch_stride + p].assume_init() }.is_nan());
+				assert!(
+					unsafe { data[b * batch_stride + p].assume_init() }
+						.is_nan()
+				);
 			}
 		}
 	}
@@ -2613,17 +2993,16 @@ mod tests {
 			for depth in 0..k {
 				let a = &a[(i, depth)];
 				let b = &b[(depth, j)];
-				local_acc = local_acc
-					+ match conj_a {
-						Conj::Yes => a.conj(),
-						Conj::No => a.copy(),
-					} * match conj_b {
-						Conj::Yes => b.conj(),
-						Conj::No => b.copy(),
-					};
+				local_acc += match conj_a {
+					Conj::Yes => a.conj(),
+					Conj::No => a.copy(),
+				} * match conj_b {
+					Conj::Yes => b.conj(),
+					Conj::No => b.copy(),
+				};
 			}
 			match beta {
-				Accum::Add => acc[(0, 0)] = acc[(0, 0)] + local_acc * alpha,
+				Accum::Add => acc[(0, 0)] += local_acc * alpha,
 				Accum::Replace => acc[(0, 0)] = local_acc * alpha,
 			}
 		};
@@ -2631,6 +3010,7 @@ mod tests {
 			job(i);
 		}
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	fn test_matmul_impl(
 		reverse_acc_cols: bool,
 		reverse_acc_rows: bool,

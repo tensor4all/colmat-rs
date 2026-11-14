@@ -2947,6 +2947,8 @@ mod sparse {
 					rhs: &T,
 					lhs: SparseColMatMut<'_, I, T>,
 				) {
+					// `*&mut { lhs }` is the place expression `Scale` needs; keep it.
+					#![allow(clippy::deref_addrof)]
 					*&mut { lhs } *= Scale::from_ref(rhs)
 				}
 				let rhs = &from_f64::<T>(*rhs);
@@ -3631,7 +3633,7 @@ mod sparse {
 					let mut out = alloc::vec::Vec::new();
 					out.resize(symbolic.row_idx().len(), T::zero_impl());
 					for j in lhs.ncols().indices() {
-						let ref rhs = Conj::apply(&rhs[j]);
+						let rhs = &Conj::apply(&rhs[j]);
 						for (out, lhs) in iter::zip(
 							&mut out[symbolic.col_range(j)],
 							lhs.val_of_col(j),

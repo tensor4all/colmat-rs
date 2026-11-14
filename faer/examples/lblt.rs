@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
-use diol::prelude::*;
-use dyn_stack::{MemBuffer, MemStack};
 use colmat::diag::Diag;
 use colmat::linalg::cholesky::lblt;
 use colmat::prelude::*;
 use colmat::reborrow::ReborrowMut;
 use colmat::stats::prelude::*;
+use diol::prelude::*;
+use dyn_stack::{MemBuffer, MemStack};
 #[cfg(any(openblas, mkl, blis))]
 use lapack_sys as la;
 #[cfg(blis)]
@@ -73,8 +73,11 @@ fn faer(bencher: Bencher, PlotArg(n): PlotArg) {
 	let perm_inv = &mut *vec![0usize; n];
 	let mut par = Par::Seq;
 	let params = default();
-	let scratch =
-		lblt::factor::cholesky_in_place_scratch::<usize, f64>(n, par.shape(), params);
+	let scratch = lblt::factor::cholesky_in_place_scratch::<usize, f64>(
+		n,
+		par.shape(),
+		params,
+	);
 	let mut mem = MemBuffer::new(scratch);
 	let stack = MemStack::new(&mut mem);
 	bencher.bench(|| {

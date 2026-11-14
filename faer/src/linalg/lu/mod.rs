@@ -21,13 +21,20 @@ pub(crate) fn rank_threshold<T: ComplexField>(
 	let abs = from_f64::<T::Real>(abs_tol.unwrap_or(0.0));
 	let rel = from_f64::<T::Real>(rel_tol.unwrap_or(0.0)).mul_real(first_pivot);
 	let threshold = if rel > abs { rel } else { abs };
-	if threshold.is_finite() { Some(threshold) } else { None }
+	if threshold.is_finite() {
+		Some(threshold)
+	} else {
+		None
+	}
 }
 
 /// Whether the rank-truncation rule rejects a pivot of modulus `pivot`: `pivot <= threshold`. A
 /// NaN modulus is never rejected, so a NaN cannot end the factorization as a small pivot.
 #[inline]
-pub(crate) fn rank_rejects<T: ComplexField>(pivot: &T::Real, threshold: &Option<T::Real>) -> bool {
+pub(crate) fn rank_rejects<T: ComplexField>(
+	pivot: &T::Real,
+	threshold: &Option<T::Real>,
+) -> bool {
 	match threshold {
 		Some(threshold) => *pivot <= *threshold,
 		None => false,

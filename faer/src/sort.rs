@@ -1,5 +1,9 @@
 use crate::debug_assert;
 use core::mem::MaybeUninit;
+/// # Safety
+/// An implementor must be a plain pointer into an allocated array: `add`, `sub` and
+/// `offset_from` must stay within that allocation (or one past its end), and `read`, `write` and
+/// `copy_nonoverlapping` must obey the usual validity and aliasing rules for it.
 pub unsafe trait Ptr: Sized + Copy {
 	type Item;
 	fn get_ptr(ptr: *mut Self::Item) -> Self;
@@ -596,10 +600,12 @@ unsafe fn recurse<P: Ptr, F: FnMut(P, P) -> bool>(
 			limit -= 1;
 		}
 		let (pivot, likely_sorted) = choose_pivot(v, v_len, is_less);
-		if was_balanced && was_partitioned && likely_sorted {
-			if partial_insertion_sort(v, v_len, is_less) {
-				return;
-			}
+		if was_balanced
+			&& was_partitioned
+			&& likely_sorted
+			&& partial_insertion_sort(v, v_len, is_less)
+		{
+			return;
 		}
 		if let Some(p) = pred {
 			if !is_less(p, v.add(pivot)) {

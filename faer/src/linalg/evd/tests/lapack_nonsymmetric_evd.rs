@@ -204,6 +204,7 @@ fn lapack_nonsymmetric_evd_checkers_require_pair_signs() {
 		.0 > 20.0
 	);
 }
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 fn full_evd_case(
 	run: &mut Run,
 	a: MatRef<'_, Scalar>,

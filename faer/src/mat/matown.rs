@@ -1,9 +1,9 @@
 use super::*;
 use crate::internal_prelude::*;
 use crate::{Idx, IdxInc, TryReserveError, assert};
+use colmat_traits::ComplexField;
 use core::alloc::Layout;
 use dyn_stack::StackReq;
-use colmat_traits::ComplexField;
 #[inline]
 pub(crate) fn align_for(size: usize, align: usize, needs_drop: bool) -> usize {
 	if needs_drop || !size.is_power_of_two() {
@@ -297,23 +297,25 @@ impl<T> Drop for DropMat<T> {
 impl<T, Rows: Shape, Cols: Shape> Drop for Own<T, Rows, Cols> {
 	#[inline]
 	fn drop(&mut self) {
-		if const { core::mem::needs_drop::<T>() } {
-			if self.nrows.unbound() > 0 && self.ncols.unbound() > 0 {
-				let size = core::mem::size_of::<T>();
-				let ptr = self.raw.ptr.as_ptr();
-				let row_capacity = self.raw.row_capacity;
-				let stride = row_capacity * size;
-				drop(DropMat {
-					ptr,
-					nrows: self.nrows.unbound(),
-					ncols: self.ncols.unbound(),
-					byte_col_stride: stride,
-				})
-			}
+		if const { core::mem::needs_drop::<T>() }
+			&& self.nrows.unbound() > 0
+			&& self.ncols.unbound() > 0
+		{
+			let size = core::mem::size_of::<T>();
+			let ptr = self.raw.ptr.as_ptr();
+			let row_capacity = self.raw.row_capacity;
+			let stride = row_capacity * size;
+			drop(DropMat {
+				ptr,
+				nrows: self.nrows.unbound(),
+				ncols: self.ncols.unbound(),
+				byte_col_stride: stride,
+			})
 		}
 	}
 }
 impl<T> Mat<T> {
+	#[allow(clippy::new_without_default)] // adding `Default` would add public API; the fork keeps upstream surface only
 	/// returns an empty matrix of dimension `0×0`.
 	#[inline]
 	pub const fn new() -> Self {
@@ -588,14 +590,14 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 
 	/// set the dimensions of the matrix.
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// - `nrows <= self.row_capacity()`
 	/// - `ncols <= self.col_capacity()`
 	/// - the elements that were previously out of bounds but are now in bounds
 	///   must be
-	/// initialized
+	///   initialized
 	pub unsafe fn set_dims(&mut self, nrows: Rows, ncols: Cols) {
 		self.0.nrows = nrows;
 		self.0.ncols = ncols;
@@ -748,7 +750,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the matrix bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -763,6 +765,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 		self.as_ref().ptr_inbounds_at(row, col)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatRef::split_at`]
@@ -1087,6 +1090,9 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 		)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	#[track_caller]
 	#[inline]
 	/// see [`MatRef::get_unchecked`]
@@ -1121,6 +1127,9 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 		)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view and must not overlap any other live borrow of the same elements.
 	#[track_caller]
 	#[inline]
 	/// see [`MatMut::get_mut_unchecked`]
@@ -1159,7 +1168,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the matrix bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -1172,6 +1181,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 		self.as_mut().ptr_inbounds_at_mut(row, col)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	#[track_caller]
 	/// see [`MatMut::split_at_mut`]
@@ -1471,6 +1481,7 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 		self.as_mut().par_row_partition_mut(count)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[inline]
 	/// see [`MatMut::split_first_row_mut`]
 	pub fn split_first_row_mut(

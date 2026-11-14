@@ -275,8 +275,8 @@ impl<T: ComplexField> RankRUpdate<'_, T> {
 					let d = L_col.rb_mut().at_mut(j);
 					let w = W.rb().col(r + k);
 					*p = w[j].copy();
-					let ref alpha_conj_p = &*alpha * p.conj();
-					let ref new_d = d.real() + (alpha_conj_p * &*p).real();
+					let alpha_conj_p = &(&*alpha * p.conj());
+					let new_d = &(d.real() + (alpha_conj_p * &*p).real());
 
 					if *d == zero() && *new_d == zero() {
 						*beta = zero();
@@ -505,8 +505,8 @@ mod tests {
 				for j in 0..r {
 					alpha.column_vector_mut()[j].im = 0.0;
 				}
-				let A = &A * &A.adjoint();
-				let A_new = &A + &W * &alpha * &W.adjoint();
+				let A = &A * A.adjoint();
+				let A_new = &A + &W * &alpha * W.adjoint();
 				let A = A.as_ref();
 				let A_new = A_new.as_ref();
 				let mut L = A.cloned();

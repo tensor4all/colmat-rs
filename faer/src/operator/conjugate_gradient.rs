@@ -101,6 +101,7 @@ pub fn conjugate_gradient_scratch<T: ComplexField>(
 	}
 	implementation(&precond, &mat, rhs_ncols, par)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// executes the conjugate gradient using the provided preconditioner
 ///
 /// # note
@@ -126,6 +127,7 @@ pub fn conjugate_gradient<T: ComplexField, C: IterationControl>(
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<CgInfo<T::Real>, CgError<T::Real>> {
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	#[track_caller]
 	fn implementation<T: ComplexField>(
 		mut x: MatMut<'_, T>,
@@ -140,7 +142,7 @@ pub fn conjugate_gradient<T: ComplexField, C: IterationControl>(
 		assert!(A.nrows() == A.ncols());
 		let n = A.nrows();
 		let k = b.ncols();
-		let ref b_norm = b.norm_l2();
+		let b_norm = &b.norm_l2();
 		if *b_norm == zero::<T::Real>() {
 			x.fill(zero());
 			return Ok(CgInfo {
@@ -417,12 +419,14 @@ mod tests {
 	use equator::assert;
 	#[test]
 	fn test_cg() {
-		let ref A = mat![[2.5, -1.0], [-1.0, 3.1]];
-		let ref sol = mat![[2.1, 2.4], [4.1, 4.0]];
-		let ref rhs = A * sol;
-		let ref mut out = Mat::<f64>::zeros(2, sol.ncols());
-		let mut params = CgParams::default();
-		params.max_iters = 10;
+		let A = &mat![[2.5, -1.0], [-1.0, 3.1]];
+		let sol = &mat![[2.1, 2.4], [4.1, 4.0]];
+		let rhs = &(A * sol);
+		let out = &mut Mat::<f64>::zeros(2, sol.ncols());
+		let params = CgParams {
+			max_iters: 10,
+			..Default::default()
+		};
 		let precond = matrix_free::IdentityPrecond { dim: 2 };
 		let result = conjugate_gradient(
 			out.as_mut(),
@@ -439,7 +443,7 @@ mod tests {
 				ParShape::Seq,
 			))),
 		);
-		let ref out = *out;
+		let out = &*out;
 		assert!(result.is_ok());
 		let result = result.unwrap();
 		assert!(
@@ -449,10 +453,10 @@ mod tests {
 	}
 	#[test]
 	fn test_cg_breakdown() {
-		let ref mut rng = StdRng::seed_from_u64(0);
+		let rng = &mut StdRng::seed_from_u64(0);
 		let n = 10;
 		let k = 15;
-		let ref Q: Mat<c64> = UnitaryMat {
+		let Q: &Mat<c64> = &UnitaryMat {
 			dim: n,
 			standard_normal: ComplexDistribution::new(
 				StandardNormal,
@@ -464,14 +468,14 @@ mod tests {
 		for i in 0..n {
 			d[i] = c64::new(f64::exp(StandardUniform.sample(rng)).recip(), 0.0);
 		}
-		let ref A = Q * d.as_ref().as_diagonal() * Q.adjoint();
-		let ref mut diag = Mat::<c64>::identity(n, n);
+		let A = &(Q * d.as_ref().as_diagonal() * Q.adjoint());
+		let diag = &mut Mat::<c64>::identity(n, n);
 		for i in 0..n {
 			diag[(i, i)] =
 				c64::new(f64::exp(StandardUniform.sample(rng)).recip(), 0.0);
 		}
-		let ref diag = *diag;
-		let ref mut sol = CwiseMatDistribution {
+		let diag = &*diag;
+		let sol = &mut CwiseMatDistribution {
 			nrows: n,
 			ncols: k,
 			dist: ComplexDistribution::new(StandardNormal, StandardNormal),
@@ -484,9 +488,9 @@ mod tests {
 				sol[(i, k - 1)] += val;
 			}
 		}
-		let ref sol = *sol;
-		let ref rhs = A * sol;
-		let ref mut out = Mat::<c64>::zeros(n, k);
+		let sol = &*sol;
+		let rhs = &(A * sol);
+		let out = &mut Mat::<c64>::zeros(n, k);
 		let params = CgParams::default();
 		let result = conjugate_gradient(
 			out.as_mut(),
@@ -505,7 +509,7 @@ mod tests {
 				),
 			)),
 		);
-		let ref out = *out;
+		let out = &*out;
 		assert!(result.is_ok());
 		let result = result.unwrap();
 		assert!(
@@ -515,21 +519,22 @@ mod tests {
 	}
 	#[test]
 	fn codeberg_326() {
-		let ref A = mat![[2.0]];
-		let ref rhs = mat![[2.0]];
+		let A = &mat![[2.0]];
+		let rhs = &mat![[2.0]];
 		let precond = IdentityPrecond { dim: 1 };
 		let params = CgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			..CgParams::default()
 		};
-		let req = conjugate_gradient_scratch(precond, A.as_ref(), 1, ParShape::Seq);
+		let req =
+			conjugate_gradient_scratch(precond, A.as_ref(), 1, ParShape::Seq);
 		for fill in [0x00u8, 0x3F, 0xFF] {
 			// the workspace is uninitialized memory: any byte pattern must work
 			let mut buffer = alloc::vec![
 				core::mem::MaybeUninit::new(fill);
 				req.unaligned_bytes_required()
 			];
-			let ref mut out = Mat::<f64>::zeros(1, 1);
+			let out = &mut Mat::<f64>::zeros(1, 1);
 			let result = conjugate_gradient(
 				out.as_mut(),
 				precond,
@@ -548,14 +553,14 @@ mod tests {
 	fn codeberg_328() {
 		// one step does not converge: the error carries the residual of the
 		// returned `x`
-		let ref A = mat![[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
-		let ref rhs = mat![[1.0], [1.0], [1.0]];
+		let A = &mat![[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
+		let rhs = &mat![[1.0], [1.0], [1.0]];
 		let precond = IdentityPrecond { dim: 3 };
 		let params = CgParams {
 			max_iters: 1,
 			..CgParams::default()
 		};
-		let ref mut out = Mat::<f64>::zeros(3, 1);
+		let out = &mut Mat::<f64>::zeros(3, 1);
 		let result = conjugate_gradient(
 			out.as_mut(),
 			precond,
@@ -585,15 +590,15 @@ mod tests {
 	}
 	#[test]
 	fn zero_guess_is_written_out_without_an_iteration() {
-		let ref A = mat![[1.0]];
-		let ref rhs = mat![[1.0]];
+		let A = &mat![[1.0]];
+		let rhs = &mat![[1.0]];
 		let precond = IdentityPrecond { dim: 1 };
 		let params = CgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			max_iters: 0,
 			..CgParams::default()
 		};
-		let ref mut out = Mat::<f64>::full(1, 1, 7.0);
+		let out = &mut Mat::<f64>::full(1, 1, 7.0);
 		let result = conjugate_gradient(
 			out.as_mut(),
 			precond,

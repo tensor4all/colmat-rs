@@ -44,7 +44,7 @@ fn rank_update_step_simd<T: ComplexField>(
 				(Some(i0), None, None, None) => {
 					let p0 = simd.splat(&p[i0]);
 					let beta0 = simd.splat(&beta[i0]);
-					let gamma0 = simd.splat_real(&gamma[i0].real());
+					let gamma0 = simd.splat_real(gamma[i0].real());
 					simd_iter!(for i in [indices] {
 						let mut l = simd.read(L.rb(), i);
 						let mut w0 = simd.read(W.rb().col(i0), i);
@@ -59,8 +59,8 @@ fn rank_update_step_simd<T: ComplexField>(
 					let (beta0, beta1) =
 						(simd.splat(&beta[i0]), simd.splat(&beta[i1]));
 					let (gamma0, gamma1) = (
-						simd.splat_real(&gamma[i0].real()),
-						simd.splat_real(&gamma[i1].real()),
+						simd.splat_real(gamma[i0].real()),
+						simd.splat_real(gamma[i1].real()),
 					);
 					simd_iter!(for i in [indices] {
 						let mut l = simd.read(L.rb(), i);
@@ -87,9 +87,9 @@ fn rank_update_step_simd<T: ComplexField>(
 						simd.splat(&beta[i2]),
 					);
 					let (gamma0, gamma1, gamma2) = (
-						simd.splat_real(&gamma[i0].real()),
-						simd.splat_real(&gamma[i1].real()),
-						simd.splat_real(&gamma[i2].real()),
+						simd.splat_real(gamma[i0].real()),
+						simd.splat_real(gamma[i1].real()),
+						simd.splat_real(gamma[i2].real()),
 					);
 					simd_iter!(for i in [indices] {
 						let mut l = simd.read(L.rb(), i);
@@ -122,10 +122,10 @@ fn rank_update_step_simd<T: ComplexField>(
 						simd.splat(&beta[i3]),
 					);
 					let (gamma0, gamma1, gamma2, gamma3) = (
-						simd.splat_real(&gamma[i0].real()),
-						simd.splat_real(&gamma[i1].real()),
-						simd.splat_real(&gamma[i2].real()),
-						simd.splat_real(&gamma[i3].real()),
+						simd.splat_real(gamma[i0].real()),
+						simd.splat_real(gamma[i1].real()),
+						simd.splat_real(gamma[i2].real()),
+						simd.splat_real(gamma[i3].real()),
 					);
 					simd_iter!(for i in [indices] {
 						let mut l = simd.read(L.rb(), i);
@@ -423,8 +423,8 @@ mod tests {
 						alpha.column_vector_mut()[j].abs();
 					alpha.column_vector_mut()[j].im = 0.0;
 				}
-				let A = &A * &A.adjoint();
-				let A_new = &A + &W * &alpha * &W.adjoint();
+				let A = &A * A.adjoint();
+				let A_new = &A + &W * &alpha * W.adjoint();
 				let A = A.as_ref();
 				let A_new = A_new.as_ref();
 				let mut L = A.cloned();

@@ -162,7 +162,9 @@ mod tests {
 				// the phase is exact; the residue is the rounding of $d / |d|$.
 				for j in 0..k {
 					let d = r[(j, j)];
-					assert!(d.re >= 0.0 && d.im.abs() <= 1e-14 * d.abs().max(1.0));
+					assert!(
+						d.re >= 0.0 && d.im.abs() <= 1e-14 * d.abs().max(1.0)
+					);
 				}
 			}
 			let mut q = Mat::<c64>::zeros(m, k);
@@ -232,7 +234,7 @@ mod tests {
 				dist: ComplexDistribution::new(StandardNormal, StandardNormal),
 			}
 			.rand::<Mat<c64>>(rng);
-			for block_size in [1, Ord::max(Ord::min(Ord::min(m, n), 8), 1)] {
+			for block_size in [1, Ord::min(m, n).clamp(1, 8)] {
 				check(a.as_ref(), block_size);
 			}
 		}
@@ -254,7 +256,7 @@ mod tests {
 			}
 			let (_, _, rank) = packed(a.as_ref(), Ord::min(m, n));
 			assert!(rank == r);
-			check(a.as_ref(), Ord::max(Ord::min(Ord::min(m, n), 4), 1));
+			check(a.as_ref(), Ord::min(m, n).clamp(1, 4));
 		}
 	}
 }

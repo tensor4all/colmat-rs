@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-use dyn_stack::{MemBuffer, MemStack, StackReq};
 use colmat::mat::AsMatMut;
 use colmat::prelude::*;
 use colmat::{Accum, dyn_stack};
+use dyn_stack::{MemBuffer, MemStack, StackReq};
 fn foo_scratch(n: usize) -> StackReq {
 	let tmp = colmat::linalg::temp_mat_scratch::<f64>(n, n);
 	let llt = colmat::linalg::cholesky::llt::factor::cholesky_in_place_scratch::<
@@ -62,7 +62,7 @@ fn main() {
 	// stacks    foo_scratch
 	// [...][..][..][..][..][..]
 	// use rayon::prelude::*;
-	(0..nthreads).into_iter().for_each(|_| {
+	(0..nthreads).for_each(|_| {
 		let mut A = Mat::zeros(n, n);
 		let B = Mat::zeros(n, n);
 		foo(A.as_mut(), B.as_ref(), stack);

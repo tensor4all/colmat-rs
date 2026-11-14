@@ -125,6 +125,7 @@ impl<T: ComplexField> Auto<T> for QrParams {
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn qr_in_place_blocked<T: ComplexField>(
 	A: MatMut<'_, T>,
 	H: MatMut<'_, T>,
@@ -162,12 +163,23 @@ fn qr_in_place_blocked<T: ComplexField>(
 		&& stack.can_hold(StackReq::all_of(&[
 			temp_mat_scratch::<T>(m, 2 * panel_cols),
 			temp_mat_scratch::<T>(panel_cols, panel_cols),
-			temp_mat_scratch::<T>(panel_cols, n).or(temp_mat_scratch::<T>(n, panel_cols)),
+			temp_mat_scratch::<T>(panel_cols, n)
+				.or(temp_mat_scratch::<T>(n, panel_cols)),
 		]));
-	let (mut panels, stack) = unsafe { temp_mat_uninit::<T, usize, usize>(if stage { m } else { 0 }, if stage { 2 * panel_cols } else { 0 }, stack) };
+	let (mut panels, stack) = unsafe {
+		temp_mat_uninit::<T, usize, usize>(
+			if stage { m } else { 0 },
+			if stage { 2 * panel_cols } else { 0 },
+			stack,
+		)
+	};
 	// `next` serves the look-ahead only, which needs `rayon`
 	#[cfg_attr(not(feature = "rayon"), allow(unused_mut, unused_variables))]
-	let (mut cur, mut next) = panels.as_mat_mut().split_at_col_mut(if stage { panel_cols } else { 0 });
+	let (mut cur, mut next) = panels.as_mat_mut().split_at_col_mut(if stage {
+		panel_cols
+	} else {
+		0
+	});
 	let mut A = A;
 	let mut H = H;
 	let mut col = col_start;
@@ -190,7 +202,10 @@ fn qr_in_place_blocked<T: ComplexField>(
 			// a block that starts on the diagonal (`row == col`, so its reflectors are stored in its
 			// own columns) is a panel in its own coordinates, which `factor_panel_staged` factors in
 			// `cur` and completes the factor of
-			let staged = stage && prefactored_rank.is_none() && offset == 0 && row == col;
+			let staged = stage
+				&& prefactored_rank.is_none()
+				&& offset == 0
+				&& row == col;
 			let new_row = match prefactored_rank {
 				Some(local) => row + local,
 				None if staged => {
@@ -270,44 +285,80 @@ fn qr_in_place_blocked<T: ComplexField>(
 			// per step whether hiding it pays and on how many participants.
 			let next_col = col + block_size;
 			let row2 = row + local;
-			let bs2 = Ord::min(full_block_size, Ord::min(size.saturating_sub(row2), n.saturating_sub(next_col)));
+			let bs2 = Ord::min(
+				full_block_size,
+				Ord::min(size.saturating_sub(row2), n.saturating_sub(next_col)),
+			);
 			let far = n.saturating_sub(next_col + bs2);
 			let sub2 = Ord::min(bs2, sub_block_size);
 			let panel_req = || temp_mat_scratch::<T>(bs2, bs2);
-			let far_req = if in_cur { temp_mat_scratch::<T>(far, local) } else { temp_mat_scratch::<T>(local, far) };
-			let ahead = if lookahead
-				&& offset == 0
-				&& local == block_size
-				&& row == col
-				&& bs2 > 0
-				&& far > 0
-				&& sub2 > 1
-				&& (m - row2) * bs2 >= params.blocking_threshold
-				&& stack.can_hold(StackReq::all_of(&[panel_req(), far_req]))
-			{
-				lookahead_width::<T>(&par, m - row, local, bs2, far)
+			let far_req = if in_cur {
+				temp_mat_scratch::<T>(far, local)
 			} else {
-				None
+				temp_mat_scratch::<T>(local, far)
 			};
+			let ahead =
+				if lookahead
+					&& offset == 0 && local == block_size
+					&& row == col && bs2 > 0
+					&& far > 0 && sub2 > 1
+					&& (m - row2) * bs2 >= params.blocking_threshold
+					&& stack.can_hold(StackReq::all_of(&[panel_req(), far_req]))
+				{
+					lookahead_width::<T>(&par, m - row, local, bs2, far)
+				} else {
+					None
+				};
 			match ahead {
 				#[cfg(feature = "rayon")]
 				Some(width) => {
-					let (Q0, A1) = A.rb_mut().get_mut(row.., ..).split_at_col_mut(next_col);
+					let (Q0, A1) = A
+						.rb_mut()
+						.get_mut(row.., ..)
+						.split_at_col_mut(next_col);
 					let Q0 = Q0.into_const();
-					let Q0 = if in_cur { cur.rb().get(row.., ..local) } else { Q0.get(.., row..row + local) };
+					let Q0 = if in_cur {
+						cur.rb().get(row.., ..local)
+					} else {
+						Q0.get(.., row..row + local)
+					};
 					let (H_done, H_next) = H.rb_mut().split_at_col_mut(row2);
-					let H_j = H_done.rb().get(offset..offset + local, row..row + local);
+					let H_j = H_done
+						.rb()
+						.get(offset..offset + local, row..row + local);
 					let (mut A_next, A_far) = A1.split_at_col_mut(bs2);
 					// staged, the next block's columns are copied into `next` first, on the whole team,
 					// so the first apply and the panel run on a column-major target and the copies do not
 					// share the panel group's time with the far apply
-					let mut next_block = if stage { Some(next.rb_mut().get_mut(row.., ..bs2)) } else { None };
+					let mut next_block = if stage {
+						Some(next.rb_mut().get_mut(row.., ..bs2))
+					} else {
+						None
+					};
 					match next_block.as_mut() {
 						Some(work) => {
-							linalg::copy_across_layouts(work.rb_mut(), A_next.rb(), par.reborrow());
-							apply_trailing(false, Q0, H_j, work.rb_mut(), par.reborrow(), stack);
+							linalg::copy_across_layouts(
+								work.rb_mut(),
+								A_next.rb(),
+								par.reborrow(),
+							);
+							apply_trailing(
+								false,
+								Q0,
+								H_j,
+								work.rb_mut(),
+								par.reborrow(),
+								stack,
+							);
 						},
-						None => apply_trailing(in_cur, Q0, H_j, A_next.rb_mut(), par.reborrow(), stack),
+						None => apply_trailing(
+							in_cur,
+							Q0,
+							H_j,
+							A_next.rb_mut(),
+							par.reborrow(),
+							stack,
+						),
 					}
 					// the next panel in its own coordinates: rows from its diagonal down, its columns,
 					// its factor columns; disjoint from what the trailing apply reads and writes
@@ -317,25 +368,43 @@ fn qr_in_place_blocked<T: ComplexField>(
 					};
 					let H_panel = H_next.subcols_mut(0, bs2);
 					let panel_req = panel_req();
-					let (panel_mem, far_stack) = stack.make_aligned_uninit::<u8>(panel_req.size_bytes(), panel_req.align_bytes());
+					let (panel_mem, far_stack) = stack
+						.make_aligned_uninit::<u8>(
+							panel_req.size_bytes(),
+							panel_req.align_bytes(),
+						);
 					let mut rank2 = 0usize;
 					crate::utils::thread::join_sized(
 						par.reborrow(),
 						width,
 						|par| {
-							rank2 = factor_panel(A_panel, H_panel, sub2, par, MemStack::new(panel_mem), params.into());
+							rank2 = factor_panel(
+								A_panel,
+								H_panel,
+								sub2,
+								par,
+								MemStack::new(panel_mem),
+								params.into(),
+							);
 						},
 						|par| {
-							apply_trailing(in_cur, Q0, H_j, A_far, par, far_stack);
+							apply_trailing(
+								in_cur, Q0, H_j, A_far, par, far_stack,
+							);
 						},
 					);
 					if let Some(work) = next_block {
-						linalg::copy_across_layouts(A_next, work.rb(), par.reborrow());
+						linalg::copy_across_layouts(
+							A_next,
+							work.rb(),
+							par.reborrow(),
+						);
 						core::mem::swap(&mut cur, &mut next);
 					}
 					prefactored = Some(rank2);
 					#[cfg(test)]
-					LOOKAHEAD_STEPS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+					LOOKAHEAD_STEPS
+						.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
 				},
 				_ => {
 					let (Q0, A1) = A
@@ -343,10 +412,22 @@ fn qr_in_place_blocked<T: ComplexField>(
 						.get_mut(row.., ..)
 						.split_at_col_mut(col + block_size);
 					let Q0 = Q0.into_const();
-					let Q0 = if in_cur { cur.rb().get(row.., ..local) } else { Q0.get(.., row..row + local) };
-					let H = H.rb().get(offset..offset + local, row..row + local);
+					let Q0 = if in_cur {
+						cur.rb().get(row.., ..local)
+					} else {
+						Q0.get(.., row..row + local)
+					};
+					let H =
+						H.rb().get(offset..offset + local, row..row + local);
 					if A1.ncols() > 0 {
-						apply_trailing(in_cur, Q0, H, A1, par.reborrow(), stack);
+						apply_trailing(
+							in_cur,
+							Q0,
+							H,
+							A1,
+							par.reborrow(),
+							stack,
+						);
 					}
 				},
 			}
@@ -370,9 +451,24 @@ fn factor_panel<T: ComplexField>(
 ) -> usize {
 	let mut A = A;
 	let mut H = H;
-	let local = qr_in_place_blocked(A.rb_mut(), H.rb_mut().subrows_mut(0, sub_block_size), 0, 0, par.reborrow(), stack, params, false, false);
+	let local = qr_in_place_blocked(
+		A.rb_mut(),
+		H.rb_mut().subrows_mut(0, sub_block_size),
+		0,
+		0,
+		par.reborrow(),
+		stack,
+		params,
+		false,
+		false,
+	);
 	if local > 0 {
-		complete_factor(H.subcols_mut(0, local), A.rb().subcols(0, local), sub_block_size, par);
+		complete_factor(
+			H.subcols_mut(0, local),
+			A.rb().subcols(0, local),
+			sub_block_size,
+			par,
+		);
 	}
 	local
 }
@@ -399,7 +495,14 @@ fn factor_panel_staged<T: ComplexField>(
 	let mut A = A;
 	let mut work = work;
 	linalg::copy_across_layouts(work.rb_mut(), A.rb(), par.reborrow());
-	let local = factor_panel(work.rb_mut(), H, sub_block_size, par.reborrow(), stack, params);
+	let local = factor_panel(
+		work.rb_mut(),
+		H,
+		sub_block_size,
+		par.reborrow(),
+		stack,
+		params,
+	);
 	linalg::copy_across_layouts(A.rb_mut(), work.rb(), par);
 	local
 }
@@ -426,7 +529,12 @@ fn apply_trailing<T: ComplexField>(
 /// sub-blocks of `sub_block_size` (`factor`: the block's factor rows from its first, and its
 /// `local` columns; `basis`: the reflectors from the block's diagonal down): moves each
 /// sub-block's factor to its diagonal position and merges them.
-fn complete_factor<T: ComplexField>(factor: MatMut<'_, T>, basis: MatRef<'_, T>, sub_block_size: usize, par: Par) {
+fn complete_factor<T: ComplexField>(
+	factor: MatMut<'_, T>,
+	basis: MatRef<'_, T>,
+	sub_block_size: usize,
+	par: Par,
+) {
 	let mut H = factor;
 	let local = basis.ncols();
 	let mut k = 0;
@@ -441,27 +549,46 @@ fn complete_factor<T: ComplexField>(factor: MatMut<'_, T>, basis: MatRef<'_, T>,
 		}
 		k += sub_block_size;
 	}
-	householder::upgrade_householder_factor(H.get_mut(0..local, 0..local), basis, local, sub_block_size, par);
+	householder::upgrade_householder_factor(
+		H.get_mut(0..local, 0..local),
+		basis,
+		local,
+		sub_block_size,
+		par,
+	);
 }
 
 /// Look-ahead steps taken, for the tests that check the path ran.
 #[cfg(test)]
-pub(crate) static LOOKAHEAD_STEPS: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+pub(crate) static LOOKAHEAD_STEPS: core::sync::atomic::AtomicUsize =
+	core::sync::atomic::AtomicUsize::new(0);
 /// Tests: overlap every eligible step with a panel group of this width (0: the step model).
 #[cfg(test)]
-pub(crate) static LOOKAHEAD_FORCE: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+pub(crate) static LOOKAHEAD_FORCE: core::sync::atomic::AtomicUsize =
+	core::sync::atomic::AtomicUsize::new(0);
 
 /// The panel group of a QR look-ahead step, or `None` when overlapping does not pay: the step
 /// model of `cost::lookahead_width`, with `F` the far columns' block apply and `P` the panel, both
 /// serial estimates at the block apply rate (`cost::block_apply_estimate`; the panel as a block
 /// apply of its own width on itself, which matches its measured serial time at block 128), and
 /// the panel's measured speed-up on a team (`PANEL_TEAM`).
-fn lookahead_width<T: ComplexField>(par: &Par, rows: usize, basis_cols: usize, panel_cols: usize, far_cols: usize) -> Option<usize> {
+fn lookahead_width<T: ComplexField>(
+	par: &Par,
+	rows: usize,
+	basis_cols: usize,
+	panel_cols: usize,
+	far_cols: usize,
+) -> Option<usize> {
 	// time of the panel on `a` participants over its time on one: 4096 at block 128 on broccoli
 	// (EPYC 7702P), faer#160 `panel2`: 184-186 ms on one, 124-131 ms on 4 to 32, 182 ms on 64
 	// (the full host: short regions at width 64). Two participants are not measured and are
 	// not offered.
-	const PANEL_TEAM: crate::utils::cost::PanelTeam = crate::utils::cost::PanelTeam { from: 4, to: 32, ratio: 0.68 };
+	const PANEL_TEAM: crate::utils::cost::PanelTeam =
+		crate::utils::cost::PanelTeam {
+			from: 4,
+			to: 32,
+			ratio: 0.68,
+		};
 	#[cfg(test)]
 	match LOOKAHEAD_FORCE.load(core::sync::atomic::Ordering::Relaxed) {
 		0 => {},
@@ -471,8 +598,14 @@ fn lookahead_width<T: ComplexField>(par: &Par, rows: usize, basis_cols: usize, p
 	if par.degree() < 2 {
 		return None;
 	}
-	let panel = crate::utils::cost::block_apply_estimate::<T>(rows - basis_cols, panel_cols, panel_cols);
-	let far = crate::utils::cost::block_apply_estimate::<T>(rows, basis_cols, far_cols);
+	let panel = crate::utils::cost::block_apply_estimate::<T>(
+		rows - basis_cols,
+		panel_cols,
+		panel_cols,
+	);
+	let far = crate::utils::cost::block_apply_estimate::<T>(
+		rows, basis_cols, far_cols,
+	);
 	crate::utils::cost::lookahead_width(par, panel, far, PANEL_TEAM)
 }
 /// Factors a matrix whose columns are not the contiguous direction by copying
@@ -501,7 +634,8 @@ fn qr_in_place_adapted<T: ComplexField>(
 	let (m, n) = A.shape();
 	let mut work = linalg::column_major_copy(A.rb(), par.reborrow());
 	let mut work = MatMut::from_column_major_slice_mut(&mut work, m, n);
-	let info = qr_in_place(work.rb_mut(), Q_coeff, par.reborrow(), stack, params);
+	let info =
+		qr_in_place(work.rb_mut(), Q_coeff, par.reborrow(), stack, params);
 	linalg::copy_across_layouts(A, work.rb(), par);
 	info
 }
@@ -549,9 +683,20 @@ pub fn qr_in_place<T: ComplexField>(
 			&& A.nrows() == A.ncols()
 			&& A.nrows() < 192
 			&& crate::utils::thread::parallelism_degree(&par) == 1
-			&& stack.can_hold(qr_in_place_scratch::<T>(A.nrows(), A.ncols(), block_size, par.shape(), params))
-		{
-			let info = linalg::lq::no_pivoting::factor::lq_in_place(A.transpose_mut(), Q_coeff, par, stack, params);
+			&& stack.can_hold(qr_in_place_scratch::<T>(
+				A.nrows(),
+				A.ncols(),
+				block_size,
+				par.shape(),
+				params,
+			)) {
+			let info = linalg::lq::no_pivoting::factor::lq_in_place(
+				A.transpose_mut(),
+				Q_coeff,
+				par,
+				stack,
+				params,
+			);
 			return QrInfo { rank: info.rank };
 		}
 		return qr_in_place_adapted(A, Q_coeff, par, stack, params);
@@ -583,8 +728,17 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 		Q_coeff.ncols() == Ord::min(A.nrows(), A.ncols()),
 	));
 	let mut Q_coeff = Q_coeff;
-	let rank =
-		qr_in_place_blocked(A, Q_coeff.rb_mut(), 0, 0, par, stack, params, true, stage_panels);
+	let rank = qr_in_place_blocked(
+		A,
+		Q_coeff.rb_mut(),
+		0,
+		0,
+		par,
+		stack,
+		params,
+		true,
+		stage_panels,
+	);
 	Q_coeff.rb_mut().get_mut(.., rank..).fill(zero());
 	let mut col = rank / block_size * block_size;
 	let n = Q_coeff.ncols();
@@ -624,7 +778,9 @@ pub fn copy_r<T: ComplexField>(
 	// every entry of `out` is written: the strict lower triangle and the full
 	// factor's trailing rows are zero.
 	out.rb_mut().fill(zero());
-	out.rb_mut().get_mut(..k, ..).copy_from_triangular_upper(packed.get(..k, ..));
+	out.rb_mut()
+		.get_mut(..k, ..)
+		.copy_from_triangular_upper(packed.get(..k, ..));
 	if positive {
 		for j in 0..k {
 			let phase = linalg::positive_phase(packed[(j, j)].clone()).conj();
@@ -656,7 +812,8 @@ pub fn qr_in_place_scratch<T: ComplexField>(
 	StackReq::all_of(&[
 		temp_mat_scratch::<T>(nrows, 2 * panel),
 		temp_mat_scratch::<T>(panel, panel),
-		temp_mat_scratch::<T>(block_size, ncols).or(temp_mat_scratch::<T>(ncols, panel)),
+		temp_mat_scratch::<T>(block_size, ncols)
+			.or(temp_mat_scratch::<T>(ncols, panel)),
 	])
 }
 #[cfg(test)]
@@ -714,7 +871,10 @@ mod tests {
 			for j in 0..n {
 				for i in 0..k {
 					let want = if i <= j { packed[(i, j)] } else { 0.0 };
-					assert!(out_col[(j, i)] == want, "{m}x{n}: entry ({i}, {j})");
+					assert!(
+						out_col[(j, i)] == want,
+						"{m}x{n}: entry ({i}, {j})"
+					);
 				}
 			}
 		}
@@ -725,7 +885,7 @@ mod tests {
 		let rng = &mut StdRng::seed_from_u64(0);
 		for rank in [1, 2, 3, 4, 5, 100, usize::MAX] {
 			let mut run = |mut par: Par<'_>| {
-			let par_shape = par.shape();
+				let par_shape = par.shape();
 				for n in [2, 4, 8, 16, 24, 32, 127, 128, 257] {
 					let rank = Ord::min(n, rank);
 					let approx_eq = CwiseMat(ApproxEq {
@@ -933,7 +1093,7 @@ mod tests {
 				}
 			};
 			run(Par::Seq);
-			crate::team::with_team(8, |par| run(par));
+			crate::team::with_team(8, run);
 		}
 	}
 	/// A matrix whose columns are not the contiguous direction is factored through
@@ -966,11 +1126,7 @@ mod tests {
 		}
 		impl Entry for f64 {
 			fn at(i: usize, j: usize, zero_col: bool) -> Self {
-				if zero_col && j == 0 {
-					0.0
-				} else {
-					val(i, j)
-				}
+				if zero_col && j == 0 { 0.0 } else { val(i, j) }
 			}
 			fn bits(&self) -> (u64, u64) {
 				(self.to_bits(), 0)
@@ -1010,14 +1166,18 @@ mod tests {
 			// reflectors, `tau` and rank up to rounding, not bit for bit.
 			let exact = exact
 				&& !(crate::utils::thread::parallelism_degree(&par) == 1
-					&& m == n
-					&& m < 192);
+					&& m == n && m < 192);
 			// An empty matrix has no row to start a backwards view from.
 			let flipped = flipped && m > 0 && n > 0;
 			let size = Ord::min(m, n);
 			let block_size = recommended_block_size::<T>(m, n);
-			let qr_scratch =
-				qr_in_place_scratch::<T>(m, n, block_size, par.shape(), default());
+			let qr_scratch = qr_in_place_scratch::<T>(
+				m,
+				n,
+				block_size,
+				par.shape(),
+				default(),
+			);
 			// The same matrix, flat in each order. The row-major side is read
 			// back through the same view, so it is compared at the storage row
 			// the view puts there.
@@ -1037,9 +1197,9 @@ mod tests {
 			let mut h_cm = vec![T::zero(); block_size * size];
 			let mut h_rm = vec![T::zero(); block_size * size];
 			let mut run = |a: &mut [T],
-			           h: &mut [T],
-			           base: usize,
-			           (rs, cs): (isize, isize)|
+			               h: &mut [T],
+			               base: usize,
+			               (rs, cs): (isize, isize)|
 			 -> QrInfo {
 				unsafe {
 					qr_in_place(
@@ -1114,9 +1274,11 @@ mod tests {
 				check::<c64>(m, n, false, false, true, par);
 			};
 			run(Par::Seq);
-			crate::team::with_team(8, |par| run(par));
+			crate::team::with_team(8, run);
 			check::<f64>(m, n, false, true, true, Par::Seq);
-			crate::team::with_team(4, |par| check::<c64>(m, n, false, true, true, par));
+			crate::team::with_team(4, |par| {
+				check::<c64>(m, n, false, true, true, par)
+			});
 		}
 		// An exactly zero leading column is the one place the unblocked core
 		// stores a reflector's essential part in a different column than the one
@@ -1151,7 +1313,9 @@ mod tests {
 			(64, 256),
 		] {
 			check::<f64>(m, n, false, false, false, Par::Seq);
-			crate::team::with_team(4, |par| check::<c64>(m, n, false, false, false, par));
+			crate::team::with_team(4, |par| {
+				check::<c64>(m, n, false, false, false, par)
+			});
 			check::<f64>(m, n, false, true, false, Par::Seq);
 		}
 	}
@@ -1197,7 +1361,7 @@ mod tests {
 				),
 			)),
 		);
-		(&A - &Q * &R).norm_l2() / A.norm_l2()
+		(A - &Q * &R).norm_l2() / A.norm_l2()
 	}
 
 	/// `A = [a, a + 1e-10 e_0, a + 1e-6 e_1]`, `a = (1, ..., 1)`, tall `m x 3`.
@@ -1255,34 +1419,74 @@ mod tests {
 	#[cfg(feature = "threadteam")]
 	#[test]
 	fn test_lookahead_matches_sequential() {
-		use core::sync::atomic::Ordering::Relaxed;
 		use crate::linalg::qr::no_pivoting::reconstruct;
-		fn case<T: ComplexField>(m: usize, n: usize, bs: usize, threads: usize, force: usize, zero_cols: core::ops::Range<usize>, gen: &dyn Fn(usize, usize) -> T, mag: fn(&T) -> f64, eps: f64) -> bool {
+		use core::sync::atomic::Ordering::Relaxed;
+		#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+		#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+		fn case<T: ComplexField>(
+			m: usize,
+			n: usize,
+			bs: usize,
+			threads: usize,
+			force: usize,
+			zero_cols: core::ops::Range<usize>,
+			gen: &dyn Fn(usize, usize) -> T,
+			mag: fn(&T) -> f64,
+			eps: f64,
+		) -> bool {
 			let size = Ord::min(m, n);
-			let a = Mat::<T>::from_fn(m, n, |i, j| if zero_cols.contains(&j) { T::zero_impl() } else { gen(i, j) });
+			let a = Mat::<T>::from_fn(m, n, |i, j| {
+				if zero_cols.contains(&j) {
+					T::zero_impl()
+				} else {
+					gen(i, j)
+				}
+			});
 			let full_rank = zero_cols.is_empty();
 			let mut steps = 0;
 			let run = |team: bool, steps: &mut usize| {
 				let mut f = a.clone();
 				let mut h = Mat::<T>::zeros(bs, size);
-				let mut mem = MemBuffer::new(qr_in_place_scratch::<T>(m, n, bs, crate::ParShape::team(threads), default()));
+				let mut mem = MemBuffer::new(qr_in_place_scratch::<T>(
+					m,
+					n,
+					bs,
+					crate::ParShape::team(threads),
+					default(),
+				));
 				let rank = if team {
 					crate::team::with_team(threads, |par| {
 						LOOKAHEAD_FORCE.store(force, Relaxed);
 						let before = LOOKAHEAD_STEPS.load(Relaxed);
-						let rank = qr_in_place(f.as_mut(), h.as_mut(), par, MemStack::new(&mut mem), default()).rank;
+						let rank = qr_in_place(
+							f.as_mut(),
+							h.as_mut(),
+							par,
+							MemStack::new(&mut mem),
+							default(),
+						)
+						.rank;
 						*steps = LOOKAHEAD_STEPS.load(Relaxed) - before;
 						LOOKAHEAD_FORCE.store(0, Relaxed);
 						rank
 					})
 				} else {
-					qr_in_place(f.as_mut(), h.as_mut(), Par::Seq, MemStack::new(&mut mem), default()).rank
+					qr_in_place(
+						f.as_mut(),
+						h.as_mut(),
+						Par::Seq,
+						MemStack::new(&mut mem),
+						default(),
+					)
+					.rank
 				};
 				(f, h, rank)
 			};
 			let (a0, h0, r0) = run(false, &mut 0);
 			let (a1, h1, r1) = run(true, &mut steps);
-			let tag = format!("{m}x{n} block {bs} threads {threads} force {force} zero {zero_cols:?}");
+			let tag = format!(
+				"{m}x{n} block {bs} threads {threads} force {force} zero {zero_cols:?}"
+			);
 			std::assert!(r0 == r1, "{tag}: rank {r0} against {r1}");
 			let mx = |x: &Mat<T>| {
 				let mut v = 1.0f64;
@@ -1312,14 +1516,30 @@ mod tests {
 							continue;
 						}
 						let d = mag(&(h1[(i, j)].clone() - h0[(i, j)].clone()));
-						std::assert!(d <= (m as f64) * eps * 10.0 * mx(&h0), "{tag}: H({i}, {j}) differs by {d}");
+						std::assert!(
+							d <= (m as f64) * eps * 10.0 * mx(&h0),
+							"{tag}: H({i}, {j}) differs by {d}"
+						);
 					}
 				}
 			}
 			// Q R = A through the factor layout the sequence consumers read
 			let mut qr = Mat::<T>::zeros(m, n);
-			let mut mem = MemBuffer::new(reconstruct::reconstruct_scratch::<T>(m, n, bs, crate::ParShape::Seq));
-			reconstruct::reconstruct(qr.as_mut(), a1.as_ref().subcols(0, size), h1.as_ref(), a1.as_ref().subrows(0, size), Par::Seq, MemStack::new(&mut mem));
+			let mut mem =
+				MemBuffer::new(reconstruct::reconstruct_scratch::<T>(
+					m,
+					n,
+					bs,
+					crate::ParShape::Seq,
+				));
+			reconstruct::reconstruct(
+				qr.as_mut(),
+				a1.as_ref().subcols(0, size),
+				h1.as_ref(),
+				a1.as_ref().subrows(0, size),
+				Par::Seq,
+				MemStack::new(&mut mem),
+			);
 			for j in 0..n {
 				for i in 0..m {
 					let d = mag(&(qr[(i, j)].clone() - a[(i, j)].clone()));
@@ -1328,14 +1548,35 @@ mod tests {
 			}
 			steps > 0
 		}
-		let r = |i: usize, j: usize| ((i * 7 + j * 13) % 23) as f64 / 23.0 - 0.5 + if i == j { 2.0 } else { 0.0 };
+		let r = |i: usize, j: usize| {
+			((i * 7 + j * 13) % 23) as f64 / 23.0 - 0.5
+				+ if i == j { 2.0 } else { 0.0 }
+		};
 		let r32 = |i: usize, j: usize| r(i, j) as f32;
 		let c = |i: usize, j: usize| c64::new(r(i, j), r(j + 3, i + 1));
-		let (f64m, f32m, c64m): (fn(&f64) -> f64, fn(&f32) -> f64, fn(&c64) -> f64) = (|x| x.abs(), |x| x.abs() as f64, |x| x.norm());
+		#[allow(clippy::type_complexity)]
+		// signature shape kept explicit to match upstream
+		// the three accessor signatures are spelled out once, for the table below
+		let (f64m, f32m, c64m): (
+			fn(&f64) -> f64,
+			fn(&f32) -> f64,
+			fn(&c64) -> f64,
+		) = (|x| x.abs(), |x| x.abs() as f64, |x| x.norm());
 		// the step model's own choice on 4 participants: it overlaps on tall and square shapes
-		for &(m, n, bs, must) in &[(800, 600, 32, true), (600, 600, 48, true), (500, 800, 32, false), (1000, 400, 64, true)] {
-			std::assert!(case::<f64>(m, n, bs, 4, 0, 0..0, &r, f64m, 1e-13) || !must, "{m}x{n}: the look-ahead did not run");
-			std::assert!(case::<c64>(m, n, bs, 4, 0, 0..0, &c, c64m, 1e-13) || !must, "{m}x{n} c64: the look-ahead did not run");
+		for &(m, n, bs, must) in &[
+			(800, 600, 32, true),
+			(600, 600, 48, true),
+			(500, 800, 32, false),
+			(1000, 400, 64, true),
+		] {
+			std::assert!(
+				case::<f64>(m, n, bs, 4, 0, 0..0, &r, f64m, 1e-13) || !must,
+				"{m}x{n}: the look-ahead did not run"
+			);
+			std::assert!(
+				case::<c64>(m, n, bs, 4, 0, 0..0, &c, c64m, 1e-13) || !must,
+				"{m}x{n} c64: the look-ahead did not run"
+			);
 		}
 		std::assert!(case::<f32>(600, 500, 32, 4, 1, 0..0, &r32, f32m, 1e-5));
 		// every eligible step, panel groups of 1 and 4
@@ -5625,9 +5866,13 @@ mod tests {
 				qr.as_mut(),
 				h.as_mut(),
 				par.reborrow(),
-				MemStack::new(&mut MemBuffer::new(
-					qr_in_place_scratch::<f64>(m, n, block_size, par_shape, default()),
-				)),
+				MemStack::new(&mut MemBuffer::new(qr_in_place_scratch::<f64>(
+					m,
+					n,
+					block_size,
+					par_shape,
+					default(),
+				))),
 				default(),
 			);
 			(info, qr)
@@ -5637,7 +5882,7 @@ mod tests {
 			rel_tol: 1e-10,
 		});
 		let (info_seq, qr_seq) = factor(Par::Seq);
-		let (info_par, qr_par) = crate::team::with_team(2, |par| factor(par));
+		let (info_par, qr_par) = crate::team::with_team(2, factor);
 		assert!(info_seq.rank == n - zero);
 		assert!(info_par.rank == info_seq.rank);
 		assert!(qr_par.as_ref() ~ qr_seq.as_ref());

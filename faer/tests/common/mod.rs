@@ -1,9 +1,9 @@
 #![allow(dead_code, unused_imports)]
-pub use dyn_stack::{MemBuffer, MemStack};
 pub use colmat::traits::ext::*;
 pub use colmat::traits::math_utils::*;
 pub use colmat::traits::{ComplexField, RealField};
 pub use colmat::{Col, Mat, MatRef, Par, ParShape, c32, c64};
+pub use dyn_stack::{MemBuffer, MemStack};
 
 pub const SIZES: [usize; 6] = [1, 2, 3, 8, 33, 100];
 pub fn sample(i: usize, j: usize) -> f64 {
@@ -31,7 +31,7 @@ pub fn close<T: ComplexField>(a: MatRef<'_, T>, b: MatRef<'_, T>) {
 }
 pub fn unitary<T: ComplexField>(q: MatRef<'_, T>) {
 	close(
-		(&q.adjoint() * q).as_ref(),
+		(q.adjoint() * q).as_ref(),
 		Mat::identity(q.ncols(), q.ncols()).as_ref(),
 	);
 }

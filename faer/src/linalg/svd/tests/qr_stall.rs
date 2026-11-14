@@ -79,7 +79,7 @@ fn test_issue81_complex_qr_stall() {
 	fn check<T: ComplexField>(a: Mat<T>) {
 		let expected = [
 			3.9414676652919867,
-			3.9414676652919858,
+			3.941_467_665_291_986,
 			0.48150883185813453,
 			0.48150883185813415,
 			0.11330659717393496,
@@ -87,7 +87,7 @@ fn test_issue81_complex_qr_stall() {
 			0.011919830114133985,
 			0.011919830114133898,
 			2.8733257864429986e-17,
-			7.8282169309112482e-18,
+			7.828_216_930_911_248e-18,
 		];
 		for scale in [1.0, 2.0, 1e-8, 1e8] {
 			let a = Mat::<T>::from_fn(12, 10, |i, j| {
@@ -102,7 +102,8 @@ fn test_issue81_complex_qr_stall() {
 				let (m, n) = a.shape();
 				for threshold in [128, usize::MAX] {
 					let mut params = Spec::<SvdParams, T>::default();
-					params.recursion_threshold = threshold;
+
+					params.config.recursion_threshold = threshold;
 					for (want_u, want_v) in [
 						(true, true),
 						(true, false),

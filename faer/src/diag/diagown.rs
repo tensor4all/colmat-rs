@@ -194,11 +194,9 @@ impl<T, Dim: Shape> Diag<T, Dim> {
 	where
 		T: ComplexField,
 	{
-		Self {
-			0: Own {
-				inner: Col::zeros(dim),
-			},
-		}
+		Self(Own {
+			inner: Col::zeros(dim),
+		})
 	}
 
 	/// returns a new diagonal with dimension `dim`, filled with ones
@@ -207,11 +205,9 @@ impl<T, Dim: Shape> Diag<T, Dim> {
 	where
 		T: ComplexField,
 	{
-		Self {
-			0: Own {
-				inner: Col::ones(dim),
-			},
-		}
+		Self(Own {
+			inner: Col::ones(dim),
+		})
 	}
 
 	/// returns a new diagonal with dimension `dim`, filled with `value`
@@ -220,11 +216,9 @@ impl<T, Dim: Shape> Diag<T, Dim> {
 	where
 		T: Clone,
 	{
-		Self {
-			0: Own {
-				inner: Col::full(dim, value),
-			},
-		}
+		Self(Own {
+			inner: Col::full(dim, value),
+		})
 	}
 
 	/// copies `other` into `self`

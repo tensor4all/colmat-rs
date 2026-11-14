@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-use diol::prelude::*;
-use dyn_stack::{MemBuffer, MemStack};
 use colmat::prelude::*;
 use colmat::stats::prelude::*;
+use diol::prelude::*;
+use dyn_stack::{MemBuffer, MemStack};
 fn eigen(bencher: Bencher, PlotArg(n): PlotArg) {
 	let rng = &mut StdRng::seed_from_u64(0);
 	let A = CwiseMatDistribution {

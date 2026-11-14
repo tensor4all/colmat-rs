@@ -30,7 +30,7 @@ impl<'a, T, Dim: Shape, Stride: crate::Stride> DiagMut<'a, T, Dim, Stride> {
 	/// creates a `DiagMut` from pointers to the diagonal data, dimension, and
 	/// stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatMut::from_raw_parts_mut(ptr, dim, 1, stride, 0)`]
 	#[inline(always)]
@@ -40,11 +40,9 @@ impl<'a, T, Dim: Shape, Stride: crate::Stride> DiagMut<'a, T, Dim, Stride> {
 		dim: Dim,
 		stride: Stride,
 	) -> Self {
-		Self {
-			0: Mut {
-				inner: ColMut::from_raw_parts_mut(ptr, dim, stride),
-			},
-		}
+		Self(Mut {
+			inner: ColMut::from_raw_parts_mut(ptr, dim, stride),
+		})
 	}
 
 	/// returns the stride of the diagonal, specified in number of elements, not

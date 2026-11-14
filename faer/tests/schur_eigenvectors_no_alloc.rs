@@ -13,12 +13,12 @@
 //! ordinary scale.
 #![cfg(feature = "std")]
 mod common;
-use common::*;
 use colmat::MatMut;
 use colmat::linalg::evd::{
 	eigenvectors_from_schur_cplx, eigenvectors_from_schur_real,
 	eigenvectors_from_schur_scratch,
 };
+use common::*;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 

@@ -16,6 +16,7 @@ pub fn solve_in_place_scratch<I: Index, T: ComplexField>(
 	let _ = par;
 	temp_mat_scratch::<T>(dim, rhs_ncols)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// given the bunch-kaufman factors of a matrix $a$ and a matrix $b$ stored in
 /// `rhs`, this function computes the solution of the linear system $A x = b$,
 /// implicitly conjugating $A$ if needed
@@ -59,7 +60,12 @@ pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 	let mut x = unsafe { temp_mat_uninit::<T, _, _>(n, k, stack).0 };
 	let mut x = x.as_mat_mut();
 	permute_rows(x.rb_mut(), rhs.rb(), perm);
-	solve_unit_lower_triangular_in_place_with_conj(a, conj_A, x.rb_mut(), par.reborrow());
+	solve_unit_lower_triangular_in_place_with_conj(
+		a,
+		conj_A,
+		x.rb_mut(),
+		par.reborrow(),
+	);
 	let mut i = 0;
 	while i < n {
 		let i0 = i;

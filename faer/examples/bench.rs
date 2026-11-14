@@ -916,8 +916,8 @@ impl approx::RelativeEq for fx128 {
 		if abs_diff <= epsilon.0 {
 			return true;
 		}
-		let abs_self = (*self).0.abs();
-		let abs_other = (*other).0.abs();
+		let abs_self = self.0.abs();
+		let abs_other = other.0.abs();
 		let largest = if abs_other > abs_self {
 			abs_other
 		} else {
@@ -1510,28 +1510,139 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A * A.adjoint()
-		+ Scale(from_f64::<T>(m as f64)) * Mat::<T>::identity(n, n);
-	let mut L = Mat::zeros(n, n);
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::llt::factor::cholesky_in_place_scratch::<T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::LLT, A.rb());
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A * A.adjoint()
+			+ Scale(from_f64::<T>(m as f64)) * Mat::<T>::identity(n, n);
+		let mut L = Mat::zeros(n, n);
+		let params = Default::default();
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::llt::factor::cholesky_in_place_scratch::<T>(
+				n,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::LLT, A.rb());
+		}
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					L.copy_from_triangular_lower(&A);
+					linalg::cholesky::llt::factor::cholesky_in_place(
+						L.rb_mut(),
+						Default::default(),
+						parallel.reborrow(),
+						stack,
+						params,
+					)
+					.unwrap();
+				} else if Lib::LAPACK {
+					L.copy_from_triangular_lower(&A);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::spotrf_(
+								&(b'L' as i8),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dpotrf_(
+								&(b'L' as i8),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cpotrf_(
+								&(b'L' as i8),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zpotrf_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.cholesky()
+						.unwrap();
+					};
+				}
+			})
+		}
+	};
+	if Thd::PAR && Lib::FAER {
+		::colmat::team::with_team(threads, body)
+	} else {
+		body(Par::Seq)
 	}
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
+}
+fn ldlt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+	bencher: Bencher,
+	PlotArg(n): PlotArg,
+) {
+	let m = n;
+	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
+		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
+		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
+	{
+		bencher.skip();
+		return;
+	}
+	let threads = if Thd::PAR { bench_threads() } else { 1 };
+	lapack_set_num_threads(threads);
+	let body = |mut parallel: Par<'_>| {
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A * A.adjoint()
+			+ Scale(from_f64::<T>(m as f64)) * Mat::<T>::identity(n, n);
+		let mut L = Mat::zeros(n, n);
+		let params = Default::default();
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::ldlt::factor::cholesky_in_place_scratch::<T>(
+				n,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::LDLT, A.rb());
+		}
+		if Lib::FAER {
+			bencher.bench(|| {
 				L.copy_from_triangular_lower(&A);
-				linalg::cholesky::llt::factor::cholesky_in_place(
+				linalg::cholesky::ldlt::factor::cholesky_in_place(
 					L.rb_mut(),
 					Default::default(),
 					parallel.reborrow(),
@@ -1539,293 +1650,16 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 					params,
 				)
 				.unwrap();
-			} else if Lib::LAPACK {
-				L.copy_from_triangular_lower(&A);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::spotrf_(
-							&(b'L' as i8),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dpotrf_(
-							&(b'L' as i8),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cpotrf_(
-							&(b'L' as i8),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zpotrf_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.cholesky()
-					.unwrap();
-				};
-			}
-		})
-	}
-	};
-	if Thd::PAR && Lib::FAER {
-		::colmat::team::with_team(threads, body)
-	} else {
-		body(Par::Seq)
-	}
-}fn ldlt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
-	bencher: Bencher,
-	PlotArg(n): PlotArg,
-) {
-	let m = n;
-	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
-		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
-		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
-	{
-		bencher.skip();
-		return;
-	}
-	let threads = if Thd::PAR { bench_threads() } else { 1 };
-	lapack_set_num_threads(threads);
-	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A * A.adjoint()
-		+ Scale(from_f64::<T>(m as f64)) * Mat::<T>::identity(n, n);
-	let mut L = Mat::zeros(n, n);
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::ldlt::factor::cholesky_in_place_scratch::<T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::LDLT, A.rb());
-	}
-	if Lib::FAER {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			linalg::cholesky::ldlt::factor::cholesky_in_place(
-				L.rb_mut(),
-				Default::default(),
-				parallel.reborrow(),
-				stack,
-				params,
-			)
-			.unwrap();
-		})
-	}
-	};
-	if Thd::PAR && Lib::FAER {
-		::colmat::team::with_team(threads, body)
-	} else {
-		body(Par::Seq)
-	}
-}fn lblt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
-	bencher: Bencher,
-	PlotArg(n): PlotArg,
-) {
-	let m = n;
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bencher.skip();
-	}
-	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
-		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
-		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
-	{
-		bencher.skip();
-		return;
-	}
-	let threads = if Thd::PAR { bench_threads() } else { 1 };
-	lapack_set_num_threads(threads);
-	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	let mut L = Mat::zeros(n, n);
-	let mut subdiag = Diag::zeros(n);
-	let fwd = &mut *avec![0usize; n];
-	let bwd = &mut *avec![0usize; n];
-	let params = LbltParams {
-		pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Partial,
-		..Auto::<T>::auto()
-	}
-	.into();
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			// the answer is not the faer arm's, and a parallel row would ask for it on a team
-			// leader pinned to one CPU (threadteam 0.5), where a vendor query builds a one-CPU
-			// vendor team. The seven queries below are the same.
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut lwork = core::mem::zeroed();
-			la::ssytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut lwork = core::mem::zeroed();
-			la::dsytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut lwork = core::mem::zeroed();
-			la::csytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut lwork = core::mem::zeroed();
-			la::zsytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else {
-			0
+			})
 		}
 	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			if Lib::FAER {
-				linalg::cholesky::lblt::factor::cholesky_in_place(
-					L.rb_mut(),
-					subdiag.rb_mut(),
-					fwd,
-					bwd,
-					parallel.reborrow(),
-					stack,
-					params,
-				);
-			} else if Lib::LAPACK {
-				fwd.fill(0);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::ssytrf_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dsytrf_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::csytrf_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zsytrf_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			}
-		})
-	}
-	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn lblt_diag<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn lblt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -1844,46 +1678,227 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	let mut L = Mat::zeros(n, n);
-	let mut subdiag = Diag::zeros(n);
-	let fwd = &mut *avec![0usize; n];
-	let bwd = &mut *avec![0usize; n];
-	let params = LbltParams {
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A + A.adjoint();
+		let mut L = Mat::zeros(n, n);
+		let mut subdiag = Diag::zeros(n);
+		let fwd = &mut *avec![0usize; n];
+		let bwd = &mut *avec![0usize; n];
+		let params = LbltParams {
+			pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Partial,
+			..Auto::<T>::auto()
+		}
+		.into();
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				// the answer is not the faer arm's, and a parallel row would ask for it on a team
+				// leader pinned to one CPU (threadteam 0.5), where a vendor query builds a one-CPU
+				// vendor team. The seven queries below are the same.
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut lwork = core::mem::zeroed();
+				la::ssytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut lwork = core::mem::zeroed();
+				la::dsytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut lwork = core::mem::zeroed();
+				la::csytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut lwork = core::mem::zeroed();
+				la::zsytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else {
+				0
+			}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
+				n,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
+			bencher.bench(|| {
+				L.copy_from_triangular_lower(&A);
+				if Lib::FAER {
+					linalg::cholesky::lblt::factor::cholesky_in_place(
+						L.rb_mut(),
+						subdiag.rb_mut(),
+						fwd,
+						bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					fwd.fill(0);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::ssytrf_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dsytrf_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::csytrf_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zsytrf_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				}
+			})
+		}
+	};
+	if Thd::PAR && Lib::FAER {
+		::colmat::team::with_team(threads, body)
+	} else {
+		body(Par::Seq)
+	}
+}
+fn lblt_diag<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+	bencher: Bencher,
+	PlotArg(n): PlotArg,
+) {
+	let m = n;
+	#[cfg(eigen)]
+	if Lib::EIGEN {
+		return bencher.skip();
+	}
+	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
+		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
+		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
+	{
+		bencher.skip();
+		return;
+	}
+	let threads = if Thd::PAR { bench_threads() } else { 1 };
+	lapack_set_num_threads(threads);
+	let body =
+		|mut parallel: Par<'_>| {
+			assert!(m == n);
+			let rng = &mut StdRng::seed_from_u64(0);
+			let A = T::random(rng, m, n);
+			let A = &A + A.adjoint();
+			let mut L = Mat::zeros(n, n);
+			let mut subdiag = Diag::zeros(n);
+			let fwd = &mut *avec![0usize; n];
+			let bwd = &mut *avec![0usize; n];
+			let params = LbltParams {
 		pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::PartialDiag,
 		..Auto::<T>::auto()
 	}
 	.into();
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if Lib::FAER {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			linalg::cholesky::lblt::factor::cholesky_in_place(
-				L.rb_mut(),
-				subdiag.rb_mut(),
-				fwd,
-				bwd,
-				parallel.reborrow(),
-				stack,
-				params,
+			let stack = &mut MemBuffer::new(
+				linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<
+					usize,
+					T,
+				>(n, parallel.shape(), params),
 			);
-		})
-	}
-	};
+			let stack = MemStack::new(stack);
+			if Lib::FAER {
+				bencher.bench(|| {
+					L.copy_from_triangular_lower(&A);
+					linalg::cholesky::lblt::factor::cholesky_in_place(
+						L.rb_mut(),
+						subdiag.rb_mut(),
+						fwd,
+						bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				})
+			}
+		};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn lblt_rook<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn lblt_rook<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -1902,91 +1917,205 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	let mut L = Mat::zeros(n, n);
-	let mut subdiag = Diag::zeros(n);
-	let fwd = &mut *avec![0usize; n];
-	let bwd = &mut *avec![0usize; n];
-	let params = LbltParams {
-		pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Rook,
-		..Auto::<T>::auto()
-	}
-	.into();
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut lwork = core::mem::zeroed();
-			la::ssytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut lwork = core::mem::zeroed();
-			la::dsytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut lwork = core::mem::zeroed();
-			la::csytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut lwork = core::mem::zeroed();
-			la::zsytrf_(
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				L.as_ptr_mut() as _,
-				(&L.col_stride()) as *const _ as *const _,
-				fwd.as_mut_ptr() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else {
-			0
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A + A.adjoint();
+		let mut L = Mat::zeros(n, n);
+		let mut subdiag = Diag::zeros(n);
+		let fwd = &mut *avec![0usize; n];
+		let bwd = &mut *avec![0usize; n];
+		let params = LbltParams {
+			pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Rook,
+			..Auto::<T>::auto()
+		}
+		.into();
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut lwork = core::mem::zeroed();
+				la::ssytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut lwork = core::mem::zeroed();
+				la::dsytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut lwork = core::mem::zeroed();
+				la::csytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut lwork = core::mem::zeroed();
+				la::zsytrf_(
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					L.as_ptr_mut() as _,
+					(&L.col_stride()) as *const _ as *const _,
+					fwd.as_mut_ptr() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else {
+				0
+			}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
+				n,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
+			bencher.bench(|| {
+				L.copy_from_triangular_lower(&A);
+				if Lib::FAER {
+					linalg::cholesky::lblt::factor::cholesky_in_place(
+						L.rb_mut(),
+						subdiag.rb_mut(),
+						fwd,
+						bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					fwd.fill(0);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::ssytrf_rook_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dsytrf_rook_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::csytrf_rook_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zsytrf_rook_(
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								L.as_ptr_mut() as _,
+								(&L.col_stride()) as *const _ as *const _,
+								fwd.as_mut_ptr() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				}
+			})
 		}
 	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			if Lib::FAER {
+	if Thd::PAR && Lib::FAER {
+		::colmat::team::with_team(threads, body)
+	} else {
+		body(Par::Seq)
+	}
+}
+fn lblt_rook_diag<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+	bencher: Bencher,
+	PlotArg(n): PlotArg,
+) {
+	let m = n;
+	#[cfg(eigen)]
+	if Lib::EIGEN {
+		return bencher.skip();
+	}
+	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
+		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
+		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
+	{
+		bencher.skip();
+		return;
+	}
+	let threads = if Thd::PAR { bench_threads() } else { 1 };
+	lapack_set_num_threads(threads);
+	let body = |mut parallel: Par<'_>| {
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A + A.adjoint();
+		let mut L = Mat::zeros(n, n);
+		let mut subdiag = Diag::zeros(n);
+		let fwd = &mut *avec![0usize; n];
+		let bwd = &mut *avec![0usize; n];
+		let params = LbltParams {
+			pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Rook,
+			..Auto::<T>::auto()
+		}
+		.into();
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
+				n,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		if Lib::FAER {
+			bencher.bench(|| {
+				L.copy_from_triangular_lower(&A);
 				linalg::cholesky::lblt::factor::cholesky_in_place(
 					L.rb_mut(),
 					subdiag.rb_mut(),
@@ -1996,66 +2125,16 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 					stack,
 					params,
 				);
-			} else if Lib::LAPACK {
-				fwd.fill(0);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::ssytrf_rook_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dsytrf_rook_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::csytrf_rook_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zsytrf_rook_(
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							L.as_ptr_mut() as _,
-							(&L.col_stride()) as *const _ as *const _,
-							fwd.as_mut_ptr() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			}
-		})
-	}
+			})
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn lblt_rook_diag<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn lblt_full<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2074,104 +2153,49 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	let mut L = Mat::zeros(n, n);
-	let mut subdiag = Diag::zeros(n);
-	let fwd = &mut *avec![0usize; n];
-	let bwd = &mut *avec![0usize; n];
-	let params = LbltParams {
-		pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Rook,
-		..Auto::<T>::auto()
-	}
-	.into();
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if Lib::FAER {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			linalg::cholesky::lblt::factor::cholesky_in_place(
-				L.rb_mut(),
-				subdiag.rb_mut(),
-				fwd,
-				bwd,
-				parallel.reborrow(),
-				stack,
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A + A.adjoint();
+		let mut L = Mat::zeros(n, n);
+		let mut subdiag = Diag::zeros(n);
+		let fwd = &mut *avec![0usize; n];
+		let bwd = &mut *avec![0usize; n];
+		let params = LbltParams {
+			pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Full,
+			..Auto::<T>::auto()
+		}
+		.into();
+		let stack = &mut MemBuffer::new(
+			linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
+				n,
+				parallel.shape(),
 				params,
-			);
-		})
-	}
+			),
+		);
+		let stack = MemStack::new(stack);
+		if Lib::FAER {
+			bencher.bench(|| {
+				L.copy_from_triangular_lower(&A);
+				linalg::cholesky::lblt::factor::cholesky_in_place(
+					L.rb_mut(),
+					subdiag.rb_mut(),
+					fwd,
+					bwd,
+					parallel.reborrow(),
+					stack,
+					params,
+				);
+			})
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn lblt_full<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
-	bencher: Bencher,
-	PlotArg(n): PlotArg,
-) {
-	let m = n;
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bencher.skip();
-	}
-	if (Ord::max(m, n) > 2048 && (Lib::NALGEBRA || Lib::EIGEN))
-		|| (Lib::LAPACK && cfg!(not(any(openblas, mkl, blis))))
-		|| (!T::IS_NATIVE && Ord::max(m, n) > 1024)
-	{
-		bencher.skip();
-		return;
-	}
-	let threads = if Thd::PAR { bench_threads() } else { 1 };
-	lapack_set_num_threads(threads);
-	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	let mut L = Mat::zeros(n, n);
-	let mut subdiag = Diag::zeros(n);
-	let fwd = &mut *avec![0usize; n];
-	let bwd = &mut *avec![0usize; n];
-	let params = LbltParams {
-		pivoting: linalg::cholesky::lblt::factor::PivotingStrategy::Full,
-		..Auto::<T>::auto()
-	}
-	.into();
-	let stack = &mut MemBuffer::new(
-		linalg::cholesky::lblt::factor::cholesky_in_place_scratch::<usize, T>(
-			n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if Lib::FAER {
-		bencher.bench(|| {
-			L.copy_from_triangular_lower(&A);
-			linalg::cholesky::lblt::factor::cholesky_in_place(
-				L.rb_mut(),
-				subdiag.rb_mut(),
-				fwd,
-				bwd,
-				parallel.reborrow(),
-				stack,
-				params,
-			);
-		})
-	}
-	};
-	if Thd::PAR && Lib::FAER {
-		::colmat::team::with_team(threads, body)
-	} else {
-		body(Par::Seq)
-	}
-}fn qr<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn qr<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2186,168 +2210,176 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	let block_size =
-		linalg::qr::no_pivoting::factor::recommended_block_size::<T>(m, n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::QR, A.rb());
-	}
-	let mut Q = Mat::zeros(block_size, Ord::min(m, n));
-	let mut QR = Mat::zeros(m, n);
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut lwork = core::mem::zeroed();
-			la::sgeqrf_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut lwork = core::mem::zeroed();
-			la::dgeqrf_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut lwork = core::mem::zeroed();
-			la::cgeqrf_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut lwork = core::mem::zeroed();
-			la::zgeqrf_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else {
-			0
+		let block_size =
+			linalg::qr::no_pivoting::factor::recommended_block_size::<T>(m, n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::QR, A.rb());
 		}
-	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::qr::no_pivoting::factor::qr_in_place_scratch::<T>(
-			m, n, block_size, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				QR.copy_from(&A);
-				linalg::qr::no_pivoting::factor::qr_in_place(
-					QR.rb_mut(),
-					Q.rb_mut(),
-					parallel.reborrow(),
-					stack,
-					params,
+		let mut Q = Mat::zeros(block_size, Ord::min(m, n));
+		let mut QR = Mat::zeros(m, n);
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut lwork = core::mem::zeroed();
+				la::sgeqrf_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
 				);
-			} else if Lib::LAPACK {
-				QR.copy_from(&A);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::sgeqrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							QR.as_ptr_mut() as _,
-							(&QR.col_stride()) as *const _ as *const _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dgeqrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							QR.as_ptr_mut() as _,
-							(&QR.col_stride()) as *const _ as *const _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cgeqrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							QR.as_ptr_mut() as _,
-							(&QR.col_stride()) as *const _ as *const _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zgeqrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							QR.as_ptr_mut() as _,
-							(&QR.col_stride()) as *const _ as *const _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.qr();
-				};
+				lwork as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut lwork = core::mem::zeroed();
+				la::dgeqrf_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut lwork = core::mem::zeroed();
+				la::cgeqrf_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut lwork = core::mem::zeroed();
+				la::zgeqrf_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else {
+				0
 			}
-		});
-	}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let params = Default::default();
+		let stack = &mut MemBuffer::new(
+			linalg::qr::no_pivoting::factor::qr_in_place_scratch::<T>(
+				m,
+				n,
+				block_size,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					QR.copy_from(&A);
+					linalg::qr::no_pivoting::factor::qr_in_place(
+						QR.rb_mut(),
+						Q.rb_mut(),
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					QR.copy_from(&A);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::sgeqrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								QR.as_ptr_mut() as _,
+								(&QR.col_stride()) as *const _ as *const _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dgeqrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								QR.as_ptr_mut() as _,
+								(&QR.col_stride()) as *const _ as *const _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cgeqrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								QR.as_ptr_mut() as _,
+								(&QR.col_stride()) as *const _ as *const _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zgeqrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								QR.as_ptr_mut() as _,
+								(&QR.col_stride()) as *const _ as *const _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.qr();
+					};
+				}
+			});
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn col_piv_qr<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn col_piv_qr<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2362,187 +2394,195 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	let block_size =
-		linalg::qr::col_pivoting::factor::recommended_block_size::<T>(m, n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::CQR, A.rb());
-	}
-	let mut Q = Mat::zeros(block_size, Ord::min(m, n));
-	let mut QR = Mat::zeros(m, n);
-	let col_fwd = &mut *avec![0usize; n];
-	let col_bwd = &mut *avec![0usize; n];
-	#[cfg(any(openblas, mkl, blis))]
-	let rwork = &mut *avec![zero::<T>(); 2 * n];
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut lwork = core::mem::zeroed();
-			la::sgeqp3_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				col_fwd.as_mut_ptr() as _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut lwork = core::mem::zeroed();
-			la::dgeqp3_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				col_fwd.as_mut_ptr() as _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut lwork = core::mem::zeroed();
-			la::cgeqp3_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				col_fwd.as_mut_ptr() as _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut lwork = core::mem::zeroed();
-			la::zgeqp3_(
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				QR.as_ptr_mut() as _,
-				(&QR.col_stride()) as *const _ as *const _,
-				col_fwd.as_mut_ptr() as _,
-				Q.as_ptr_mut() as _,
-				&mut lwork,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			lwork.re as usize
-		} else {
-			0
+		let block_size =
+			linalg::qr::col_pivoting::factor::recommended_block_size::<T>(m, n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::CQR, A.rb());
 		}
-	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::qr::col_pivoting::factor::qr_in_place_scratch::<usize, T>(
-			m, n, block_size, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				QR.copy_from(&A);
-				linalg::qr::col_pivoting::factor::qr_in_place(
-					QR.rb_mut(),
-					Q.rb_mut(),
-					col_fwd,
-					col_bwd,
-					parallel.reborrow(),
-					stack,
-					params,
+		let mut Q = Mat::zeros(block_size, Ord::min(m, n));
+		let mut QR = Mat::zeros(m, n);
+		let col_fwd = &mut *avec![0usize; n];
+		let col_bwd = &mut *avec![0usize; n];
+		#[cfg(any(openblas, mkl, blis))]
+		let rwork = &mut *avec![zero::<T>(); 2 * n];
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut lwork = core::mem::zeroed();
+				la::sgeqp3_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					col_fwd.as_mut_ptr() as _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
 				);
-			} else if Lib::LAPACK {
-				QR.copy_from(&A);
-				col_fwd.fill(0);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::sgeqp3_(
-							(&mut { m } as *mut _) as *mut _,
-							(&mut { n } as *mut _) as *mut _,
-							QR.as_ptr_mut() as _,
-							(&mut { QR.col_stride() } as *mut _) as *mut _,
-							col_fwd.as_mut_ptr() as _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dgeqp3_(
-							(&mut { m } as *mut _) as *mut _,
-							(&mut { n } as *mut _) as *mut _,
-							QR.as_ptr_mut() as _,
-							(&mut { QR.col_stride() } as *mut _) as *mut _,
-							col_fwd.as_mut_ptr() as _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cgeqp3_(
-							(&mut { m } as *mut _) as *mut _,
-							(&mut { n } as *mut _) as *mut _,
-							QR.as_ptr_mut() as _,
-							(&mut { QR.col_stride() } as *mut _) as *mut _,
-							col_fwd.as_mut_ptr() as _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zgeqp3_(
-							(&mut { m } as *mut _) as *mut _,
-							(&mut { n } as *mut _) as *mut _,
-							QR.as_ptr_mut() as _,
-							(&mut { QR.col_stride() } as *mut _) as *mut _,
-							col_fwd.as_mut_ptr() as _,
-							Q.as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.col_piv_qr();
-				};
+				lwork as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut lwork = core::mem::zeroed();
+				la::dgeqp3_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					col_fwd.as_mut_ptr() as _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut lwork = core::mem::zeroed();
+				la::cgeqp3_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					col_fwd.as_mut_ptr() as _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut lwork = core::mem::zeroed();
+				la::zgeqp3_(
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					QR.as_ptr_mut() as _,
+					(&QR.col_stride()) as *const _ as *const _,
+					col_fwd.as_mut_ptr() as _,
+					Q.as_ptr_mut() as _,
+					&mut lwork,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				lwork.re as usize
+			} else {
+				0
 			}
-		});
-	}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let params = Default::default();
+		let stack = &mut MemBuffer::new(
+			linalg::qr::col_pivoting::factor::qr_in_place_scratch::<usize, T>(
+				m,
+				n,
+				block_size,
+				parallel.shape(),
+				params,
+			),
+		);
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					QR.copy_from(&A);
+					linalg::qr::col_pivoting::factor::qr_in_place(
+						QR.rb_mut(),
+						Q.rb_mut(),
+						col_fwd,
+						col_bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					QR.copy_from(&A);
+					col_fwd.fill(0);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::sgeqp3_(
+								(&mut { m } as *mut _) as *mut _,
+								(&mut { n } as *mut _) as *mut _,
+								QR.as_ptr_mut() as _,
+								(&mut { QR.col_stride() } as *mut _) as *mut _,
+								col_fwd.as_mut_ptr() as _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dgeqp3_(
+								(&mut { m } as *mut _) as *mut _,
+								(&mut { n } as *mut _) as *mut _,
+								QR.as_ptr_mut() as _,
+								(&mut { QR.col_stride() } as *mut _) as *mut _,
+								col_fwd.as_mut_ptr() as _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cgeqp3_(
+								(&mut { m } as *mut _) as *mut _,
+								(&mut { n } as *mut _) as *mut _,
+								QR.as_ptr_mut() as _,
+								(&mut { QR.col_stride() } as *mut _) as *mut _,
+								col_fwd.as_mut_ptr() as _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zgeqp3_(
+								(&mut { m } as *mut _) as *mut _,
+								(&mut { n } as *mut _) as *mut _,
+								QR.as_ptr_mut() as _,
+								(&mut { QR.col_stride() } as *mut _) as *mut _,
+								col_fwd.as_mut_ptr() as _,
+								Q.as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.col_piv_qr();
+					};
+				}
+			});
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn partial_piv_lu<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn partial_piv_lu<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2557,100 +2597,106 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::PLU, A.rb());
-	}
-	let mut LU = Mat::zeros(n, n);
-	let row_fwd = &mut *avec![0usize; n];
-	let row_bwd = &mut *avec![0usize; n];
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<usize, T>(
-			n, n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				LU.copy_from(&A);
-				linalg::lu::partial_pivoting::factor::lu_in_place(
-					LU.rb_mut(),
-					row_fwd,
-					row_bwd,
-					parallel.reborrow(),
-					stack,
-					params,
-				);
-			} else if Lib::LAPACK {
-				LU.copy_from(&A);
-				row_fwd.fill(0);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						la::sgetrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dgetrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cgetrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zgetrf_(
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::PLU, A.rb());
+		}
+		let mut LU = Mat::zeros(n, n);
+		let row_fwd = &mut *avec![0usize; n];
+		let row_bwd = &mut *avec![0usize; n];
+		let params = Default::default();
+		let stack =
+			&mut MemBuffer::new(
+				linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<
+					usize,
+					T,
+				>(n, n, parallel.shape(), params),
+			);
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					LU.copy_from(&A);
+					linalg::lu::partial_pivoting::factor::lu_in_place(
+						LU.rb_mut(),
+						row_fwd,
+						row_bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					LU.copy_from(&A);
+					row_fwd.fill(0);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							la::sgetrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dgetrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cgetrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zgetrf_(
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
 					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.lu();
+					};
 				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.lu();
-				};
-			}
-		})
-	}
+			})
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn full_piv_lu<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn full_piv_lu<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2665,104 +2711,110 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::FLU, A.rb());
-	}
-	let mut LU = Mat::zeros(m, n);
-	let row_fwd = &mut *avec![0usize; m];
-	let row_bwd = &mut *avec![0usize; m];
-	let col_fwd = &mut *avec![0usize; n];
-	let col_bwd = &mut *avec![0usize; n];
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(
-		linalg::lu::full_pivoting::factor::lu_in_place_scratch::<usize, T>(
-			m, n, parallel.shape(), params,
-		),
-	);
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				LU.copy_from(&A);
-				linalg::lu::full_pivoting::factor::lu_in_place(
-					LU.rb_mut(),
-					row_fwd,
-					row_bwd,
-					col_fwd,
-					col_bwd,
-					parallel.reborrow(),
-					stack,
-					params,
-				);
-			} else if Lib::LAPACK {
-				LU.copy_from(&A);
-				row_fwd.fill(0);
-				col_fwd.fill(0);
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					if T::IS_NATIVE_F32 {
-						sgetc2_(
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							col_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						dgetc2_(
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							col_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						cgetc2_(
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							col_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						zgetc2_(
-							(&n) as *const _ as *const _,
-							LU.as_ptr_mut() as _,
-							(&LU.col_stride()) as *const _ as *const _,
-							row_fwd.as_mut_ptr() as _,
-							col_fwd.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::FLU, A.rb());
+		}
+		let mut LU = Mat::zeros(m, n);
+		let row_fwd = &mut *avec![0usize; m];
+		let row_bwd = &mut *avec![0usize; m];
+		let col_fwd = &mut *avec![0usize; n];
+		let col_bwd = &mut *avec![0usize; n];
+		let params = Default::default();
+		let stack =
+			&mut MemBuffer::new(
+				linalg::lu::full_pivoting::factor::lu_in_place_scratch::<
+					usize,
+					T,
+				>(m, n, parallel.shape(), params),
+			);
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					LU.copy_from(&A);
+					linalg::lu::full_pivoting::factor::lu_in_place(
+						LU.rb_mut(),
+						row_fwd,
+						row_bwd,
+						col_fwd,
+						col_bwd,
+						parallel.reborrow(),
+						stack,
+						params,
+					);
+				} else if Lib::LAPACK {
+					LU.copy_from(&A);
+					row_fwd.fill(0);
+					col_fwd.fill(0);
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						if T::IS_NATIVE_F32 {
+							sgetc2_(
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								col_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							dgetc2_(
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								col_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							cgetc2_(
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								col_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							zgetc2_(
+								(&n) as *const _ as *const _,
+								LU.as_ptr_mut() as _,
+								(&LU.col_stride()) as *const _ as *const _,
+								row_fwd.as_mut_ptr() as _,
+								col_fwd.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
 					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.full_piv_lu();
+					};
 				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.full_piv_lu();
-				};
-			}
-		})
-	}
+			})
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn svd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn svd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -2777,230 +2829,234 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::SVD, A.rb());
-	}
-	let mut U = Mat::zeros(m, m);
-	let mut V = Mat::zeros(n, n);
-	let mut S = Diag::zeros(Ord::min(m, n));
-	#[cfg(any(openblas, mkl, blis))]
-	let mut clone = A.cloned();
-	#[cfg(any(openblas, mkl, blis))]
-	let rwork = &mut *avec![zero::<T>(); m * n * 10];
-	#[cfg(any(openblas, mkl, blis))]
-	let iwork = &mut *avec![0usize; Ord::min(m, n) * 8];
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut work = core::mem::zeroed();
-			la::sgesdd_(
-				&(b'A' as _),
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				V.as_ptr_mut() as _,
-				(&V.col_stride()) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				iwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut work = core::mem::zeroed();
-			la::dgesdd_(
-				&(b'A' as _),
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				V.as_ptr_mut() as _,
-				(&V.col_stride()) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				iwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut work = core::mem::zeroed();
-			la::cgesdd_(
-				&(b'A' as _),
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				V.as_ptr_mut() as _,
-				(&V.col_stride()) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				iwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut work = core::mem::zeroed();
-			la::zgesdd_(
-				&(b'A' as _),
-				(&m) as *const _ as *const _,
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				V.as_ptr_mut() as _,
-				(&V.col_stride()) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				iwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work.re as usize
-		} else {
-			0
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::SVD, A.rb());
 		}
-	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let params = Default::default();
-	let stack = &mut MemBuffer::new(linalg::svd::svd_scratch::<T>(
-		m,
-		n,
-		linalg::svd::ComputeSvdVectors::Full,
-		linalg::svd::ComputeSvdVectors::Full,
-		parallel.shape(),
-		params,
-	));
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				linalg::svd::svd(
-					A.rb(),
-					S.rb_mut(),
-					Some(U.rb_mut()),
-					Some(V.rb_mut()),
-					parallel.reborrow(),
-					stack,
-					params,
-				)
-				.unwrap();
-			} else if Lib::LAPACK {
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					clone.copy_from(&A);
-					if T::IS_NATIVE_F32 {
-						la::sgesdd_(
-							&(b'A' as _),
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							V.as_ptr_mut() as _,
-							(&V.col_stride()) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dgesdd_(
-							&(b'A' as _),
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							V.as_ptr_mut() as _,
-							(&V.col_stride()) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cgesdd_(
-							&(b'A' as _),
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							V.as_ptr_mut() as _,
-							(&V.col_stride()) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							iwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zgesdd_(
-							&(b'A' as _),
-							(&m) as *const _ as *const _,
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							V.as_ptr_mut() as _,
-							(&V.col_stride()) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							iwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				};
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.svd(true, true);
-				};
+		let mut U = Mat::zeros(m, m);
+		let mut V = Mat::zeros(n, n);
+		let mut S = Diag::zeros(Ord::min(m, n));
+		#[cfg(any(openblas, mkl, blis))]
+		let mut clone = A.cloned();
+		#[cfg(any(openblas, mkl, blis))]
+		let rwork = &mut *avec![zero::<T>(); m * n * 10];
+		#[cfg(any(openblas, mkl, blis))]
+		let iwork = &mut *avec![0usize; Ord::min(m, n) * 8];
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut work = core::mem::zeroed();
+				la::sgesdd_(
+					&(b'A' as _),
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					V.as_ptr_mut() as _,
+					(&V.col_stride()) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					iwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut work = core::mem::zeroed();
+				la::dgesdd_(
+					&(b'A' as _),
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					V.as_ptr_mut() as _,
+					(&V.col_stride()) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					iwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut work = core::mem::zeroed();
+				la::cgesdd_(
+					&(b'A' as _),
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					V.as_ptr_mut() as _,
+					(&V.col_stride()) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					iwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut work = core::mem::zeroed();
+				la::zgesdd_(
+					&(b'A' as _),
+					(&m) as *const _ as *const _,
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					V.as_ptr_mut() as _,
+					(&V.col_stride()) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					iwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work.re as usize
+			} else {
+				0
 			}
-		});
-	}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let params = Default::default();
+		let stack = &mut MemBuffer::new(linalg::svd::svd_scratch::<T>(
+			m,
+			n,
+			linalg::svd::ComputeSvdVectors::Full,
+			linalg::svd::ComputeSvdVectors::Full,
+			parallel.shape(),
+			params,
+		));
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					linalg::svd::svd(
+						A.rb(),
+						S.rb_mut(),
+						Some(U.rb_mut()),
+						Some(V.rb_mut()),
+						parallel.reborrow(),
+						stack,
+						params,
+					)
+					.unwrap();
+				} else if Lib::LAPACK {
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						clone.copy_from(&A);
+						if T::IS_NATIVE_F32 {
+							la::sgesdd_(
+								&(b'A' as _),
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								V.as_ptr_mut() as _,
+								(&V.col_stride()) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dgesdd_(
+								&(b'A' as _),
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								V.as_ptr_mut() as _,
+								(&V.col_stride()) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cgesdd_(
+								&(b'A' as _),
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								V.as_ptr_mut() as _,
+								(&V.col_stride()) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								iwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zgesdd_(
+								&(b'A' as _),
+								(&m) as *const _ as *const _,
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								V.as_ptr_mut() as _,
+								(&V.col_stride()) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								iwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					};
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.svd(true, true);
+					};
+				}
+			});
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn self_adjoint_evd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+fn self_adjoint_evd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -3015,216 +3071,221 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	let A = &A + A.adjoint();
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::HEVD, A.rb());
-	}
-	let mut U = Mat::zeros(m, m);
-	let mut S = Diag::zeros(Ord::min(m, n));
-	#[cfg(any(openblas, mkl, blis))]
-	let mut clone = A.cloned();
-	#[cfg(any(openblas, mkl, blis))]
-	let (lwork, lrwork, liwork) = unsafe {
-		clone.copy_from(&A);
-		if !Lib::LAPACK {
-			(0, 0, 0)
-		} else if T::IS_NATIVE_F32 {
-			let mut work = core::mem::zeroed();
-			let mut iwork = 0usize;
-			la::ssyevd_(
-				&(b'V' as _),
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				(&mut iwork) as *mut _ as *mut _,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			(work as usize, 0, iwork as usize)
-		} else if T::IS_NATIVE_F64 {
-			let mut work = core::mem::zeroed();
-			let mut iwork = 0usize;
-			la::dsyevd_(
-				&(b'V' as _),
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				(&mut iwork) as *mut _ as *mut _,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			(work as usize, 0, iwork as usize)
-		} else if T::IS_NATIVE_C32 {
-			let mut work = core::mem::zeroed();
-			let mut rwork = core::mem::zeroed();
-			let mut iwork = 0usize;
-			la::cheevd_(
-				&(b'V' as _),
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				&mut rwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut iwork) as *mut _ as *mut _,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			(work.re as usize, 2 * rwork as usize, iwork as usize)
-		} else if T::IS_NATIVE_C64 {
-			let mut work = core::mem::zeroed();
-			let mut rwork = core::mem::zeroed();
-			let mut iwork = 0usize;
-			la::zheevd_(
-				&(b'V' as _),
-				&(b'L' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				&mut rwork,
-				(&-1isize) as *const _ as *const _,
-				(&mut iwork) as *mut _ as *mut _,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			(work.re as usize, rwork as usize, iwork as usize)
-		} else {
-			(0, 0, 0)
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		let A = &A + A.adjoint();
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::HEVD, A.rb());
 		}
-	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	#[cfg(any(openblas, mkl, blis))]
-	let rwork = &mut *avec![zero::<T>(); lrwork];
-	#[cfg(any(openblas, mkl, blis))]
-	let iwork = &mut *avec![0usize; liwork];
-	let params = Default::default();
-	let stack =
-		&mut MemBuffer::new(linalg::evd::self_adjoint_evd_scratch::<T>(
-			m,
-			linalg::evd::ComputeEigenvectors::Yes,
-			parallel.shape(),
-			params,
-		));
-	let stack = MemStack::new(stack);
-	if !Lib::LAPACK || T::IS_NATIVE {
-		bencher.bench(|| {
-			if Lib::FAER {
-				linalg::evd::self_adjoint_evd(
-					A.rb(),
-					S.rb_mut(),
-					Some(U.rb_mut()),
-					parallel.reborrow(),
-					stack,
-					params,
-				)
-				.unwrap();
-			} else if Lib::LAPACK {
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					clone.copy_from(&A);
-					if T::IS_NATIVE_F32 {
-						la::ssyevd_(
-							&(b'V' as _),
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&liwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dsyevd_(
-							&(b'V' as _),
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&liwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cheevd_(
-							&(b'V' as _),
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&lrwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&liwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zheevd_(
-							&(b'V' as _),
-							&(b'L' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&lrwork) as *const _ as *const _,
-							iwork.as_mut_ptr() as _,
-							(&liwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					}
-				}
-			} else if Lib::NALGEBRA {
-				unsafe {
-					na::DMatrixView::from_data(
-						na::ViewStorage::from_raw_parts(
-							A.as_ptr(),
-							(na::Dyn(n), na::Dyn(n)),
-							(na::Const::<1>, na::Dyn(A.col_stride() as usize)),
-						),
-					)
-					.clone_owned()
-					.symmetric_eigen();
-				};
+		let mut U = Mat::zeros(m, m);
+		let mut S = Diag::zeros(Ord::min(m, n));
+		#[cfg(any(openblas, mkl, blis))]
+		let mut clone = A.cloned();
+		#[cfg(any(openblas, mkl, blis))]
+		let (lwork, lrwork, liwork) = unsafe {
+			clone.copy_from(&A);
+			if !Lib::LAPACK {
+				(0, 0, 0)
+			} else if T::IS_NATIVE_F32 {
+				let mut work = core::mem::zeroed();
+				let mut iwork = 0usize;
+				la::ssyevd_(
+					&(b'V' as _),
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					(&mut iwork) as *mut _ as *mut _,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				(work as usize, 0, iwork as usize)
+			} else if T::IS_NATIVE_F64 {
+				let mut work = core::mem::zeroed();
+				let mut iwork = 0usize;
+				la::dsyevd_(
+					&(b'V' as _),
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					(&mut iwork) as *mut _ as *mut _,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				(work as usize, 0, iwork as usize)
+			} else if T::IS_NATIVE_C32 {
+				let mut work = core::mem::zeroed();
+				let mut rwork = core::mem::zeroed();
+				let mut iwork = 0usize;
+				la::cheevd_(
+					&(b'V' as _),
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					&mut rwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut iwork) as *mut _ as *mut _,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				(work.re as usize, 2 * rwork as usize, iwork as usize)
+			} else if T::IS_NATIVE_C64 {
+				let mut work = core::mem::zeroed();
+				let mut rwork = core::mem::zeroed();
+				let mut iwork = 0usize;
+				la::zheevd_(
+					&(b'V' as _),
+					&(b'L' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					&mut rwork,
+					(&-1isize) as *const _ as *const _,
+					(&mut iwork) as *mut _ as *mut _,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				(work.re as usize, rwork as usize, iwork as usize)
+			} else {
+				(0, 0, 0)
 			}
-		});
-	}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		#[cfg(any(openblas, mkl, blis))]
+		let rwork = &mut *avec![zero::<T>(); lrwork];
+		#[cfg(any(openblas, mkl, blis))]
+		let iwork = &mut *avec![0usize; liwork];
+		let params = Default::default();
+		let stack =
+			&mut MemBuffer::new(linalg::evd::self_adjoint_evd_scratch::<T>(
+				m,
+				linalg::evd::ComputeEigenvectors::Yes,
+				parallel.shape(),
+				params,
+			));
+		let stack = MemStack::new(stack);
+		if !Lib::LAPACK || T::IS_NATIVE {
+			bencher.bench(|| {
+				if Lib::FAER {
+					linalg::evd::self_adjoint_evd(
+						A.rb(),
+						S.rb_mut(),
+						Some(U.rb_mut()),
+						parallel.reborrow(),
+						stack,
+						params,
+					)
+					.unwrap();
+				} else if Lib::LAPACK {
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						clone.copy_from(&A);
+						if T::IS_NATIVE_F32 {
+							la::ssyevd_(
+								&(b'V' as _),
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&liwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dsyevd_(
+								&(b'V' as _),
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&liwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cheevd_(
+								&(b'V' as _),
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&lrwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&liwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zheevd_(
+								&(b'V' as _),
+								&(b'L' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&lrwork) as *const _ as *const _,
+								iwork.as_mut_ptr() as _,
+								(&liwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						}
+					}
+				} else if Lib::NALGEBRA {
+					unsafe {
+						na::DMatrixView::from_data(
+							na::ViewStorage::from_raw_parts(
+								A.as_ptr(),
+								(na::Dyn(n), na::Dyn(n)),
+								(
+									na::Const::<1>,
+									na::Dyn(A.col_stride() as usize),
+								),
+							),
+						)
+						.clone_owned()
+						.symmetric_eigen();
+					};
+				}
+			});
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}fn evd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
+}
+#[allow(clippy::missing_transmute_annotations)] // the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
+fn evd<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	bencher: Bencher,
 	PlotArg(n): PlotArg,
 ) {
@@ -3239,230 +3300,231 @@ fn llt<T: Scalar, Lib: self::Lib, Thd: self::Thread>(
 	let threads = if Thd::PAR { bench_threads() } else { 1 };
 	lapack_set_num_threads(threads);
 	let body = |mut parallel: Par<'_>| {
-	assert!(m == n);
-	let rng = &mut StdRng::seed_from_u64(0);
-	let A = T::random(rng, m, n);
-	#[cfg(eigen)]
-	if Lib::EIGEN {
-		return bench_eigen(bencher, eig::EVD, A.rb());
-	}
-	let mut U = Mat::<T>::zeros(m, m);
-	let mut S = Diag::<T>::zeros(Ord::min(m, n));
-	let mut S_im = Diag::<T>::zeros(Ord::min(m, n));
-	#[cfg(any(openblas, mkl, blis))]
-	let mut clone = A.cloned();
-	#[cfg(any(openblas, mkl, blis))]
-	let rwork = &mut *avec![zero::<T>(); 2 * n];
-	#[cfg(any(openblas, mkl, blis))]
-	let lwork = unsafe {
-		if !Lib::LAPACK {
-			0
-		} else if T::IS_NATIVE_F32 {
-			let mut work = core::mem::zeroed();
-			la::sgeev_(
-				&(b'V' as _),
-				&(b'N' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				S_im.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				null_mut(),
-				(&1usize) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work as usize
-		} else if T::IS_NATIVE_F64 {
-			let mut work = core::mem::zeroed();
-			la::dgeev_(
-				&(b'V' as _),
-				&(b'N' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				S_im.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				null_mut(),
-				(&1usize) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work as usize
-		} else if T::IS_NATIVE_C32 {
-			let mut work = core::mem::zeroed();
-			la::cgeev_(
-				&(b'V' as _),
-				&(b'N' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				null_mut(),
-				(&1usize) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work.re as usize
-		} else if T::IS_NATIVE_C64 {
-			let mut work = core::mem::zeroed();
-			la::zgeev_(
-				&(b'V' as _),
-				&(b'N' as _),
-				(&n) as *const _ as *const _,
-				clone.as_ptr_mut() as _,
-				(&clone.col_stride()) as *const _ as *const _,
-				S.column_vector_mut().as_ptr_mut() as _,
-				U.as_ptr_mut() as _,
-				(&U.col_stride()) as *const _ as *const _,
-				null_mut(),
-				(&1usize) as *const _ as *const _,
-				&mut work,
-				(&-1isize) as *const _ as *const _,
-				rwork.as_mut_ptr() as _,
-				(&mut 0usize) as *mut _ as *mut _,
-			);
-			work.re as usize
-		} else {
-			0
+		assert!(m == n);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = T::random(rng, m, n);
+		#[cfg(eigen)]
+		if Lib::EIGEN {
+			return bench_eigen(bencher, eig::EVD, A.rb());
 		}
-	};
-	#[cfg(any(openblas, mkl, blis))]
-	let work = &mut *avec![zero::<T>(); lwork];
-	let params = <linalg::evd::EvdParams as Auto<T>>::auto();
-	let stack = &mut MemBuffer::new(linalg::evd::evd_scratch::<T>(
-		n,
-		linalg::evd::ComputeEigenvectors::Yes,
-		linalg::evd::ComputeEigenvectors::Yes,
-		parallel.shape(),
-		params.into(),
-	));
-	let stack = MemStack::new(stack);
-	if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
-		bencher.bench(|| {
-			if Lib::FAER {
-				use core::mem::transmute;
-				// SAFETY: dont worry im a pro
-				unsafe {
-					if T::IS_REAL {
-						linalg::evd::evd_real::<T::Real>(
-							transmute(A.rb()),
-							transmute(S.rb_mut()),
-							transmute(S_im.rb_mut()),
-							Some(transmute(U.rb_mut())),
-							None,
-							parallel.reborrow(),
-							stack,
-							params.into(),
-						)
-						.unwrap();
-					} else {
-						linalg::evd::evd_cplx::<T::Real>(
-							transmute(A.rb()),
-							transmute(S.rb_mut()),
-							Some(transmute(U.rb_mut())),
-							None,
-							parallel.reborrow(),
-							stack,
-							params.into(),
-						)
-						.unwrap();
+		let mut U = Mat::<T>::zeros(m, m);
+		let mut S = Diag::<T>::zeros(Ord::min(m, n));
+		let mut S_im = Diag::<T>::zeros(Ord::min(m, n));
+		#[cfg(any(openblas, mkl, blis))]
+		let mut clone = A.cloned();
+		#[cfg(any(openblas, mkl, blis))]
+		let rwork = &mut *avec![zero::<T>(); 2 * n];
+		#[cfg(any(openblas, mkl, blis))]
+		let lwork = unsafe {
+			if !Lib::LAPACK {
+				0
+			} else if T::IS_NATIVE_F32 {
+				let mut work = core::mem::zeroed();
+				la::sgeev_(
+					&(b'V' as _),
+					&(b'N' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					S_im.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					null_mut(),
+					(&1usize) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work as usize
+			} else if T::IS_NATIVE_F64 {
+				let mut work = core::mem::zeroed();
+				la::dgeev_(
+					&(b'V' as _),
+					&(b'N' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					S_im.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					null_mut(),
+					(&1usize) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work as usize
+			} else if T::IS_NATIVE_C32 {
+				let mut work = core::mem::zeroed();
+				la::cgeev_(
+					&(b'V' as _),
+					&(b'N' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					null_mut(),
+					(&1usize) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work.re as usize
+			} else if T::IS_NATIVE_C64 {
+				let mut work = core::mem::zeroed();
+				la::zgeev_(
+					&(b'V' as _),
+					&(b'N' as _),
+					(&n) as *const _ as *const _,
+					clone.as_ptr_mut() as _,
+					(&clone.col_stride()) as *const _ as *const _,
+					S.column_vector_mut().as_ptr_mut() as _,
+					U.as_ptr_mut() as _,
+					(&U.col_stride()) as *const _ as *const _,
+					null_mut(),
+					(&1usize) as *const _ as *const _,
+					&mut work,
+					(&-1isize) as *const _ as *const _,
+					rwork.as_mut_ptr() as _,
+					(&mut 0usize) as *mut _ as *mut _,
+				);
+				work.re as usize
+			} else {
+				0
+			}
+		};
+		#[cfg(any(openblas, mkl, blis))]
+		let work = &mut *avec![zero::<T>(); lwork];
+		let params = <linalg::evd::EvdParams as Auto<T>>::auto();
+		let stack = &mut MemBuffer::new(linalg::evd::evd_scratch::<T>(
+			n,
+			linalg::evd::ComputeEigenvectors::Yes,
+			linalg::evd::ComputeEigenvectors::Yes,
+			parallel.shape(),
+			params.into(),
+		));
+		let stack = MemStack::new(stack);
+		if Lib::FAER || (Lib::LAPACK && T::IS_NATIVE) {
+			bencher.bench(|| {
+				if Lib::FAER {
+					use core::mem::transmute;
+					// SAFETY: dont worry im a pro
+					unsafe {
+						if T::IS_REAL {
+							linalg::evd::evd_real::<T::Real>(
+								transmute(A.rb()),
+								transmute(S.rb_mut()),
+								transmute(S_im.rb_mut()),
+								Some(transmute(U.rb_mut())),
+								None,
+								parallel.reborrow(),
+								stack,
+								params.into(),
+							)
+							.unwrap();
+						} else {
+							linalg::evd::evd_cplx::<T::Real>(
+								transmute(A.rb()),
+								transmute(S.rb_mut()),
+								Some(transmute(U.rb_mut())),
+								None,
+								parallel.reborrow(),
+								stack,
+								params.into(),
+							)
+							.unwrap();
+						}
+					}
+				} else if Lib::LAPACK {
+					#[cfg(any(openblas, mkl, blis))]
+					unsafe {
+						clone.copy_from(&A);
+						if T::IS_NATIVE_F32 {
+							la::sgeev_(
+								&(b'V' as _),
+								&(b'N' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								S_im.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								null_mut(),
+								(&1usize) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_F64 {
+							la::dgeev_(
+								&(b'V' as _),
+								&(b'N' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								S_im.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								null_mut(),
+								(&1usize) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C32 {
+							la::cgeev_(
+								&(b'V' as _),
+								&(b'N' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								null_mut(),
+								(&1usize) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						} else if T::IS_NATIVE_C64 {
+							la::zgeev_(
+								&(b'V' as _),
+								&(b'N' as _),
+								(&n) as *const _ as *const _,
+								clone.as_ptr_mut() as _,
+								(&clone.col_stride()) as *const _ as *const _,
+								S.column_vector_mut().as_ptr_mut() as _,
+								U.as_ptr_mut() as _,
+								(&U.col_stride()) as *const _ as *const _,
+								null_mut(),
+								(&1usize) as *const _ as *const _,
+								work.as_mut_ptr() as _,
+								(&lwork) as *const _ as *const _,
+								rwork.as_mut_ptr() as _,
+								(&mut 0usize) as *mut _ as *mut _,
+							);
+						};
 					}
 				}
-			} else if Lib::LAPACK {
-				#[cfg(any(openblas, mkl, blis))]
-				unsafe {
-					clone.copy_from(&A);
-					if T::IS_NATIVE_F32 {
-						la::sgeev_(
-							&(b'V' as _),
-							&(b'N' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							S_im.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							null_mut(),
-							(&1usize) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_F64 {
-						la::dgeev_(
-							&(b'V' as _),
-							&(b'N' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							S_im.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							null_mut(),
-							(&1usize) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C32 {
-						la::cgeev_(
-							&(b'V' as _),
-							&(b'N' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							null_mut(),
-							(&1usize) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					} else if T::IS_NATIVE_C64 {
-						la::zgeev_(
-							&(b'V' as _),
-							&(b'N' as _),
-							(&n) as *const _ as *const _,
-							clone.as_ptr_mut() as _,
-							(&clone.col_stride()) as *const _ as *const _,
-							S.column_vector_mut().as_ptr_mut() as _,
-							U.as_ptr_mut() as _,
-							(&U.col_stride()) as *const _ as *const _,
-							null_mut(),
-							(&1usize) as *const _ as *const _,
-							work.as_mut_ptr() as _,
-							(&lwork) as *const _ as *const _,
-							rwork.as_mut_ptr() as _,
-							(&mut 0usize) as *mut _ as *mut _,
-						);
-					};
-				}
-			}
-		});
-	}
+			});
+		}
 	};
 	if Thd::PAR && Lib::FAER {
 		::colmat::team::with_team(threads, body)
 	} else {
 		body(Par::Seq)
 	}
-}#[derive(Clone)]
+}
+#[derive(Clone)]
 pub struct FlopsMetric;
 impl diol::traits::PlotMetric for FlopsMetric {
 	fn name(&self) -> &'static str {

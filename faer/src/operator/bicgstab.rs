@@ -125,6 +125,7 @@ pub enum BicgError<T> {
 		iter_count: usize,
 	},
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// executes bicgstab using the provided preconditioners
 ///
 /// # note
@@ -154,6 +155,9 @@ pub fn bicgstab<T: ComplexField, C: IterationControl>(
 	par: Par,
 	stack: &mut MemStack,
 ) -> Result<BicgInfo<T::Real>, BicgError<T::Real>> {
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+	#[allow(clippy::neg_cmp_op_on_partial_ord)]
+	// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 	#[track_caller]
 	fn implementation<T: ComplexField>(
 		out: MatMut<'_, T>,
@@ -174,7 +178,7 @@ pub fn bicgstab<T: ComplexField, C: IterationControl>(
 		assert!(A.nrows() == A.ncols());
 		let n = A.nrows();
 		let k = x.ncols();
-		let ref b_norm = b.norm_l2();
+		let b_norm = &b.norm_l2();
 		if *b_norm == zero::<T::Real>() {
 			x.fill(zero());
 			return Ok(BicgInfo {
@@ -394,12 +398,12 @@ pub fn bicgstab<T: ComplexField, C: IterationControl>(
 				for j in 0..k {
 					let kt = kt.rb().col(j);
 					let ks = ks.rb().col(j);
-					ws = ws + kt.transpose() * ks;
-					wt = wt + kt.transpose() * kt;
+					ws += kt.transpose() * ks;
+					wt += kt.transpose() * kt;
 				}
 				wt.recip() * ws
 			};
-			let ref w = {
+			let w = &{
 				let mut kt = y;
 				let (mut ks, stack) =
 					unsafe { temp_mat_uninit::<T, _, _>(n, k, stack) };
@@ -514,18 +518,20 @@ mod tests {
 	use equator::assert;
 	#[test]
 	fn test_bicgstab() {
-		let ref mut rng = StdRng::seed_from_u64(0);
-		let ref A = mat![[2.5, -1.0], [1.0, 3.1]];
-		let ref sol = mat![[2.1, 2.1], [4.1, 3.2]];
-		let ref rhs = A * sol;
-		let ref mut diag = Mat::<f64>::identity(2, 2);
+		let rng = &mut StdRng::seed_from_u64(0);
+		let A = &mat![[2.5, -1.0], [1.0, 3.1]];
+		let sol = &mat![[2.1, 2.1], [4.1, 3.2]];
+		let rhs = &(A * sol);
+		let diag = &mut Mat::<f64>::identity(2, 2);
 		for i in 0..2 {
 			diag[(i, i)] = f64::exp(StandardUniform.sample(rng));
 		}
-		let ref diag = *diag;
-		let ref mut out = Mat::<f64>::zeros(2, sol.ncols());
-		let mut params = BicgParams::default();
-		params.max_iters = 10;
+		let diag = &*diag;
+		let out = &mut Mat::<f64>::zeros(2, sol.ncols());
+		let params = BicgParams {
+			max_iters: 10,
+			..Default::default()
+		};
 		let result = bicgstab(
 			out.as_mut(),
 			diag.as_ref(),
@@ -543,7 +549,7 @@ mod tests {
 				ParShape::Seq,
 			))),
 		);
-		let ref out = *out;
+		let out = &*out;
 		assert!(result.is_ok());
 		assert!(
 			(A * out - rhs).norm_l2() <= params.rel_tolerance * rhs.norm_l2()
@@ -551,22 +557,23 @@ mod tests {
 	}
 	#[test]
 	fn codeberg_326() {
-		let ref A = mat![[2.0]];
-		let ref rhs = mat![[2.0]];
+		let A = &mat![[2.0]];
+		let rhs = &mat![[2.0]];
 		let precond = IdentityPrecond { dim: 1 };
 		let params = BicgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			max_iters: 10, // unfixed code looped infinitely
 			..BicgParams::default()
 		};
-		let req = bicgstab_scratch(precond, precond, A.as_ref(), 1, ParShape::Seq);
+		let req =
+			bicgstab_scratch(precond, precond, A.as_ref(), 1, ParShape::Seq);
 		for fill in [0x00u8, 0x3F, 0xFF] {
 			// the workspace is uninitialized memory: any byte pattern must work
 			let mut buffer = alloc::vec![
 				core::mem::MaybeUninit::new(fill);
 				req.unaligned_bytes_required()
 			];
-			let ref mut out = Mat::<f64>::zeros(1, 1);
+			let out = &mut Mat::<f64>::zeros(1, 1);
 			let result = bicgstab(
 				out.as_mut(),
 				precond,
@@ -586,14 +593,14 @@ mod tests {
 	fn codeberg_328() {
 		// one step does not converge: the error carries the residual of the
 		// returned `x`
-		let ref A = mat![[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
-		let ref rhs = mat![[1.0], [1.0], [1.0]];
+		let A = &mat![[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
+		let rhs = &mat![[1.0], [1.0], [1.0]];
 		let precond = IdentityPrecond { dim: 3 };
 		let params = BicgParams {
 			max_iters: 1,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f64>::zeros(3, 1);
+		let out = &mut Mat::<f64>::zeros(3, 1);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,
@@ -627,8 +634,8 @@ mod tests {
 	#[test]
 	fn codeberg_327() {
 		// after one step `r̃ᵀ r = 0`, so the next `r̃ᵀ v` is zero: a breakdown
-		let ref A = mat![[1.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [0.0, -1.0, 1.0]];
-		let ref rhs = mat![[1.0], [0.0], [0.0]];
+		let A = &mat![[1.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [0.0, -1.0, 1.0]];
+		let rhs = &mat![[1.0], [0.0], [0.0]];
 		let precond = IdentityPrecond { dim: 3 };
 		for initial_guess in
 			[InitialGuessStatus::MaybeNonZero, InitialGuessStatus::Zero]
@@ -638,7 +645,7 @@ mod tests {
 				max_iters: 10,
 				..BicgParams::default()
 			};
-			let ref mut out = Mat::<f64>::zeros(3, 1);
+			let out = &mut Mat::<f64>::zeros(3, 1);
 			let result = bicgstab(
 				out.as_mut(),
 				precond,
@@ -674,14 +681,14 @@ mod tests {
 	#[test]
 	fn breakdown_when_the_operator_maps_the_direction_to_zero() {
 		// `A r̃ = 0`, so `v = 0` and the tolerance is zero: still a breakdown
-		let ref A = mat![[0.0, 0.0], [0.0, 1.0]];
-		let ref rhs = mat![[1.0], [0.0]];
+		let A = &mat![[0.0, 0.0], [0.0, 1.0]];
+		let rhs = &mat![[1.0], [0.0]];
 		let precond = IdentityPrecond { dim: 2 };
 		let params = BicgParams {
 			max_iters: 10,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f64>::zeros(2, 1);
+		let out = &mut Mat::<f64>::zeros(2, 1);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,
@@ -710,15 +717,15 @@ mod tests {
 	fn breakdown_on_the_first_step_with_a_zero_guess() {
 		// `r̃ᵀ A r̃ = 0` at once; a zero initial guess must come back as zeros,
 		// not as the caller's buffer
-		let ref A = mat![[0.0, 1.0], [-1.0, 0.0]];
-		let ref rhs = mat![[1.0], [0.0]];
+		let A = &mat![[0.0, 1.0], [-1.0, 0.0]];
+		let rhs = &mat![[1.0], [0.0]];
 		let precond = IdentityPrecond { dim: 2 };
 		let params = BicgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			max_iters: 10,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f64>::full(2, 1, f64::NAN);
+		let out = &mut Mat::<f64>::full(2, 1, f64::NAN);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,
@@ -747,14 +754,14 @@ mod tests {
 	fn nonfinite_second_half_step_keeps_the_first() {
 		// `A s = 0`, so `w` is 0 / 0: `x` keeps the alpha step, whose residual
 		// is `s`
-		let ref A = mat![[2.0, 0.0], [1.0, 0.0]];
-		let ref rhs = mat![[1.0], [0.0]];
+		let A = &mat![[2.0, 0.0], [1.0, 0.0]];
+		let rhs = &mat![[1.0], [0.0]];
 		let precond = IdentityPrecond { dim: 2 };
 		let params = BicgParams {
 			max_iters: 10,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f64>::zeros(2, 1);
+		let out = &mut Mat::<f64>::zeros(2, 1);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,
@@ -782,15 +789,15 @@ mod tests {
 	}
 	#[test]
 	fn zero_guess_is_written_out_without_an_iteration() {
-		let ref A = mat![[1.0]];
-		let ref rhs = mat![[1.0]];
+		let A = &mat![[1.0]];
+		let rhs = &mat![[1.0]];
 		let precond = IdentityPrecond { dim: 1 };
 		let params = BicgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			max_iters: 0,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f64>::full(1, 1, 7.0);
+		let out = &mut Mat::<f64>::full(1, 1, 7.0);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,
@@ -819,15 +826,15 @@ mod tests {
 	fn block_rhs_with_identity_is_not_a_breakdown() {
 		// `r̃ᵀ v` is the identity: its pivots are 1, whatever the block width
 		let k = 64;
-		let ref A = Mat::<f32>::identity(k, k);
-		let ref rhs = Mat::<f32>::identity(k, k);
+		let A = &Mat::<f32>::identity(k, k);
+		let rhs = &Mat::<f32>::identity(k, k);
 		let precond = IdentityPrecond { dim: k };
 		let params = BicgParams {
 			initial_guess: InitialGuessStatus::Zero,
 			max_iters: 1,
 			..BicgParams::default()
 		};
-		let ref mut out = Mat::<f32>::zeros(k, k);
+		let out = &mut Mat::<f32>::zeros(k, k);
 		let result = bicgstab(
 			out.as_mut(),
 			precond,

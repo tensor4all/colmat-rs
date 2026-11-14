@@ -132,7 +132,9 @@ mod tests {
 				let mut mem = MemBuffer::new(solve::solve_in_place_scratch::<
 					usize,
 					c64,
-				>(n, rhs.ncols(), ParShape::Seq));
+				>(
+					n, rhs.ncols(), ParShape::Seq
+				));
 				solve::solve_in_place_with_conj(
 					ldl.as_ref(),
 					ldl.diagonal(),

@@ -1,11 +1,12 @@
 pub use super::super::no_pivoting::factor::recommended_block_size;
 use crate::assert;
 use crate::internal_prelude::*;
+use crate::perm::swap_cols_idx;
 use crate::utils::cost::{ParThreshold, rate};
 use crate::utils::thread::with_width;
-use crate::perm::swap_cols_idx;
 use linalg::householder::{self, HouseholderInfo};
 use pulp::Simd;
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn update_mat_and_dot_simd<T: ComplexField>(
 	norm: RowMut<'_, T>,
 	dot: RowMut<'_, T>,
@@ -153,6 +154,8 @@ impl<T: ComplexField> Auto<T> for ColPivQrParams {
 		}
 	}
 }
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 #[track_caller]
 fn qr_in_place_unblocked<'out, I: Index, T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -194,7 +197,7 @@ fn qr_in_place_unblocked<'out, I: Index, T: ComplexField>(
 		let mut dot = dot.as_mat_mut().col_mut(0).transpose_mut();
 		let mut norm = norm.as_mat_mut().col_mut(0).transpose_mut();
 		let mut best = zero();
-		let ref threshold = eps::<T::Real>().sqrt();
+		let threshold = &eps::<T::Real>().sqrt();
 		for j in 0..n {
 			let val = A.rb().col(j).norm_l2();
 			norm[j] = val.to_cplx();
@@ -205,13 +208,13 @@ fn qr_in_place_unblocked<'out, I: Index, T: ComplexField>(
 		// scaling by the largest column norm keeps the reduction in range; a zero
 		// matrix has nothing to scale, and LAPACK's `dlarfg` makes an all-zero column
 		// the identity reflector rather than a division by its norm.
-		let ref scale_fwd = if best > zero() { best.copy() } else { one() };
-		let ref scale_bwd = scale_fwd.recip();
+		let scale_fwd = &(if best > zero() { best.copy() } else { one() });
+		let scale_bwd = &scale_fwd.recip();
 		zip!(A.rb_mut()).for_each(|unzip!(a)| *a = a.mul_real(scale_bwd));
 		for j in 0..n {
 			norm[j] = (norm[j].real() * scale_bwd).to_cplx();
 		}
-		best = best * scale_bwd;
+		best *= scale_bwd;
 		let mut best_threshold = best * threshold;
 		// the width the previous step's decision chose: it also covers the product that the
 		// next step opens with when the update was not delayed
@@ -288,7 +291,7 @@ fn qr_in_place_unblocked<'out, I: Index, T: ComplexField>(
 				}
 				let HouseholderInfo { tau, .. } =
 					householder::make_householder_in_place(B00, B10.rb_mut());
-				let ref tau_inv = tau.recip();
+				let tau_inv = &tau.recip();
 				H[k] = tau.to_cplx();
 				// the last step of the full factorization has nothing left to update;
 				// a truncated one stops after this step's update instead (below), so
@@ -666,7 +669,7 @@ mod tests {
 			}
 		};
 		run(Par::Seq);
-		crate::team::with_team(8, |par| run(par));
+		crate::team::with_team(8, run);
 	}
 	/// A nonempty zero matrix has a valid factorization -- zero `R` and a unitary `Q` --
 	/// so scaling by the largest column norm must not divide by a zero pivot scale.
@@ -681,7 +684,7 @@ mod tests {
 				check_zero_matrix::<c64>(m, n, par);
 			};
 			run(Par::Seq);
-			crate::team::with_team(8, |par| run(par));
+			crate::team::with_team(8, run);
 		}
 	}
 	fn check_zero_matrix<T: ComplexField>(m: usize, n: usize, mut par: Par) {

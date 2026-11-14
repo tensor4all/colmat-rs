@@ -3,6 +3,9 @@ use crate::internal_prelude::*;
 use crate::perm::swap_cols_idx;
 use core::mem::swap;
 use linalg::jacobi::JacobiRotation;
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+#[allow(clippy::toplevel_ref_arg)]
+// `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 /// secular eq must be increasing
 ///
 /// Convergence safeguards compared with OpenBLAS v0.3.26
@@ -14,10 +17,10 @@ pub(crate) fn secular_eq_root_finder<T: RealField>(
 	ref right: T,
 	last: bool,
 ) -> (T, T) {
-	let ref two = from_f64::<T>(2.0);
-	let ref eight = from_f64::<T>(8.0);
-	let ref one_half = from_f64::<T>(0.5);
-	let ref epsilon = eps::<T>();
+	let two = &from_f64::<T>(2.0);
+	let eight = &from_f64::<T>(8.0);
+	let one_half = &from_f64::<T>(0.5);
+	let epsilon = &eps::<T>();
 	let mid = left + (right - left).mul_pow2(one_half);
 	let [mut f_mid, f_max, f_mid_left_shift, f_mid_right_shift] =
 		batch_secular_eq(
@@ -86,11 +89,11 @@ pub(crate) fn secular_eq_root_finder<T: RealField>(
 					use_bisection = true;
 					break;
 				}
-				let ref a = (&f_cur - &f_prev) * (&mu_prev * &mu_cur)
-					/ (&mu_prev - &mu_cur);
-				let ref b = &f_cur - a / &mu_cur;
+				let a = &((&f_cur - &f_prev) * (&mu_prev * &mu_cur)
+					/ (&mu_prev - &mu_cur));
+				let b = &(&f_cur - a / &mu_cur);
 				let mu_zero = -a / b;
-				let ref f_zero = secular_eq(shift.copy(), mu_zero.copy());
+				let f_zero = &secular_eq(shift.copy(), mu_zero.copy());
 				if *f_zero < zero() {
 					left_candidate = Some(mu_zero.copy());
 				} else {
@@ -149,10 +152,10 @@ pub(crate) fn secular_eq_root_finder<T: RealField>(
 		};
 	let mut iteration_count = 0;
 	let mut f_prev = f_mid.copy();
-	let ref half0 = one_half.copy();
-	let ref half1 = half0.mul_pow2(half0);
-	let ref half2 = half1.mul_pow2(half1);
-	let ref half3 = half2.mul_pow2(half2);
+	let half0 = &one_half.copy();
+	let half1 = &half0.mul_pow2(half0);
+	let half2 = &half1.mul_pow2(half1);
+	let half3 = &half2.mul_pow2(half2);
 	let mu_values = if shift == *left {
 		[
 			right_shifted.mul_pow2(half3),
@@ -285,8 +288,8 @@ pub(super) fn qr_algorithm<T: RealField>(
 	v: Option<MatMut<'_, T>>,
 ) -> Result<(), SvdError> {
 	let n = diag.nrows();
-	let ref eps = eps::<T>();
-	let ref sml = min_positive::<T>();
+	let eps = &eps::<T>();
+	let sml = &min_positive::<T>();
 	if n == 0 {
 		return Ok(());
 	}
@@ -294,11 +297,11 @@ pub(super) fn qr_algorithm<T: RealField>(
 		.saturating_mul(n)
 		.saturating_mul(n);
 	let last = n - 1;
-	let ref max = diag.norm_max().fmax(subdiag.norm_max());
+	let max = &diag.norm_max().fmax(subdiag.norm_max());
 	if *max == zero() {
 		return Ok(());
 	}
-	let ref max_inv = max.recip();
+	let max_inv = &max.recip();
 	// Outside the normal range `max` has an infinite or subnormal (inexact)
 	// reciprocal: divide instead. Other inputs keep the multiply, so their
 	// results are bit-for-bit unchanged.
@@ -322,7 +325,7 @@ pub(super) fn qr_algorithm<T: RealField>(
 		}
 	}
 	{
-		let ref eps2 = eps * eps;
+		let eps2 = &(eps * eps);
 		for iter in 0..max_iters {
 			for i0 in 0..last {
 				let i1 = i0 + 1;
@@ -370,9 +373,9 @@ pub(super) fn qr_algorithm<T: RealField>(
 			if !deflated && end - start == 2 {
 				let i = start;
 				let j = i + 1;
-				let ref f = diag[i].copy();
-				let ref g = subdiag[i].copy();
-				let ref h = diag[j].copy();
+				let f = &diag[i].copy();
+				let g = &subdiag[i].copy();
+				let h = &diag[j].copy();
 				// Symmetrize the block, then diagonalize it with a Jacobi rotation.
 				let polar = JacobiRotation::make_givens(f + h, g.copy());
 				let (s00, s01, _, s11) = polar.apply_on_the_left_2x2(
@@ -381,8 +384,8 @@ pub(super) fn qr_algorithm<T: RealField>(
 					g.copy(),
 					h.copy(),
 				);
-				let ref gap = (&s11 - &s00).mul_pow2(from_f64::<T>(0.5));
-				let ref t = if s01 == zero() {
+				let gap = &(&s11 - &s00).mul_pow2(from_f64::<T>(0.5));
+				let t = &(if s01 == zero() {
 					zero()
 				} else {
 					let denom = gap.abs() + gap.hypot(s01.copy());
@@ -391,8 +394,8 @@ pub(super) fn qr_algorithm<T: RealField>(
 					} else {
 						-&s01 / denom
 					}
-				};
-				let ref c = t.hypot(one::<T>()).recip();
+				});
+				let c = &t.hypot(one::<T>()).recip();
 				let right = JacobiRotation {
 					c: c.copy(),
 					s: t * c,
@@ -437,10 +440,10 @@ pub(super) fn qr_algorithm<T: RealField>(
 			let t00 = diag[end2].abs2() + subdiag[end - 3].abs2();
 			let t11 = diag[end1].abs2() + subdiag[end2].abs2();
 			let t01 = &diag[end2] * &subdiag[end2];
-			let ref t01_2 = t01.abs2();
+			let t01_2 = &t01.abs2();
 			let mu;
 			if *t01_2 > *sml {
-				let ref d = (t00 - &t11).mul_pow2(from_f64::<T>(0.5));
+				let d = &(t00 - &t11).mul_pow2(from_f64::<T>(0.5));
 				let mut delta = (d.abs2() + t01_2).sqrt();
 				if *d < zero() {
 					delta = -delta;
@@ -656,6 +659,7 @@ fn compute_svd_of_m<T: RealField>(
 		*diag = s[actual_n + idx].copy();
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn compute_singular_vectors<'N, T: RealField>(
 	mut um: Option<MatMut<T, usize, usize, ContiguousFwd>>,
@@ -695,14 +699,14 @@ fn compute_singular_vectors<'N, T: RealField>(
 			}
 			continue;
 		}
-		let ref mu = mus[k].copy();
-		let ref shift = shifts[k].copy();
+		let mu = &mus[k].copy();
+		let shift = &shifts[k].copy();
 		if let Some(mut u) = u.rb_mut() {
 			for &i in perm {
 				u[outer_perm[i]] = (&zhat[i] / ((&diag[i] - shift) - mu))
 					/ (&diag[i] + (shift + mu));
 			}
-			let ref norm_inv = u.norm_l2().recip();
+			let norm_inv = &u.norm_l2().recip();
 			z!(u.rb_mut()).for_each(|uz!(x)| *x *= norm_inv);
 		}
 		if let Some(mut v) = v {
@@ -712,7 +716,7 @@ fn compute_singular_vectors<'N, T: RealField>(
 					/ ((&diag[i] - shift) - mu))
 					/ (&diag[i] + (shift + mu));
 			}
-			let ref norm_inv = v.norm_l2().recip();
+			let norm_inv = &v.norm_l2().recip();
 			z!(v.rb_mut()).for_each(|uz!(x)| *x *= norm_inv);
 		}
 	}
@@ -742,7 +746,7 @@ fn perturb_col0<'N, T: RealField>(
 			zhat[k] = zero();
 			continue;
 		}
-		let ref dk = diag[k];
+		let dk = &diag[k];
 		let mut prod =
 			(&s[last_idx] + dk) * (&mus[last_idx] + (&shifts[last_idx] - dk));
 		for (l, &i) in perm.iter().enumerate() {
@@ -762,7 +766,7 @@ fn perturb_col0<'N, T: RealField>(
 			};
 			let term = ((&s[j] + dk) / (&diag[i] + dk))
 				* ((&mus[j] + (&shifts[j] - dk)) / (&diag[i] - dk));
-			prod = prod * term;
+			prod *= term;
 		}
 		let tmp = prod.sqrt();
 		if col0[k] > zero() {
@@ -825,6 +829,7 @@ fn compute_singular_values<'N, 'O, T: RealField>(
 		mus[k] = mu;
 	}
 }
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn secular_eq<'N, T: RealField>(
 	ref shift: T,
 	ref mu: T,
@@ -834,23 +839,23 @@ fn secular_eq<'N, T: RealField>(
 	let mut res = one();
 	let n = diag_perm.nrows();
 	for i in n.indices() {
-		let ref c = col0_perm[i].copy();
-		let ref d = diag_perm[i].copy();
+		let c = &col0_perm[i].copy();
+		let d = &diag_perm[i].copy();
 		res += (c / ((d - shift) - mu)) * (c / ((d + shift) + mu));
 	}
 	res
 }
 fn batch_secular_eq<'N, const N: usize, T: RealField>(
-	ref shift: &[T; N],
-	ref mu: &[T; N],
+	shift: &[T; N],
+	mu: &[T; N],
 	col0_perm: ColRef<'_, T, Dim<'N>, ContiguousFwd>,
 	diag_perm: ColRef<'_, T, Dim<'N>, ContiguousFwd>,
 ) -> [T; N] {
 	let n = col0_perm.nrows();
 	let mut res = [(); N].map(|_| one());
 	for i in n.indices() {
-		let ref c = col0_perm[i].copy();
-		let ref d = diag_perm[i].copy();
+		let c = &col0_perm[i].copy();
+		let d = &diag_perm[i].copy();
 		for ((res, mu), shift) in
 			res.iter_mut().zip(mu.iter()).zip(shift.iter())
 		{
@@ -859,6 +864,10 @@ fn batch_secular_eq<'N, const N: usize, T: RealField>(
 	}
 	res
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::neg_cmp_op_on_partial_ord)]
+// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 fn deflate<T: RealField>(
 	diag: ColMut<'_, T, usize, ContiguousFwd>,
 	col0: ColMut<'_, T, usize, ContiguousFwd>,
@@ -878,10 +887,10 @@ fn deflate<T: RealField>(
 	let (max_diag, max_col0) =
 		(diag.rb().get(first + 1..).norm_max(), col0.norm_max());
 	let mx = max_diag.fmax(max_col0);
-	let ref eps = eps::<T>();
-	let ref sml = min_positive::<T>();
-	let ref eps_strict = (eps * max_diag).fmax(sml);
-	let ref eps_coarse = from_f64::<T>(8.0) * eps * mx;
+	let eps = &eps::<T>();
+	let sml = &min_positive::<T>();
+	let eps_strict = &(eps * max_diag).fmax(sml);
+	let eps_coarse = &(from_f64::<T>(8.0) * eps * mx);
 	if diag[first] < *eps_coarse {
 		diag[first] = eps_coarse.copy();
 		col0[first] = eps_coarse.copy();
@@ -924,8 +933,8 @@ fn deflate<T: RealField>(
 	}
 	let mut i = 1;
 	let mut j = k + 1;
-	for p in &mut perm.as_mut()[p..] {
-		if i >= k + 1 {
+	for p in &mut perm[p..] {
+		if i > k {
 			*p = j;
 			j += 1;
 		} else if j >= n {
@@ -1005,8 +1014,8 @@ fn deflation_43<T: RealField>(
 	let mut diag = diag;
 	let mut col0 = col0;
 	let first = 0;
-	let ref p = col0[first].copy();
-	let ref q = col0[i].copy();
+	let p = &col0[first].copy();
+	let q = &col0[i].copy();
 	if *p == zero() && *q == zero() {
 		return None;
 	}
@@ -1025,8 +1034,8 @@ fn deflation_44<T: RealField>(
 ) -> Option<JacobiRotation<T>> {
 	let mut diag = diag;
 	let mut col0 = col0;
-	let ref p = col0[i].copy();
-	let ref q = col0[j].copy();
+	let p = &col0[i].copy();
+	let q = &col0[j].copy();
 	if *p == zero() && *q == zero() {
 		diag[i] = diag[j].copy();
 		return None;
@@ -1056,6 +1065,7 @@ impl<'short, T: RealField> ReborrowMut<'short> for MatU<'_, T> {
 		}
 	}
 }
+#[allow(clippy::only_used_in_recursion)] // parameter belongs to the driver scratch signature; the recursion below uses it
 pub(super) fn divide_and_conquer_scratch<T: ComplexField>(
 	n: usize,
 	qr_fallback_threshold: usize,
@@ -1125,7 +1135,7 @@ fn hypot_scaled<T: RealField>(x: &T, y: &T) -> T {
 	if w == zero() || !w.is_finite() {
 		w
 	} else {
-		let ref r = z / &w;
+		let r = &(z / &w);
 		&w * (one::<T>() + r * r).sqrt()
 	}
 }
@@ -1189,7 +1199,7 @@ pub(super) fn divide_and_conquer<T: RealField>(
 		}
 		return Ok(());
 	}
-	let ref max = diag.norm_max().fmax(subdiag.norm_max());
+	let max = &diag.norm_max().fmax(subdiag.norm_max());
 	if *max == zero() {
 		match u {
 			MatU::Full(mut u) => {
@@ -1212,7 +1222,7 @@ pub(super) fn divide_and_conquer<T: RealField>(
 		}
 		return Ok(());
 	}
-	let ref max_inv = max.recip();
+	let max_inv = &max.recip();
 	// See `qr_algorithm`: divide when `max` has no finite normal reciprocal.
 	let divide = !(max_inv.is_finite() && *max_inv >= min_positive::<T>());
 	for i in 0..n {
@@ -1259,17 +1269,21 @@ pub(super) fn divide_and_conquer<T: RealField>(
 			None => (None, None),
 		};
 		let stack_bytes = stack.len_bytes();
-		let (mut stack1, stack2) = stack.make_uninit::<u8>(stack_bytes / 2);
-		let stack1 = MemStack::new(&mut stack1);
+		let (stack1, stack2) = stack.make_uninit::<u8>(stack_bytes / 2);
+		let stack1 = MemStack::new(stack1);
 		let mut r1 = Ok(());
 		let mut r2 = Ok(());
 		// one section for the join of the two halves, each a whole solve of size `n / 2`
-		let join_par =
-			if crate::utils::cost::halves_pays::<T>(&par, n, crate::utils::cost::rate::bidiag_svd_dc(), 2) {
-				par.reborrow()
-			} else {
-				Par::Seq
-			};
+		let join_par = if crate::utils::cost::halves_pays::<T>(
+			&par,
+			n,
+			crate::utils::cost::rate::bidiag_svd_dc(),
+			2,
+		) {
+			par.reborrow()
+		} else {
+			Par::Seq
+		};
 		crate::utils::thread::join_raw(
 			|par| {
 				r1 = divide_and_conquer(
@@ -1297,18 +1311,15 @@ pub(super) fn divide_and_conquer<T: RealField>(
 		);
 		r1?;
 		r2?;
-		match u1.rb_mut() {
-			MatU::TwoRows(mut u1) => {
-				for i in (0..k).rev() {
-					with_dim!(ncols, u1.ncols());
-					swap_cols_idx(
-						u1.rb_mut().as_col_shape_mut(ncols),
-						ncols.idx(i),
-						ncols.idx(i + 1),
-					);
-				}
-			},
-			_ => {},
+		if let MatU::TwoRows(mut u1) = u1.rb_mut() {
+			for i in (0..k).rev() {
+				with_dim!(ncols, u1.ncols());
+				swap_cols_idx(
+					u1.rb_mut().as_col_shape_mut(ncols),
+					ncols.idx(i),
+					ncols.idx(i + 1),
+				);
+			}
 		}
 		(alpha, beta)
 	};
@@ -1326,9 +1337,9 @@ pub(super) fn divide_and_conquer<T: RealField>(
 		MatU::Full(u) => u[(k + 1, n)].copy(),
 		MatU::TwoRows(u) | MatU::TwoRowsStorage(u) => u[(0, n)].copy(),
 	};
-	let ref al = alpha * lambda;
-	let ref bp = beta * phi;
-	let ref squares = al.abs2() + bp.abs2();
+	let al = &(alpha * lambda);
+	let bp = &(beta * phi);
+	let squares = &(al.abs2() + bp.abs2());
 	// The boundary rotation has to stay orthogonal: it is applied to the first
 	// and last column of the merged left factor. Squaring `al` and `bp` loses
 	// that once the merge sits deep enough in the recursion for them to fall
@@ -1337,11 +1348,11 @@ pub(super) fn divide_and_conquer<T: RealField>(
 	// normal range the squares are exact to rounding, so the historical
 	// arithmetic stays bit for bit.
 	let scaled = !(squares.is_finite() && *squares >= min_positive::<T>());
-	let ref r0 = if scaled {
+	let r0 = &(if scaled {
 		hypot_scaled(al, bp)
 	} else {
 		squares.sqrt()
-	};
+	});
 	let (ref c0, ref s0) = if *r0 == zero() {
 		(one(), zero())
 	} else if scaled {
@@ -1396,8 +1407,8 @@ pub(super) fn divide_and_conquer<T: RealField>(
 				col0[j] = beta * &u[(0, j)];
 				u[(0, j)] = zero();
 			}
-			let ref q10 = u[(0, 0)].copy();
-			let ref q21 = u[(1, n)].copy();
+			let q10 = &u[(0, 0)].copy();
+			let q21 = &u[(1, n)].copy();
 			u[(0, 0)] = c0 * q10;
 			u[(0, n)] = -s0 * q10;
 			u[(1, 0)] = s0 * q21;
@@ -1561,9 +1572,6 @@ pub(super) fn divide_and_conquer<T: RealField>(
 			}
 		};
 	let update_u = |mut u: MatMut<'_, T>, par: Par, stack: &mut MemStack| {
-		let n = n;
-		let k = k;
-		let rem = rem;
 		let (mut combined_u, _) =
 			unsafe { temp_mat_uninit(n + 1, n + 1, stack) };
 		let mut combined_u = combined_u.as_mat_mut();
@@ -1661,7 +1669,8 @@ pub(super) fn divide_and_conquer<T: RealField>(
 				let join_par = if crate::utils::cost::join_pays::<T>(
 					&par,
 					(k * k + rem * rem).saturating_mul(n).saturating_add(
-						((k + 1) * (k + 1) + (rem + 1) * (rem + 1)).saturating_mul(n + 1),
+						((k + 1) * (k + 1) + (rem + 1) * (rem + 1))
+							.saturating_mul(n + 1),
 					),
 					crate::utils::cost::rate::gemm_mac(),
 					1,
@@ -1791,7 +1800,7 @@ mod tests {
 	fn test_issue81_qr_near_repeated_pair() {
 		fn check<T: RealField>(f: T, g: T, h: T, expected: [f64; 3]) {
 			for scale in [1.0, 2.0, 1e-8, 1e8] {
-				let ref scale = from_f64::<T>(scale);
+				let scale = &from_f64::<T>(scale);
 				for (want_u, want_v) in
 					[(true, true), (true, false), (false, true), (false, false)]
 				{
@@ -2240,10 +2249,10 @@ mod tests {
 			col.rb_mut(),
 			jacobi_coeffs,
 			jacobi_indices,
-			&mut *vec![0; n],
+			&mut vec![0; n],
 			perm,
 			k,
-			MemStack::new_any(&mut *vec![MaybeUninit::new(0usize); 2 * n]),
+			MemStack::new_any(&mut vec![MaybeUninit::new(0usize); 2 * n]),
 		);
 		assert!(all(jacobi_0i == 2, jacobi_ij == 0));
 		let perm_inv = &mut *vec![0; n];
@@ -2297,10 +2306,10 @@ mod tests {
 			col.rb_mut(),
 			jacobi_coeffs,
 			jacobi_indices,
-			&mut *vec![0; n],
+			&mut vec![0; n],
 			perm,
 			k,
-			MemStack::new_any(&mut *vec![MaybeUninit::new(0usize); 2 * n]),
+			MemStack::new_any(&mut vec![MaybeUninit::new(0usize); 2 * n]),
 		);
 		assert!(all(jacobi_0i == 0, jacobi_ij == 1));
 		let perm_inv = &mut *vec![0; n];
@@ -2358,10 +2367,10 @@ mod tests {
 			col.rb_mut(),
 			jacobi_coeffs,
 			jacobi_indices,
-			&mut *vec![0; n],
+			&mut vec![0; n],
 			perm,
 			k,
-			MemStack::new_any(&mut *vec![MaybeUninit::new(0usize); 2 * n]),
+			MemStack::new_any(&mut vec![MaybeUninit::new(0usize); 2 * n]),
 		);
 		assert!(all(jacobi_0i == 1, jacobi_ij == 1));
 		let perm_inv = &mut *vec![0; n];

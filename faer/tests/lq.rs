@@ -3,8 +3,8 @@
 //! `Par::Seq` against a two-thread team.
 use colmat::dyn_stack::{MemBuffer, MemStack};
 use colmat::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
-use colmat::{Auto, Mat, Par, ParShape, c32, c64};
 use colmat::traits::ComplexField;
+use colmat::{Auto, Mat, Par, ParShape, c32, c64};
 mod common;
 use common::*;
 
@@ -46,7 +46,10 @@ fn pack<T: ComplexField>(
 fn contract<T: ComplexField>(m: usize, n: usize) {
 	let k = Ord::min(m, n);
 	let a = sample_mat::<T>(m, n, 0.0);
-	let block_size = Ord::max(factor::recommended_block_size::<T>(m, n).min(Ord::max(k, 1)), 1);
+	let block_size = Ord::max(
+		factor::recommended_block_size::<T>(m, n).min(Ord::max(k, 1)),
+		1,
+	);
 	let (packed, coeff) = pack(a.as_ref(), block_size, Par::Seq);
 
 	// reused output buffers, one pass of garbage then the real call
@@ -76,12 +79,9 @@ fn contract<T: ComplexField>(m: usize, n: usize) {
 		block_size,
 		ParShape::Seq,
 	));
-	let mut rebuild_mem = MemBuffer::new(reconstruct::reconstruct_scratch::<T>(
-		m,
-		n,
-		block_size,
-		ParShape::Seq,
-	));
+	let mut rebuild_mem = MemBuffer::new(
+		reconstruct::reconstruct_scratch::<T>(m, n, block_size, ParShape::Seq),
+	);
 	factor::copy_l(l.as_mut(), packed.as_ref(), true);
 	factor::copy_l(l_full.as_mut(), packed.as_ref(), true);
 	unitary::unitary(
@@ -132,7 +132,10 @@ fn contract<T: ComplexField>(m: usize, n: usize) {
 	close(q_full.as_ref().get(k.., ..), null.as_ref());
 	// the full $L$ is the compact one padded with zero columns.
 	close(l_full.as_ref().get(.., ..k), l.as_ref());
-	assert!(l_full.get(.., k..).ncols() == 0 || l_full.get(.., k..).norm_l2() == zero());
+	assert!(
+		l_full.get(.., k..).ncols() == 0
+			|| l_full.get(.., k..).norm_l2() == zero()
+	);
 	// the null block annihilates $A$.
 	let residual = &a * null.adjoint();
 	assert!(residual.norm_l2() <= tolerance::<T>(n.max(m)) * a.norm_l2());
@@ -140,14 +143,12 @@ fn contract<T: ComplexField>(m: usize, n: usize) {
 	for j in 0..k {
 		let d = l[(j, j)].clone();
 		assert!(d.real() >= zero());
-		assert!(
-			{
+		assert!({
 			let bound = eps::<T::Real>()
 				* from_f64::<T::Real>(4.0)
 				* d.abs().fmax(one::<T::Real>());
 			d.imag().abs() <= bound
-		}
-		);
+		});
 	}
 }
 
@@ -160,7 +161,10 @@ fn views<T: ComplexField>(m: usize, n: usize) {
 	wide.as_mut().get_mut(..m, ..).copy_from(a.as_ref());
 	let mut q_wide = Mat::<T>::full(n + 1, n + 3, T::from_f64(-2.5));
 	let mut coeff = Mat::<T>::full(
-		Ord::max(factor::recommended_block_size::<T>(m, n).min(Ord::max(k, 1)), 1),
+		Ord::max(
+			factor::recommended_block_size::<T>(m, n).min(Ord::max(k, 1)),
+			1,
+		),
 		k,
 		T::from_f64(f64::INFINITY),
 	);
@@ -198,7 +202,8 @@ fn views<T: ComplexField>(m: usize, n: usize) {
 	// the guard row of the packed buffer is untouched, and the strided factor is
 	// the one the plain factorization gives.
 	let plain = sample_mat::<T>(m, n, 0.25);
-	let (packed_plain, coeff_plain) = pack(plain.as_ref(), block_size, Par::Seq);
+	let (packed_plain, coeff_plain) =
+		pack(plain.as_ref(), block_size, Par::Seq);
 	let mut q = Mat::<T>::zeros(k, n);
 	unitary::unitary(
 		q.as_mut(),
@@ -246,7 +251,8 @@ fn team_agrees<T: ComplexField>(m: usize, n: usize) {
 		MemStack::new(&mut q_mem),
 	);
 	colmat::team::with_team(2, |mut par: Par<'_>| {
-		let (packed_team, coeff_team) = pack(a.as_ref(), block_size, par.reborrow());
+		let (packed_team, coeff_team) =
+			pack(a.as_ref(), block_size, par.reborrow());
 		let mut q_team = Mat::<T>::zeros(k, n);
 		let mut mem = MemBuffer::new(unitary::unitary_scratch::<T>(
 			m,
@@ -291,7 +297,10 @@ fn team_agrees<T: ComplexField>(m: usize, n: usize) {
 ///   (257x257), and the c64 runs differ by 3.0e-7 (257x129) and 4.4e-8
 ///   (257x257) against bounds of 6.3e-3 and 1.5e-2; the f64 runs agree exactly.
 #[cfg(feature = "threadteam")]
-fn team_agrees_ill_conditioned<T: ComplexField<Real = f64>>(m: usize, n: usize) {
+fn team_agrees_ill_conditioned<T: ComplexField<Real = f64>>(
+	m: usize,
+	n: usize,
+) {
 	let k = Ord::min(m, n);
 	let a = sample_mat::<T>(m, n, 0.5);
 	let block_size = Ord::max(
@@ -326,24 +335,45 @@ fn team_agrees_ill_conditioned<T: ComplexField<Real = f64>>(m: usize, n: usize) 
 	};
 	let a_norm = a.norm_l2();
 	let (q_seq, r_seq, o_seq) = factors(Par::Seq);
-	let (q_team, r_team, o_team) = colmat::team::with_team(2, |par| factors(par));
+	let (q_team, r_team, o_team) = colmat::team::with_team(2, factors);
 	let tag = format!("{m}x{n}");
-	for (residual, defect, run) in [(r_seq, o_seq, "seq"), (r_team, o_team, "team")] {
-		assert!(residual <= 1e-12 * a_norm, "{tag} {run}: |A - LQ| = {residual:e}");
+	for (residual, defect, run) in
+		[(r_seq, o_seq, "seq"), (r_team, o_team, "team")]
+	{
+		assert!(
+			residual <= 1e-12 * a_norm,
+			"{tag} {run}: |A - LQ| = {residual:e}"
+		);
 		assert!(defect <= 1e-12, "{tag} {run}: |QQ^H - I| = {defect:e}");
 	}
 	let sigma = a.as_ref().subrows(0, k).singular_values(Par::Seq).unwrap();
 	let sigma_min = sigma.iter().cloned().fold(f64::INFINITY, f64::min);
 	let backward = (r_seq + a_norm * o_seq) + (r_team + a_norm * o_team);
 	let first_order = 2.0f64.sqrt() * backward / sigma_min + o_seq + o_team;
-	assert!(first_order < 0.1, "{tag}: the linearization does not hold ({first_order:e})");
+	assert!(
+		first_order < 0.1,
+		"{tag}: the linearization does not hold ({first_order:e})"
+	);
 	let diff = (&q_team - &q_seq).norm_l2();
-	assert!(diff <= 2.0 * first_order, "{tag}: |Q_team - Q_seq| = {diff:e}, bound {:e}", 2.0 * first_order);
+	assert!(
+		diff <= 2.0 * first_order,
+		"{tag}: |Q_team - Q_seq| = {diff:e}, bound {:e}",
+		2.0 * first_order
+	);
 }
 
 #[test]
 fn lq_contract() {
-	for (m, n) in [(0, 0), (0, 3), (3, 0), (1, 1), (8, 8), (8, 3), (3, 8), (100, 33)] {
+	for (m, n) in [
+		(0, 0),
+		(0, 3),
+		(3, 0),
+		(1, 1),
+		(8, 8),
+		(8, 3),
+		(3, 8),
+		(100, 33),
+	] {
 		contract::<f64>(m, n);
 		contract::<f32>(m, n);
 		contract::<c64>(m, n);

@@ -37,6 +37,7 @@ pub fn tridiag_in_place_scratch<T: ComplexField>(
 		temp_mat_scratch::<T>(dim, par.degree()),
 	])
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn tridiag_fused_op_simd<T: ComplexField>(
 	A: MatMut<'_, T, usize, usize, ContiguousFwd>,
 	y2: ColMut<'_, T, usize>,
@@ -142,6 +143,7 @@ fn tridiag_fused_op_simd<T: ComplexField>(
 		T
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn tridiag_fused_op<T: ComplexField>(
 	A: MatMut<'_, T>,
 	y2: ColMut<'_, T>,
@@ -175,6 +177,7 @@ fn tridiag_fused_op<T: ComplexField>(
 		tridiag_fused_op_fallback(A, y2, z2, ry2, rz2, u0, u1, u2, v2, f);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn tridiag_fused_op_fallback<T: ComplexField>(
 	A: MatMut<'_, T>,
 	y2: ColMut<'_, T>,
@@ -256,7 +259,14 @@ fn tridiag_fused_op_fallback<T: ComplexField>(
 		f.clone(),
 		par.reborrow(),
 	);
-	matmul::matmul(z21.rb_mut(), Accum::Replace, A1.rb(), u2, f.clone(), par.reborrow());
+	matmul::matmul(
+		z21.rb_mut(),
+		Accum::Replace,
+		A1.rb(),
+		u2,
+		f.clone(),
+		par.reborrow(),
+	);
 	matmul::matmul(
 		y2.rb_mut(),
 		Accum::Add,
@@ -329,7 +339,12 @@ pub fn tridiag_in_place<T: ComplexField>(
 			let rem = n - k - 1;
 			// One section per step: the symmetric fused update over column blocks; the unit is
 			// an element of the triangle. The step runs at the widest width that pays.
-			let width = params.par_threshold.region_width::<T>(&par, rem * rem / 2, rate::tridiag(), 1);
+			let width = params.par_threshold.region_width::<T>(
+				&par,
+				rem * rem / 2,
+				rate::tridiag(),
+				1,
+			);
 			let k1 = k + 1;
 			let tau_inv;
 			{
@@ -352,114 +367,115 @@ pub fn tridiag_in_place<T: ComplexField>(
 				if k > 0 {
 					let p = k - 1;
 					let (u1, u2) = A20.rb().col(p).split_at_row(1);
-					let ref u1 = u1[0].copy();
+					let u1 = &u1[0].copy();
 					*a11 -= u1 * y1.conj() + &*y1 * u1.conj();
 					z!(A21.rb_mut(), u2.rb(), y2.rb()).for_each(
 						|uz!(a, u, y): Zip!(&mut T, &T, &T)| {
-							*a -= u * y1.conj() + &*y * u1.conj();
+							*a -= u * y1.conj() + y * u1.conj();
 						},
 					);
 					w2.copy_from(y2.rb());
-					with_width(par.reborrow(), width, |par| {
-						match par {
-							Par::Seq => {
-								let mut z2 = z2.rb_mut().col_mut(0);
-								tridiag_fused_op(
-									A22.rb_mut(),
-									y2.rb_mut(),
-									z2.rb_mut(),
-									w2.rb(),
-									w2.rb(),
-									u2.rb(),
-									u2.rb(),
-									x2.rb(),
-									x2.rb(),
-									tau_inv.to_cplx(),
-									simd_align(k1 + 1),
-								);
-								z!(y2.rb_mut(), z2.rb()).for_each(
-									|uz!(y, z): Zip!(&mut T, &T)| *y += z,
-								);
-							},
-		#[cfg(feature = "rayon")]
-							_ => {
-							let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
-								use rayon::prelude::*;
-								let nthreads = nthreads.get();
-								let mut z2 = z2.rb_mut().subcols_mut(0, nthreads);
-								let n2 = A22.ncols();
-								assert!((n2 as u64) < (1u64 << 50));
-								let idx_to_col_start = |idx: usize| {
-									let idx_as_percent =
-										idx as f64 / nthreads as f64;
-									let col_start_percent = 1.0f64
-										- libm::sqrt(1.0f64 - idx_as_percent);
-									(col_start_percent * n2 as f64) as usize
-								};
-								{
-									let A22 = A22.rb();
-									let y2 = y2.rb();
-									let ref f = tau_inv.to_cplx::<T>();
-									crate::utils::thread::for_each(par, 
-										nthreads,
-										z2.rb_mut().par_col_iter_mut().enumerate(),
-										|(idx, mut z2)| {
-											let first = idx_to_col_start(idx);
-											let last_col =
-												idx_to_col_start(idx + 1);
-											let nrows = n2 - first;
-											let ncols = last_col - first;
-											let mut A = unsafe {
-												A22.rb()
-													.subcols(first, ncols)
-													.subrows(first, nrows)
+					with_width(par.reborrow(), width, |par| match par {
+						Par::Seq => {
+							let mut z2 = z2.rb_mut().col_mut(0);
+							tridiag_fused_op(
+								A22.rb_mut(),
+								y2.rb_mut(),
+								z2.rb_mut(),
+								w2.rb(),
+								w2.rb(),
+								u2.rb(),
+								u2.rb(),
+								x2.rb(),
+								x2.rb(),
+								tau_inv.to_cplx(),
+								simd_align(k1 + 1),
+							);
+							z!(y2.rb_mut(), z2.rb()).for_each(
+								|uz!(y, z): Zip!(&mut T, &T)| *y += z,
+							);
+						},
+						#[cfg(feature = "rayon")]
+						_ => {
+							let nthreads =
+								core::num::NonZeroUsize::new(par.degree())
+									.unwrap();
+							use rayon::prelude::*;
+							let nthreads = nthreads.get();
+							let mut z2 = z2.rb_mut().subcols_mut(0, nthreads);
+							let n2 = A22.ncols();
+							assert!((n2 as u64) < (1u64 << 50));
+							let idx_to_col_start = |idx: usize| {
+								let idx_as_percent =
+									idx as f64 / nthreads as f64;
+								let col_start_percent = 1.0f64
+									- libm::sqrt(1.0f64 - idx_as_percent);
+								(col_start_percent * n2 as f64) as usize
+							};
+							{
+								let A22 = A22.rb();
+								let y2 = y2.rb();
+								let f = &tau_inv.to_cplx::<T>();
+								crate::utils::thread::for_each(
+									par,
+									nthreads,
+									z2.rb_mut().par_col_iter_mut().enumerate(),
+									|(idx, mut z2)| {
+										let first = idx_to_col_start(idx);
+										let last_col =
+											idx_to_col_start(idx + 1);
+										let nrows = n2 - first;
+										let ncols = last_col - first;
+										let mut A = unsafe {
+											A22.rb()
+												.subcols(first, ncols)
+												.subrows(first, nrows)
+												.const_cast()
+										};
+										{
+											let y2 = unsafe {
+												y2.subrows(first, ncols)
 													.const_cast()
 											};
-											{
-												let y2 = unsafe {
-													y2.subrows(first, ncols)
-														.const_cast()
-												};
-												let mut z2 = z2
-													.rb_mut()
-													.subrows_mut(first, nrows);
-												let ry2 =
-													w2.rb().subrows(first, ncols);
-												let rz2 =
-													w2.rb().subrows(first, nrows);
-												let u0 = u2.subrows(first, nrows);
-												let u1 = u2.subrows(first, ncols);
-												let u2 =
-													x2.rb().subrows(first, ncols);
-												let v2 =
-													x2.rb().subrows(first, nrows);
-												tridiag_fused_op(
-													A.rb_mut(),
-													y2,
-													z2.rb_mut(),
-													ry2,
-													rz2,
-													u0,
-													u1,
-													u2,
-													v2,
-													f.copy(),
-													n.next_power_of_two()
-														- (k1 + 1) - first,
-												);
-											}
-											z2.rb_mut()
-												.subrows_mut(0, first)
-												.fill(zero());
-										},
-									);
-								}
-								for z2 in z2.rb().col_iter() {
-									z!(y2.rb_mut(), z2.rb())
-										.for_each(|uz!(y, z)| *y += z);
-								}
-							},
-						}
+											let mut z2 = z2
+												.rb_mut()
+												.subrows_mut(first, nrows);
+											let ry2 =
+												w2.rb().subrows(first, ncols);
+											let rz2 =
+												w2.rb().subrows(first, nrows);
+											let u0 = u2.subrows(first, nrows);
+											let u1 = u2.subrows(first, ncols);
+											let u2 =
+												x2.rb().subrows(first, ncols);
+											let v2 =
+												x2.rb().subrows(first, nrows);
+											tridiag_fused_op(
+												A.rb_mut(),
+												y2,
+												z2.rb_mut(),
+												ry2,
+												rz2,
+												u0,
+												u1,
+												u2,
+												v2,
+												f.copy(),
+												n.next_power_of_two()
+													- (k1 + 1) - first,
+											);
+										}
+										z2.rb_mut()
+											.subrows_mut(0, first)
+											.fill(zero());
+									},
+								);
+							}
+							for z2 in z2.rb().col_iter() {
+								z!(y2.rb_mut(), z2.rb())
+									.for_each(|uz!(y, z)| *y += z);
+							}
+						},
 					});
 				} else {
 					with_width(par.reborrow(), width, |par| {
@@ -502,7 +518,7 @@ pub fn tridiag_in_place<T: ComplexField>(
 						Conj::No,
 					))
 				.mul_real(&tau_inv);
-				let ref b = (&*y1
+				let b = &(&*y1
 					+ dot::inner_prod(
 						x2.rb().transpose(),
 						Conj::Yes,
@@ -635,7 +651,9 @@ mod tests {
 				MemStack::new(&mut MemBuffer::new(tridiag_in_place_scratch::<
 					c64,
 				>(
-					n, ParShape::Seq, default()
+					n,
+					ParShape::Seq,
+					default(),
 				))),
 				default(),
 			);

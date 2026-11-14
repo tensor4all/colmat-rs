@@ -88,8 +88,7 @@ fn rhs_from_solution(
 	Mat::<Scalar>::from_fn(x.nrows(), x.ncols(), |i, j| {
 		let mut acc = zero::<Scalar>();
 		for k in 0..order {
-			acc = acc
-				+ if left {
+			acc += if left {
 					op_entry(a, structure, trans, i, k) * x[(k, j)].copy()
 				} else {
 					x[(i, k)].copy() * op_entry(a, structure, trans, k, j)

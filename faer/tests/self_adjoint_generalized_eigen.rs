@@ -1,8 +1,8 @@
 mod common;
-use common::*;
 use colmat::linalg::solvers::{
 	SelfAdjointGeneralizedEigen, SelfAdjointGevdError,
 };
+use common::*;
 
 macro_rules! suite {
 	($module:ident, $scalar:ty, $make:expr) => {
@@ -98,9 +98,9 @@ macro_rules! suite {
 					// x^H B x = 1 for every column of x
 					let u = eig.U();
 					let gram = &u.adjoint() * (&b * u);
-					let orthogonality =
-						(&gram - Mat::<$scalar>::identity(n, n)).norm_l2()
-							/ (n as f64).sqrt();
+					let orthogonality = (&gram
+						- Mat::<$scalar>::identity(n, n))
+					.norm_l2() / (n as f64).sqrt();
 					eprintln!(
 						"{} n={n}: residual={residual:e}, \
 						 B-orthogonality={orthogonality:e}",
@@ -246,7 +246,7 @@ suite!(complex, c64, c64::new);
 fn team_is_actually_used() {
 	use colmat::utils::team::stats;
 	let n = 256;
-	let x = Mat::from_fn(n, n, |i, j| sample(i, j));
+	let x = Mat::from_fn(n, n, sample);
 	let y = Mat::from_fn(n, n, |i, j| sample(i + 71, j + 13));
 	let a = Mat::from_fn(n, n, |i, j| (x[(i, j)] + x[(j, i)]) * 0.5);
 	let gram = &y * y.adjoint();
