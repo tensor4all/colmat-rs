@@ -1382,11 +1382,11 @@ impl<T: ComplexField> Qr<T> {
 	/// computes the factor $Q$
 	pub fn compute_Q(&self, par: Par<'_>) -> Mat<T> {
 		let mut Q = Mat::identity(self.nrows(), self.nrows());
-		linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+		linalg::qr::no_pivoting::unitary::apply_to_identity(
+			Q.rb_mut(),
+			0,
 			self.Q_basis(),
 			self.Q_coeff(),
-			Conj::No,
-			Q.rb_mut(),
 			par,
 			MemStack::new(&mut MemBuffer::new(
 				linalg::householder::apply_block_householder_sequence_on_the_left_in_place_scratch::<T>(
@@ -1404,11 +1404,11 @@ impl<T: ComplexField> Qr<T> {
 	pub fn compute_thin_Q(&self, par: Par<'_>) -> Mat<T> {
 		let size = Ord::min(self.nrows(), self.ncols());
 		let mut Q = Mat::identity(self.nrows(), size);
-		linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+		linalg::qr::no_pivoting::unitary::apply_to_identity(
+			Q.rb_mut(),
+			0,
 			self.Q_basis(),
 			self.Q_coeff(),
-			Conj::No,
-			Q.rb_mut(),
 			par,
 			MemStack::new(&mut MemBuffer::new(
 				linalg::householder::apply_block_householder_sequence_on_the_left_in_place_scratch::<T>(self.nrows(), self.Q_coeff.nrows(), size),

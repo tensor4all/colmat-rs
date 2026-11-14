@@ -8,6 +8,37 @@
 //! tenferro-linalg's `QrGauge::PositiveDiagonal`, applied to the factors here.
 use crate::assert;
 use crate::internal_prelude::*;
+/// Applies Q to an already initialized identity block with seed rows starting
+/// at `offset`. Reverse panels cannot affect columns whose seeds precede them.
+#[track_caller]
+pub(crate) fn apply_to_identity<T: ComplexField>(
+	mut out: MatMut<'_, T>,
+	offset: usize,
+	Q_basis: MatRef<'_, T>,
+	Q_coeff: MatRef<'_, T>,
+	mut par: Par,
+	mut stack: &mut MemStack,
+) {
+	let block_size = Q_coeff.nrows();
+	assert!(all(
+		block_size > 0,
+		Q_coeff.ncols() == Ord::min(Q_basis.nrows(), Q_basis.ncols())
+	));
+	let mut end = Q_coeff.ncols();
+	while end > 0 {
+		let start = (end - 1) / block_size * block_size;
+		let first_col = start.saturating_sub(offset).min(out.ncols());
+		linalg::householder::apply_block_householder_on_the_left_in_place_with_conj(
+			Q_basis.get(start.., start..end),
+			Q_coeff.get(..end - start, start..end),
+			Conj::No,
+			out.rb_mut().get_mut(start.., first_col..),
+			par.reborrow(),
+			stack.rb_mut(),
+		);
+		end = start;
+	}
+}
 /// starts `out` as the identity block at rows `offset..offset + q` and applies
 /// the $Q$ sequence to it from the left.
 ///
@@ -28,9 +59,7 @@ pub(crate) fn apply_to_start_block<T: ComplexField>(
 	for j in 0..q {
 		out[(offset + j, j)] = one();
 	}
-	linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
-		Q_basis, Q_coeff, Conj::No, out, par, stack,
-	);
+	apply_to_identity(out, offset, Q_basis, Q_coeff, par, stack);
 }
 /// the workspace required by [`unitary`] for an `out` of shape `nrows x out_ncols`.
 pub fn unitary_scratch<T: ComplexField>(
@@ -223,6 +252,122 @@ mod tests {
 		}
 		assert!(rank <= k);
 	}
+	fn identity_seed_case<T: ComplexField>(
+		make: fn(f64, f64) -> T,
+		abs: fn(&T) -> f64,
+		tol: f64,
+	) {
+		for (m, n) in [
+			(0, 3),
+			(3, 0),
+			(1, 1),
+			(37, 19),
+			(19, 37),
+			(21, 21),
+			(257, 129),
+		] {
+			for zero_input in [false, true] {
+				let a = Mat::from_fn(m, n, |i, j| {
+					if zero_input {
+						make(0.0, 0.0)
+					} else {
+						make(
+							((13 * i + 19 * j + 1) as f64).sin(),
+							((7 * i + 3 * j + 2) as f64).cos(),
+						)
+					}
+				});
+				let k = m.min(n);
+				let (packed, coeff, _) = packed(a.as_ref(), 8);
+				for (offset, q) in [(0, k), (0, m), (k, m - k)] {
+					let mut reference = Mat::from_fn(m, q, |i, j| {
+						if i == offset + j { one() } else { zero() }
+					});
+					let mut mem = MemBuffer::new(unitary_scratch::<T>(
+						m,
+						n,
+						q,
+						8,
+						ParShape::Seq,
+					));
+					linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+						packed.as_ref().get(.., ..k), coeff.as_ref(), Conj::No,
+						reference.as_mut(), Par::Seq, MemStack::new(&mut mem),
+					);
+					for row_major in [false, true] {
+						let mut storage = Mat::zeros(
+							if row_major { q } else { m },
+							if row_major { m } else { q },
+						);
+						let mut output = if row_major {
+							storage.transpose_mut()
+						} else {
+							storage.as_mut()
+						};
+						apply_to_start_block(
+							output.rb_mut(),
+							offset,
+							q,
+							packed.as_ref().get(.., ..k),
+							coeff.as_ref(),
+							Par::Seq,
+							MemStack::new(&mut mem),
+						);
+						let got = output.rb();
+						let diff = got - &reference;
+						for j in 0..q {
+							for i in 0..m {
+								assert!(
+									abs(&diff[(i, j)]) <= tol * m.max(1) as f64
+								);
+							}
+						}
+						let orth =
+							got.adjoint() * got - Mat::<T>::identity(q, q);
+						for j in 0..q {
+							for i in 0..q {
+								assert!(
+									abs(&orth[(i, j)]) <= tol * m.max(1) as f64
+								);
+							}
+						}
+						if offset == 0 && q == k {
+							let mut r = Mat::zeros(k, n);
+							factor::copy_r(r.as_mut(), packed.as_ref(), false);
+							let diff = got * r.as_ref() - &a;
+							let mut err = 0.0f64;
+							let mut scale = 0.0f64;
+							for j in 0..n {
+								for i in 0..m {
+									err += abs(&diff[(i, j)]).powi(2);
+									scale += abs(&a[(i, j)]).powi(2);
+								}
+							}
+							assert!(
+								err.sqrt()
+									<= tol
+										* m.max(n).max(1) as f64 * scale
+										.sqrt()
+										.max(1.0)
+							);
+						}
+					}
+				}
+			}
+		}
+	}
+	#[test]
+	fn test_identity_seed_four_scalars() {
+		identity_seed_case::<f64>(|r, _| r, |x| x.abs(), 2e-14);
+		identity_seed_case::<f32>(|r, _| r as f32, |x| x.abs() as f64, 1e-5);
+		identity_seed_case::<crate::c64>(crate::c64::new, |x| x.norm(), 2e-14);
+		identity_seed_case::<crate::c32>(
+			|r, i| crate::c32::new(r as f32, i as f32),
+			|x| x.norm() as f64,
+			1e-5,
+		);
+	}
+
 	#[test]
 	fn test_unitary_and_null() {
 		let rng = &mut StdRng::seed_from_u64(3);
