@@ -144,3 +144,14 @@ it was avoiding is smaller than the kernel it lands on (tensor4all/faer#200). Th
 guidance, not a rule the dispatch applies: the worklog measured it for `m = 1` on a few shapes and
 found `m = 2/8/16` unchanged (`docs/worklogs/2026-11-03-matmul-uninit-thin.md`), so measure before
 relying on it elsewhere.
+
+## Profile the repair after parallel secular roots
+
+Parallel root finding does not parallelize a divide-and-conquer EVD merge's
+weight repair or eigenvector construction. In a local f64 512/8T reference
+scan, their top-level loops still took about 19% of whole-call time. Independent
+weights and complete columns can be split without changing each item's scalar
+arithmetic or introducing partial matrices. Count the actual non-deflated
+poles, not the original dimension, when estimating their work. The experimental
+repair-only whole-call ratio was 0.7502; portability and 64-core acceptance are
+still unverified (`docs/worklogs/2026-11-14-eigh-parallel-repair.md`).

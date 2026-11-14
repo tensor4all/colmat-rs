@@ -72,6 +72,23 @@ fn parallel_regions_allocate_nothing() {
 	use colmat::linalg::lu::full_pivoting::factor as flu;
 	for width in [4usize, 8, 70] {
 		colmat::team::with_team(width, |mut par: Par<'_>| {
+			// The tridiagonal EVD solver, including its independent merge repairs.
+			if width <= 8 {
+				use colmat::linalg::evd::{tridiagonal_self_adjoint_evd, tridiagonal_self_adjoint_evd_scratch, ComputeEigenvectors};
+				let n = 256;
+				let diag = colmat::Col::<f64>::from_fn(n, |i| (i % 19) as f64 / 19.0).into_diagonal();
+				let sub = colmat::Col::<f64>::from_fn(n - 1, |i| 0.2 + (i % 7) as f64 / 13.0).into_diagonal();
+				let mut values = colmat::diag::Diag::<f64>::zeros(n);
+				let mut vectors = Mat::<f64>::zeros(n, n);
+				let params = Default::default();
+				let mut mem = MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(n, ComputeEigenvectors::Yes, par.shape(), params));
+				let (allocs, parallel) = counted(|| {
+					tridiagonal_self_adjoint_evd(diag.as_ref(), sub.as_ref(), values.as_mut(), Some(vectors.as_mut()), par.reborrow(), MemStack::new(&mut mem), params).unwrap();
+				});
+				assert!(parallel > 0, "tridiagonal EVD, width {width}: no parallel region");
+				assert_eq!(allocs, 0, "tridiagonal EVD, width {width}");
+			}
+
 			// full pivoting LU: the per-step pivot search (`for_each` over column blocks)
 			let n = 96;
 			let a0 = sample(n, n, 1);
