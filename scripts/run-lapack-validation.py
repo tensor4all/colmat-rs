@@ -38,6 +38,13 @@ def classify(name):
     if name.startswith('linalg::svd::tests::'):
         return 'svd'
     leaf = name.rsplit('::', 1)[-1]
+    # A non-LAPACK correctness test in the dtype-parameterized `lu` test module.
+    # Its exact-bit contract is x86_64-only: off x86_64 the parallel product is
+    # the `gemm` crate, and the parallel/sequential bits differ (seen at n=129,
+    # width=4 on macOS arm64). It still runs in the ordinary library tests; the
+    # nightly selects the LAPACK families only.
+    if leaf == 'parallel_path_is_bit_identical_to_sequential':
+        return None
     if leaf.startswith(('lapack_common_', 'lapack_lin_')):
         return 'common'
     for family in sorted(FAMILIES, key=len, reverse=True):
