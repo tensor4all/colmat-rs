@@ -46,14 +46,19 @@ fn lookahead_factor(
 	par: Par,
 	never: bool,
 ) -> (alloc::vec::Vec<(u64, u64)>, alloc::vec::Vec<usize>) {
-	let (m, n) = a.shape();
 	use crate::utils::cost::ParThreshold;
+	lookahead_factor_with(a, par, if never { ParThreshold::Never } else { ParThreshold::Derived })
+}
+
+/// [`lookahead_factor`] with an explicit floor for the parallel regions.
+fn lookahead_factor_with(
+	a: Mat<Scalar>,
+	par: Par,
+	par_threshold: crate::utils::cost::ParThreshold,
+) -> (alloc::vec::Vec<(u64, u64)>, alloc::vec::Vec<usize>) {
+	let (m, n) = a.shape();
 	let params = Spec::new(pp::factor::PartialPivLuParams {
-		par_threshold: if never {
-			ParThreshold::Never
-		} else {
-			ParThreshold::Derived
-		},
+		par_threshold,
 		..auto!(Scalar)
 	});
 	let req = pp::factor::lu_in_place_scratch::<usize, Scalar>(m, n, par.shape(), params);
@@ -93,6 +98,27 @@ fn parallel_path_is_bit_identical_to_sequential() {
 		for width in [1usize, 2, 4, 8] {
 			crate::team::with_team(width, |par| {
 				let (bits, p) = lookahead_factor(a.clone(), par, false);
+				core::assert_eq!(p, p_ref, "n={n} width={width}: permutation");
+				core::assert_eq!(bits, bits_ref, "n={n} width={width}: L/U bits");
+			});
+		}
+	}
+}
+
+/// Every region on the whole team (`ParThreshold::Fixed(0)`), at widths whose column chunks would
+/// be a single column (tensor4all/colmat-rs#191): the complex products round a one-column product
+/// differently from the same column inside a wider one, so a region split into one-column chunks
+/// changed bits at 8 participants with an 8-wide `c64` leaf, and at 16 with the 16-wide `f32`/`c32`
+/// leaf. The shapes keep the test small; the floor makes their narrow levels split anyway.
+#[test]
+fn parallel_path_is_bit_identical_with_one_column_per_member() {
+	use crate::utils::cost::ParThreshold;
+	for &n in &[17usize, 33, 64, 100] {
+		let a = lookahead_fixture(n);
+		let (bits_ref, p_ref) = lookahead_factor(a.clone(), Par::Seq, true);
+		for width in [3usize, 8, 16] {
+			crate::team::with_team(width, |par| {
+				let (bits, p) = lookahead_factor_with(a.clone(), par, ParThreshold::Fixed(0));
 				core::assert_eq!(p, p_ref, "n={n} width={width}: permutation");
 				core::assert_eq!(bits, bits_ref, "n={n} width={width}: L/U bits");
 			});
