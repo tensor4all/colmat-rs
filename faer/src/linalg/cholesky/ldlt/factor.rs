@@ -261,6 +261,7 @@ fn simd_cholesky<T: ComplexField>(
 		}
 	}
 	let mut A = A;
+	let mut D = D;
 	if const { T::SIMD_CAPABILITIES.is_simd() } {
 		if let Some(A) = A.rb_mut().try_as_col_major_mut() {
 			dispatch!(
@@ -277,6 +278,24 @@ fn simd_cholesky<T: ComplexField>(
 				T
 			)
 		} else {
+			// A leaf that is not column-major contiguous (a row-major input) runs the SIMD kernel on
+			// a column-major copy of its lower triangle instead of the scalar fallback (#192).
+			#[cfg(feature = "std")]
+			if leaf_stage::applies(A.rb()) {
+				if let Some(r) = leaf_stage::with_staged(A.rb_mut(), |S| {
+					simd_cholesky(
+						S,
+						D.rb_mut(),
+						is_llt,
+						regularize,
+						eps.clone(),
+						delta.clone(),
+						signs,
+					)
+				}) {
+					return r;
+				}
+			}
 			cholesky_fallback(
 				A,
 				D,
@@ -297,6 +316,97 @@ fn simd_cholesky<T: ComplexField>(
 			delta.clone(),
 			signs,
 		)
+	}
+}
+/// The diagonal leaf of a matrix that is not column-major contiguous -- a row-major input, whose
+/// leaves are row-major blocks -- used to run the scalar [`cholesky_fallback`], a dependent chain
+/// of generic operations per entry: at n = 512, `f64`, the row-major factorization spent 0.71 of
+/// 2.08 ms (1T) and 0.71 of 1.17 ms (8T) in its eight 64-wide leaves against 0.11 ms for the same
+/// leaves column-major, and the leaves are the serial part of a team call (evo2, Zen 5). The leaf is
+/// now copied into a column-major buffer (lower triangle only: the kernels neither read nor write
+/// the strict upper one), factored there by the SIMD leaf that column-major input uses, and copied
+/// back. So a row-major leaf is computed exactly as the column-major leaf of the same values; its
+/// bits differ from the scalar fallback's by rounding (a different summation order). The rest of a
+/// row-major factorization (its solves and products) keeps its own layout's bits. The buffer
+/// belongs to the thread, grows once to at most `MAX_DIM x MAX_DIM` and is reused, so a
+/// steady-state call allocates nothing (#111).
+#[cfg(feature = "std")]
+mod leaf_stage {
+	use crate::internal_prelude::*;
+	use core::cell::RefCell;
+	std::thread_local! {
+		static BUF: RefCell<alloc::vec::Vec<u64>> = const { RefCell::new(alloc::vec::Vec::new()) };
+	}
+	/// the widest leaf staged: the default recursion threshold of the LLT/LDLT recursion; a caller
+	/// that sets a wider one keeps the fallback above it
+	pub(super) const MAX_DIM: usize = 64;
+	/// staged nodes, for the tests that assert the path ran
+	#[cfg(test)]
+	pub(super) static STAGED: core::sync::atomic::AtomicUsize =
+		core::sync::atomic::AtomicUsize::new(0);
+	/// a native scalar the buffer of `u64` words can hold, a leaf of `1..=MAX_DIM` rows
+	#[inline]
+	pub(super) fn applies<T: ComplexField>(A: MatRef<'_, T>) -> bool {
+		(const {
+			T::IS_NATIVE_F32
+				|| T::IS_NATIVE_F64
+				|| T::IS_NATIVE_C32
+				|| T::IS_NATIVE_C64
+		}) && core::mem::align_of::<T>() <= core::mem::align_of::<u64>()
+			&& A.nrows() >= 1
+			&& A.nrows() <= MAX_DIM
+	}
+	/// Runs `f` on a column-major copy of the lower triangle of `A` and copies the lower triangle
+	/// back. The copy's column stride is `n`, or `n` plus 64 bytes when `n` elements are a multiple
+	/// of 1 KiB (the aliasing stride, as in `triangular_solve::stage`). Returns `None` without
+	/// running `f` when this thread's buffer is already in use.
+	pub(super) fn with_staged<T: ComplexField, R>(
+		A: MatMut<'_, T>,
+		f: impl FnOnce(MatMut<'_, T>) -> R,
+	) -> Option<R> {
+		let mut A = A;
+		let n = A.nrows();
+		let size = core::mem::size_of::<T>();
+		let ld = if (n * size).is_multiple_of(1024) {
+			n + 64usize.div_ceil(size)
+		} else {
+			n
+		};
+		let words = (ld * n * size).div_ceil(8);
+		BUF.with(|buf| {
+			let Ok(mut buf) = buf.try_borrow_mut() else {
+				return None;
+			};
+			if buf.len() < words {
+				buf.resize(words, 0);
+			}
+			// SAFETY: `T` is a native scalar (plain data, alignment at most 8, checked by `applies`),
+			// the buffer holds `ld * n` of them and is borrowed exclusively until the end of this
+			// closure; the view is `n x n` with column stride `ld >= n`.
+			let mut S = unsafe {
+				MatMut::from_raw_parts_mut(
+					buf.as_mut_ptr() as *mut T,
+					n,
+					n,
+					1isize,
+					ld as isize,
+				)
+			};
+			for j in 0..n {
+				for i in j..n {
+					S[(i, j)] = A[(i, j)].copy();
+				}
+			}
+			#[cfg(test)]
+			STAGED.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+			let r = f(S.rb_mut());
+			for j in 0..n {
+				for i in j..n {
+					A[(i, j)] = S[(i, j)].copy();
+				}
+			}
+			Some(r)
+		})
 	}
 }
 #[allow(clippy::neg_cmp_op_on_partial_ord)] // a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
@@ -884,5 +994,161 @@ mod tests {
 				};
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod llt_layout_tests {
+	use super::*;
+	use crate::linalg::cholesky::llt::factor::{
+		LltParams, cholesky_in_place, cholesky_in_place_scratch,
+	};
+	use crate::{Mat, assert, c32, c64};
+	use dyn_stack::MemBuffer;
+
+	/// A Hermitian positive definite `B B^H + n I`, from a fixed seed.
+	fn hpd<T: ComplexField>(n: usize, from: impl Fn(f64, f64) -> T) -> Mat<T> {
+		let mut seed = 0x9e3779b97f4a7c15u64 ^ n as u64;
+		let mut next = || {
+			seed = seed
+				.wrapping_mul(6364136223846793005)
+				.wrapping_add(1442695040888963407);
+			((seed >> 11) as f64 / (1u64 << 53) as f64) - 0.5
+		};
+		let B = Mat::<T>::from_fn(n, n, |_, _| from(next(), next()));
+		let mut A = Mat::<T>::zeros(n, n);
+		crate::linalg::matmul::matmul(
+			A.as_mut(),
+			Accum::Replace,
+			B.as_ref(),
+			B.adjoint(),
+			one::<T>(),
+			Par::Seq,
+		);
+		for i in 0..n {
+			A[(i, i)] = A[(i, i)].copy() + from(n as f64, 0.0);
+		}
+		A
+	}
+
+	/// The lower triangle of `A` factored by the default LLT, column-major or row-major, on `par`,
+	/// as raw bits in column order.
+	fn llt_bits<T: ComplexField>(
+		A: &Mat<T>,
+		row_major: bool,
+		par: Par,
+		bits: &impl Fn(&T) -> (u64, u64),
+	) -> alloc::vec::Vec<(u64, u64)> {
+		let n = A.nrows();
+		let mut storage = if row_major {
+			A.transpose().to_owned()
+		} else {
+			A.clone()
+		};
+		let L = if row_major {
+			storage.as_mut().transpose_mut()
+		} else {
+			storage.as_mut()
+		};
+		let mut L = L;
+		let mut mem = MemBuffer::new(cholesky_in_place_scratch::<T>(
+			n,
+			par.shape(),
+			default(),
+		));
+		cholesky_in_place(
+			L.rb_mut(),
+			default(),
+			par,
+			MemStack::new(&mut mem),
+			default(),
+		)
+		.unwrap();
+		(0..n)
+			.flat_map(|j| (j..n).map(move |i| (i, j)))
+			.map(|(i, j)| bits(&L[(i, j)]))
+			.collect()
+	}
+
+	/// The `f64`/`c64` LLT blocks are 64 wide with 32-wide leaves (#192); `f32`/`c32` keep the
+	/// LDLT defaults.
+	#[test]
+	fn llt_default_blocking() {
+		let f64p = <LltParams as Auto<f64>>::auto();
+		let c64p = <LltParams as Auto<c64>>::auto();
+		let f32p = <LltParams as Auto<f32>>::auto();
+		let c32p = <LltParams as Auto<c32>>::auto();
+		let ldlt = <LdltParams as Auto<f32>>::auto();
+		assert!((f64p.recursion_threshold, f64p.block_size) == (32, 64));
+		assert!((c64p.recursion_threshold, c64p.block_size) == (32, 64));
+		assert!(
+			(f32p.recursion_threshold, f32p.block_size)
+				== (ldlt.recursion_threshold, ldlt.block_size)
+		);
+		assert!(
+			(c32p.recursion_threshold, c32p.block_size)
+				== (ldlt.recursion_threshold, ldlt.block_size)
+		);
+	}
+
+	/// The default LLT gives the same bits on every team width, column-major and row-major, at
+	/// sizes around the 32-wide leaf and the 64-wide block.
+	#[test]
+	fn llt_team_matches_sequential_bits() {
+		fn run<T: ComplexField>(
+			from: impl Fn(f64, f64) -> T + Copy,
+			bits: impl Fn(&T) -> (u64, u64) + Copy,
+		) {
+			for n in [31usize, 32, 33, 63, 64, 65, 100, 257] {
+				let A = hpd::<T>(n, from);
+				for row_major in [false, true] {
+					let want = llt_bits(&A, row_major, Par::Seq, &bits);
+					for width in [2usize, 3, 8] {
+						crate::team::with_team(width, |par| {
+							let got = llt_bits(&A, row_major, par, &bits);
+							assert!(
+								got == want,
+								"n={n} row_major={row_major} width={width}"
+							);
+						});
+					}
+				}
+			}
+		}
+		run::<f64>(|re, _| re, |x| (x.to_bits(), 0));
+		run::<c64>(c64::new, |x| (x.re.to_bits(), x.im.to_bits()));
+	}
+
+	/// A row-major leaf runs the column-major SIMD leaf on a staged copy (#192): a matrix that is a
+	/// single leaf (at most the 32-wide default) factors to the column-major bits exactly. Larger
+	/// matrices are not compared: the recursion's triangular solves and products on row-major
+	/// operands are not the column-major ones bit for bit (a one-column right-hand side takes a
+	/// different product path per layout), so only the leaves are layout independent.
+	#[test]
+	fn row_major_llt_runs_the_simd_leaf() {
+		let before =
+			leaf_stage::STAGED.load(core::sync::atomic::Ordering::Relaxed);
+		for n in [1usize, 2, 17, 31, 32] {
+			let A = hpd::<f64>(n, |re, _| re);
+			let bits = |x: &f64| (x.to_bits(), 0);
+			assert!(
+				llt_bits(&A, true, Par::Seq, &bits)
+					== llt_bits(&A, false, Par::Seq, &bits),
+				"f64 n={n}"
+			);
+		}
+		for n in [1usize, 2, 17, 31, 32] {
+			let A = hpd::<c64>(n, c64::new);
+			let bits = |x: &c64| (x.re.to_bits(), x.im.to_bits());
+			assert!(
+				llt_bits(&A, true, Par::Seq, &bits)
+					== llt_bits(&A, false, Par::Seq, &bits),
+				"c64 n={n}"
+			);
+		}
+		assert!(
+			leaf_stage::STAGED.load(core::sync::atomic::Ordering::Relaxed)
+				> before
+		);
 	}
 }
