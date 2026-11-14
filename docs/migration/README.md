@@ -104,12 +104,11 @@ fn main() {
 		.acquire_timeout(std::time::Duration::from_secs(30))
 		.build()
 		.expect("a thread pool for the team");
-	let team = pool.into_team(4).ok().expect("a newly built pool is idle");
+	let team = pool.into_team(4).expect("a newly built pool is idle");
 
 	for _ in 0..2 {
 		let mut exec = team.exec(4);
 		exec.team(|token| solve_checked(&a, &b, Par::Team(token)))
-			.ok()
 			.expect("the team is idle between calls");
 	}
 
@@ -120,7 +119,6 @@ fn main() {
 			.split(&[2, 2], |_, child| solve_checked(&a, &b, Par::Team(child)))
 			.expect("two children of size two fit the parent of size four");
 	})
-	.ok()
 	.expect("the team is idle between calls");
 }
 ```

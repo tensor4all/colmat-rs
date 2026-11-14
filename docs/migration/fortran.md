@@ -101,7 +101,7 @@ fn main() -> Result<(), EvdError> {
 		.acquire_timeout(std::time::Duration::from_secs(30))
 		.build()
 		.expect("a thread pool for the team");
-	let team = pool.into_team(2).ok().expect("a newly built pool is idle");
+	let team = pool.into_team(2).expect("a newly built pool is idle");
 	let mut exec = team.exec(2);
 	exec.team(|token| {
 		let mut par = Par::Team(token);
@@ -158,7 +158,6 @@ fn main() -> Result<(), EvdError> {
 		}
 		Ok(())
 	})
-	.ok()
 	.expect("the team is idle between calls")
 }
 ```
