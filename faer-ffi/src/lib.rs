@@ -9,22 +9,101 @@ impl<T: colmat::traits::ComplexField + Copy + 'static> ComplexField for T {}
 type AsIs<T> = T;
 #[derive(Copy, Clone)]
 pub enum Never {}
+/// A borrowed immutable matrix view, as the C API passes one.
+///
+/// This is the C spelling of `colmat::MatRef`: a pointer, a shape, two strides, and no lifetime.
+/// The caller owns the memory and promises that it stays live and initialized for the whole call.
+///
+/// # Contract
+///
+/// The header describes `nrows` x `ncols` elements of the element type named by the entry point's
+/// suffix (`_f32`, `_f64`, `_fx128`, `_c32`, `_c64`, `_cx128`). Element `(row i, column j)` lives at
+/// `ptr + i * row_stride + j * col_stride` **elements**, not bytes.
+///
+/// * `ptr` is the address of element `(0, 0)`. When the view is empty (`nrows == 0 || ncols == 0`)
+///   no element is addressed: `ptr` may be null, any alignment is accepted, and both strides are
+///   ignored (the conversion canonicalizes them to an aligned empty view).
+/// * When the view is non-empty, `ptr` must be non-null and aligned for the element type: 4 bytes
+///   for `_f32` / `_c32`, 8 bytes for `_f64`, `_fx128`, `_c64` and `_cx128` (`fx128` and `cx128` are
+///   the quad-double types, whose alignment is that of `f64`).
+/// * A stride may be negative; the view then walks backwards. It must be non-zero when the
+///   corresponding extent is greater than one: a zero row stride with `nrows > 1` (resp. a zero
+///   column stride with `ncols > 1`) would make two indices address the same element.
+/// * A view is a plain matrix, not a broadcast: no two distinct `(i, j)` may address the same
+///   element, and no two elements may share a byte. The zero-stride rule above is the check the
+///   API performs; general colliding strides (for example `row_stride == 2`, `col_stride == 3`,
+///   where `(3, 0)` and `(0, 2)` collide) are the caller's responsibility.
+/// * `nrows * ncols` must fit in `size_t`, and the lowest and highest element offsets must fit in
+///   `ptrdiff_t`; entry points that report a status validate both.
+/// * The header has no length: `ptr` must point into one allocation large enough for every element
+///   it addresses, and those elements must be valid for reads. Allocation bounds and
+///   initialization are always the caller's responsibility.
+///
+/// # Aliasing
+///
+/// Immutable views may share elements with other immutable arguments of the same call. They must
+/// not share an element with a `FaerV0_24_MatMut` argument of the same call. The shape must also
+/// satisfy the operation's own contract (which dimensions must agree); that is stated on the Rust
+/// function each entry point wraps.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct MatRef {
+	/// address of element `(0, 0)`, in elements of the type named by the symbol's suffix; null is
+	/// accepted only for an empty view
 	pub ptr: *const c_void,
+	/// number of rows
 	pub nrows: usize,
+	/// number of columns
 	pub ncols: usize,
+	/// offset from element `(i, j)` to `(i + 1, j)`, in elements; may be negative; zero only when
+	/// `nrows <= 1`
 	pub row_stride: isize,
+	/// offset from element `(i, j)` to `(i, j + 1)`, in elements; may be negative; zero only when
+	/// `ncols <= 1`
 	pub col_stride: isize,
 }
+/// A borrowed mutable matrix view, as the C API passes one.
+///
+/// The contract is `FaerV0_24_MatRef`'s, with exclusivity added: the view's elements must be
+/// unique, and the view must not overlap any other argument of the call.
+///
+/// # Contract
+///
+/// * `ptr` is null only when the view is empty (`nrows == 0 || ncols == 0`); an empty view
+///   addresses no element and its strides are ignored. A non-empty `ptr` must be non-null and
+///   aligned for the element type (4 bytes for `_f32` / `_c32`, 8 bytes for the other suffixes).
+/// * Strides are element offsets and may be negative; row (resp. column) stride must be non-zero
+///   when `nrows > 1` (resp. `ncols > 1`). No two distinct indices may address the same element,
+///   and two distinct elements may not share a byte; only the zero-stride case is checked cheaply,
+///   the rest is the caller's responsibility.
+/// * `nrows * ncols` must fit in `size_t`, and the extremes of the element offsets must fit in
+///   `ptrdiff_t`.
+/// * `ptr` must point into one live allocation large enough for the whole view; its elements must
+///   be initialized before they are read and stay valid for the whole call. Bounds and
+///   initialization are not checked.
+///
+/// # Aliasing
+///
+/// A mutable view must be disjoint from **every** other argument of the call, including other
+/// `MatMut` arguments and read-only views. Entry points that report a status check the cases they
+/// can prove cheaply (equal base pointers, or intersecting contiguous byte ranges) and return
+/// `InvalidView`; any other overlap is the caller's responsibility. The shape must satisfy the
+/// operation's own contract.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct MatMut {
+	/// address of element `(0, 0)`, in elements of the type named by the symbol's suffix; null is
+	/// accepted only for an empty view
 	pub ptr: *mut c_void,
+	/// number of rows
 	pub nrows: usize,
+	/// number of columns
 	pub ncols: usize,
+	/// offset from element `(i, j)` to `(i + 1, j)`, in elements; may be negative; zero only when
+	/// `nrows <= 1`
 	pub row_stride: isize,
+	/// offset from element `(i, j)` to `(i, j + 1)`, in elements; may be negative; zero only when
+	/// `ncols <= 1`
 	pub col_stride: isize,
 }
 #[repr(C)]
@@ -153,30 +232,224 @@ fn real<T: RealField>(x: *const Real) -> T {
 	unsafe { (x as *const T).read() }
 }
 impl MatRef {
+	/// The structural part of the [`MatRef`] contract, as a runtime check. Kept symmetric with
+	/// [`MatMut::is_valid`]; the entry points that take a `MatRef` check the whole argument list
+	/// through `views_are_valid`, so only the tests call this directly.
+	#[allow(dead_code)]
+	fn is_valid<T>(self) -> bool {
+		ViewHeader::from(self).is_valid::<T>()
+	}
+
+	/// Builds the Rust view, canonicalizing the cases the C contract leaves unspecified.
 	fn faer<'a, T>(self) -> colmat::MatRef<'a, T> {
+		// An empty view addresses no element. C callers naturally spell it as a zeroed struct or
+		// as `{NULL, n, 0, ...}`, while upstream requires a non-null, aligned pointer even for a
+		// zero-sized matrix: use the canonical dangling pointer and zero the strides so that no
+		// row/column walk computes an offset. A null pointer on a non-empty view is a contract
+		// violation; entry points that report a status reject it before they get here, and an
+		// unvalidated one gets the canonical empty view instead of immediate undefined behavior.
+		let (ptr, nrows, ncols, row_stride, col_stride) =
+			if self.nrows == 0 || self.ncols == 0 {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr() as *const T,
+					self.nrows,
+					self.ncols,
+					0,
+					0,
+				)
+			} else if self.ptr.is_null() {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr() as *const T,
+					0,
+					0,
+					0,
+					0,
+				)
+			} else {
+				(
+					self.ptr as *const T,
+					self.nrows,
+					self.ncols,
+					self.row_stride,
+					self.col_stride,
+				)
+			};
 		unsafe {
 			colmat::MatRef::from_raw_parts(
-				self.ptr as *const T,
-				self.nrows,
-				self.ncols,
-				self.row_stride,
-				self.col_stride,
+				ptr, nrows, ncols, row_stride, col_stride,
 			)
 		}
 	}
 }
 impl MatMut {
+	/// The structural part of the [`MatMut`] contract, as a runtime check.
+	fn is_valid<T>(self) -> bool {
+		ViewHeader::from(self).is_valid::<T>()
+	}
+
+	/// Builds the Rust view, canonicalizing the cases the C contract leaves unspecified.
+	///
+	/// See [`MatRef::faer`]; the same empty-view and null-pointer normalization applies.
 	fn faer<'a, T>(self) -> colmat::MatMut<'a, T> {
+		let (ptr, nrows, ncols, row_stride, col_stride) =
+			if self.nrows == 0 || self.ncols == 0 {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr(),
+					self.nrows,
+					self.ncols,
+					0,
+					0,
+				)
+			} else if self.ptr.is_null() {
+				(core::ptr::NonNull::<T>::dangling().as_ptr(), 0, 0, 0, 0)
+			} else {
+				(
+					self.ptr as *mut T,
+					self.nrows,
+					self.ncols,
+					self.row_stride,
+					self.col_stride,
+				)
+			};
 		unsafe {
 			colmat::MatMut::from_raw_parts_mut(
-				self.ptr as *mut T,
-				self.nrows,
-				self.ncols,
-				self.row_stride,
-				self.col_stride,
+				ptr, nrows, ncols, row_stride, col_stride,
 			)
 		}
 	}
+}
+/// The header fields of either view type, so that validation has one spelling for both.
+#[derive(Copy, Clone)]
+struct ViewHeader {
+	ptr: *const c_void,
+	nrows: usize,
+	ncols: usize,
+	row_stride: isize,
+	col_stride: isize,
+}
+impl From<MatRef> for ViewHeader {
+	fn from(v: MatRef) -> Self {
+		Self {
+			ptr: v.ptr,
+			nrows: v.nrows,
+			ncols: v.ncols,
+			row_stride: v.row_stride,
+			col_stride: v.col_stride,
+		}
+	}
+}
+impl From<MatMut> for ViewHeader {
+	fn from(v: MatMut) -> Self {
+		Self {
+			ptr: v.ptr,
+			nrows: v.nrows,
+			ncols: v.ncols,
+			row_stride: v.row_stride,
+			col_stride: v.col_stride,
+		}
+	}
+}
+impl ViewHeader {
+	fn is_empty(self) -> bool {
+		self.nrows == 0 || self.ncols == 0
+	}
+
+	/// The structural conditions from the [`MatRef`] / [`MatMut`] contract: null only when empty,
+	/// alignment, a non-zero stride across an extent above one, and `size_t` / `ptrdiff_t` overflow.
+	/// Allocation bounds and general intra-view collisions are not checkable here.
+	fn is_valid<T>(self) -> bool {
+		if self.is_empty() {
+			return true;
+		}
+		if self.ptr.is_null()
+			|| !(self.ptr as usize).is_multiple_of(core::mem::align_of::<T>())
+		{
+			return false;
+		}
+		if (self.nrows > 1 && self.row_stride == 0)
+			|| (self.ncols > 1 && self.col_stride == 0)
+		{
+			return false;
+		}
+		if self.nrows.checked_mul(self.ncols).is_none() {
+			return false;
+		}
+		let (Some(rows), Some(cols)) = (
+			isize::try_from(self.nrows - 1).ok(),
+			isize::try_from(self.ncols - 1).ok(),
+		) else {
+			return false;
+		};
+		let row = rows as i128 * self.row_stride as i128;
+		let col = cols as i128 * self.col_stride as i128;
+		let low = row.min(0) + col.min(0);
+		let high = row.max(0) + col.max(0);
+		(isize::MIN as i128..=isize::MAX as i128).contains(&low)
+			&& (isize::MIN as i128..=isize::MAX as i128).contains(&high)
+	}
+
+	/// The byte range `[low, high]` covered by this view when its elements are contiguous, or
+	/// `None` when they are not. Used only to *prove* overlap; an unknown layout is never rejected.
+	fn contiguous_byte_range<T>(self) -> Option<(i128, i128)> {
+		if self.is_empty() {
+			return None;
+		}
+		let (rows, cols) = (self.nrows - 1, self.ncols - 1);
+		let contiguous = match (rows == 0, cols == 0) {
+			(true, true) => true,
+			(false, true) => self.row_stride == 1 || self.row_stride == -1,
+			(true, false) => self.col_stride == 1 || self.col_stride == -1,
+			(false, false) => {
+				let (nrows, ncols) = (self.nrows as i128, self.ncols as i128);
+				(self.row_stride == 1 && self.col_stride as i128 == nrows)
+					|| (self.row_stride == -1
+						&& self.col_stride as i128 == -nrows)
+					|| (self.col_stride == 1
+						&& self.row_stride as i128 == ncols)
+					|| (self.col_stride == -1
+						&& self.row_stride as i128 == -ncols)
+			},
+		};
+		if !contiguous {
+			return None;
+		}
+		let row = rows as i128 * self.row_stride as i128;
+		let col = cols as i128 * self.col_stride as i128;
+		let size = core::mem::size_of::<T>() as i128;
+		let base = self.ptr as usize as i128;
+		let low = base + row.min(0) * size + col.min(0) * size;
+		let high = base + row.max(0) * size + col.max(0) * size + (size - 1);
+		Some((low, high))
+	}
+}
+
+/// Whether two non-empty views provably share a byte: equal base pointers, or contiguous ranges
+/// that intersect. Anything else is left to the caller (a full check is not cheap).
+fn views_overlap<T>(a: ViewHeader, b: ViewHeader) -> bool {
+	if a.is_empty() || b.is_empty() {
+		return false;
+	}
+	if a.ptr == b.ptr {
+		return true;
+	}
+	match (
+		a.contiguous_byte_range::<T>(),
+		b.contiguous_byte_range::<T>(),
+	) {
+		(Some((a_low, a_high)), Some((b_low, b_high))) => {
+			a_low <= b_high && b_low <= a_high
+		},
+		_ => false,
+	}
+}
+
+/// The structural check plus pairwise disjointness of every matrix-view argument.
+fn views_are_valid<T>(views: &[ViewHeader]) -> bool {
+	views.iter().all(|v| v.is_valid::<T>())
+		&& (0..views.len()).all(|i| {
+			((i + 1)..views.len())
+				.all(|j| !views_overlap::<T>(views[i], views[j]))
+		})
 }
 #[allow(dead_code)]
 impl VecRef {
@@ -457,10 +730,27 @@ macro_rules! funcs {
 			$(
 				#[unsafe(no_mangle)]
 				/// # Safety
-				/// The caller must pass valid pointers and the lengths that describe them, as the operation
-				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
-				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
-				/// only the overlap the operation allows.
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _ $ty0_list>] $inputs -> $output_ty { type $ty0 = $ty0_list;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -477,10 +767,27 @@ macro_rules! funcs {
 			$(
 				#[unsafe(no_mangle)]
 				/// # Safety
-				/// The caller must pass valid pointers and the lengths that describe them, as the operation
-				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
-				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
-				/// only the overlap the operation allows.
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u32_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u32;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -488,10 +795,27 @@ macro_rules! funcs {
 			$(
 				#[unsafe(no_mangle)]
 				/// # Safety
-				/// The caller must pass valid pointers and the lengths that describe them, as the operation
-				/// documents. Every buffer must stay alive for the duration of the call; read-only inputs may
-				/// alias each other, but every output and scratch buffer must be exclusively borrowed, with
-				/// only the overlap the operation allows.
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u64_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u64;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -515,6 +839,9 @@ macro_rules! cerr {
 			Ok {$($field: $field_ty,)*},
 			$($err {$($err_field: $err_field_ty,)*},)*
 			Unknown,
+			/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+			/// `FaerV0_24_MatMut`
+			InvalidView,
 		}
 
 		#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
@@ -732,20 +1059,41 @@ pub mod linalg {
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum SvdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum EvdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum GevdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
 	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<SvdStatus> for Result<(), la::svd::SvdError> {
@@ -1172,6 +1520,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LltParams,
 		) -> LltStatus {
+			if !A.is_valid::<T>() {
+				return LltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::llt::factor::cholesky_in_place::<T>(
 					A.faer(),
@@ -1274,6 +1625,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: PivLltParams,
 		) -> PivLltStatus {
+			if !A.is_valid::<T>() {
+				return PivLltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::llt_pivoting::factor::cholesky_in_place::<I, T>(
 					A.faer(),
@@ -1403,6 +1757,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LdltParams,
 		) -> LdltStatus {
+			if !A.is_valid::<T>() {
+				return LdltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::ldlt::factor::cholesky_in_place::<T>(
 					A.faer(),
@@ -1521,6 +1878,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LbltParams,
 		) -> LbltStatus {
+			if !A.is_valid::<T>() {
+				return LbltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::cholesky::lblt::factor::cholesky_in_place::<I, T>(
 					A.faer(),
@@ -1784,6 +2144,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: QrParams,
 		) -> QrStatus {
+			if !views_are_valid::<T>(&[A.into(), Q_coeff.into()]) {
+				return QrStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::qr::no_pivoting::factor::qr_in_place::<T>(
 					A.faer(),
@@ -1993,6 +2356,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: ColPivQrParams,
 		) -> ColPivQrStatus {
+			if !views_are_valid::<T>(&[A.into(), Q_coeff.into()]) {
+				return ColPivQrStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::qr::col_pivoting::factor::qr_in_place::<I, T>(
 					A.faer(),
@@ -2236,6 +2602,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: PartialPivLuParams,
 		) -> PartialPivLuStatus {
+			if !A.is_valid::<T>() {
+				return PartialPivLuStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::lu::partial_pivoting::factor::lu_in_place::<I, T>(
 					A.faer(),
@@ -2421,6 +2790,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: FullPivLuParams,
 		) -> FullPivLuStatus {
+			if !A.is_valid::<T>() {
+				return FullPivLuStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::lu::full_pivoting::factor::lu_in_place::<I, T>(
 					A.faer(),
@@ -2636,6 +3008,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: SvdParams,
 		) -> SvdStatus {
+			if !views_are_valid::<T>(&[A.into(), U.into(), V.into()]) {
+				return SvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				let U = if U.ncols == 0 { None } else { Some(U.faer()) };
 				let V = if V.ncols == 0 { None } else { Some(V.faer()) };
@@ -2674,6 +3049,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: SelfAdjointEvdParams,
 		) -> EvdStatus {
+			if !views_are_valid::<T>(&[A.into(), U.into()]) {
+				return EvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				let U = if U.ncols == 0 { None } else { Some(U.faer()) };
 				la::evd::self_adjoint_evd::<T>(
@@ -2714,6 +3092,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: EvdParams,
 		) -> EvdStatus {
+			if !views_are_valid::<T>(&[A.into(), UL.into(), UR.into()]) {
+				return EvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				type R = <T as colmat::traits::ComplexField>::Real;
 				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
@@ -2775,6 +3156,14 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: GevdParams,
 		) -> GevdStatus {
+			if !views_are_valid::<T>(&[
+				A.into(),
+				B.into(),
+				UL.into(),
+				UR.into(),
+			]) {
+				return GevdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				type R = <T as colmat::traits::ComplexField>::Real;
 				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
@@ -3793,5 +4182,183 @@ mod tests {
 			"a null handle must be sequential"
 		);
 		unsafe { libfaer_v0_23_team_destroy(team) };
+	}
+
+	/// The structural view check accepts what the C contract allows (empty views, a zero stride
+	/// across an extent of one) and rejects what it forbids (null on a non-empty view, a
+	/// misaligned pointer, a zero stride across an extent above one).
+	#[test]
+	fn the_structural_view_check_matches_the_documented_contract() {
+		let mut data = [0.0f64; 8];
+		let valid = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(valid.is_valid::<f64>());
+		assert!(
+			!MatMut {
+				row_stride: 0,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a zero row stride over two rows is not a matrix"
+		);
+		assert!(
+			MatMut {
+				nrows: 1,
+				row_stride: 0,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a zero stride over one row still addresses one element per column"
+		);
+		assert!(
+			!MatMut {
+				ptr: unsafe { (data.as_mut_ptr() as *mut u8).add(1) }
+					as *mut c_void,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a misaligned pointer is rejected"
+		);
+		assert!(
+			!MatMut {
+				ptr: core::ptr::null_mut(),
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a null pointer on a non-empty view is rejected"
+		);
+		let empty = MatRef {
+			ptr: core::ptr::null(),
+			nrows: 0,
+			ncols: 3,
+			row_stride: -7,
+			col_stride: 0,
+		};
+		assert!(
+			empty.is_valid::<f64>(),
+			"an empty view may use a null pointer"
+		);
+		let view = empty.faer::<f64>();
+		assert_eq!(view.ncols(), 3, "the empty view keeps its shape");
+		assert!(
+			!view.as_ptr().is_null(),
+			"an empty view gets a dangling pointer"
+		);
+		assert_eq!(
+			view.as_ptr() as usize % core::mem::align_of::<f64>(),
+			0,
+			"the dangling pointer is aligned"
+		);
+	}
+
+	/// Overlap is rejected only where it can be proved cheaply: the same base pointer, or two
+	/// contiguous byte ranges that intersect. A layout the check cannot see is not rejected.
+	#[test]
+	fn only_provable_view_overlaps_are_rejected() {
+		let mut data = [0.0f64; 8];
+		let base = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		let same = MatMut { ..base };
+		assert!(
+			!views_are_valid::<f64>(&[base.into(), same.into()]),
+			"two views with one base pointer overlap at (0, 0)"
+		);
+		let second = MatMut {
+			ptr: unsafe { data.as_mut_ptr().add(4) } as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(
+			views_are_valid::<f64>(&[base.into(), second.into()]),
+			"two disjoint contiguous views are accepted"
+		);
+		let crossing = MatMut {
+			ptr: unsafe { data.as_mut_ptr().add(1) } as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(
+			!views_are_valid::<f64>(&[base.into(), crossing.into()]),
+			"two contiguous ranges that intersect are rejected"
+		);
+	}
+
+	/// The finding this change closes: a zero row stride used to reach a status-returning entry
+	/// point and come back as `Ok`. The validation now runs before the scratch buffer is touched,
+	/// which is why a null `mem` here is enough to make the point.
+	#[test]
+	fn a_structurally_invalid_view_is_reported_as_invalid_view() {
+		let mut data = [0.0f64; 4];
+		let invalid = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 0,
+			col_stride: 1,
+		};
+		let params = unsafe { la::libfaer_v0_23_QrParams_f64() };
+		let mem = MemAlloc {
+			ptr: core::ptr::null_mut(),
+			len_bytes: 0,
+		};
+		let status = unsafe {
+			la::libfaer_v0_23_qr_factor_in_place_f64(
+				invalid,
+				invalid,
+				core::ptr::null(),
+				mem,
+				params,
+			)
+		};
+		assert!(
+			matches!(status, la::QrStatus::InvalidView),
+			"a zero row stride must not come back as Ok"
+		);
+	}
+
+	/// Two structurally valid outputs that share a base pointer are still rejected, again before
+	/// the scratch buffer or the params are read.
+	#[test]
+	fn overlapping_mutable_outputs_are_reported_as_invalid_view() {
+		let mut data = [0.0f64; 4];
+		let output = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		let params = unsafe { la::libfaer_v0_23_QrParams_f64() };
+		let mem = MemAlloc {
+			ptr: core::ptr::null_mut(),
+			len_bytes: 0,
+		};
+		let status = unsafe {
+			la::libfaer_v0_23_qr_factor_in_place_f64(
+				output,
+				output,
+				core::ptr::null(),
+				mem,
+				params,
+			)
+		};
+		assert!(
+			matches!(status, la::QrStatus::InvalidView),
+			"two outputs over the same memory must not come back as Ok"
+		);
 	}
 }
