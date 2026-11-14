@@ -320,6 +320,144 @@ pub(crate) fn column_major_copy<T: ComplexField>(
 	unsafe { buf.set_len(len) };
 	buf
 }
+/// Runs `fill(j0, j1)` over column ranges that cover `0..n`, on the team when the copy
+/// split ([`copy_tasks`]) gives more than one task, else on the caller.
+fn for_column_ranges(n: usize, par: Par, fill: impl Sync + Fn(usize, usize)) {
+	#[cfg(feature = "rayon")]
+	{
+		let (chunk, n_tasks) =
+			copy_tasks(n, crate::utils::thread::parallelism_degree(&par));
+		if n_tasks > 1 {
+			crate::utils::thread::for_each(
+				par,
+				n_tasks,
+				rayon::iter::IntoParallelIterator::into_par_iter(0..n_tasks),
+				|t| fill(t * chunk, Ord::min((t + 1) * chunk, n)),
+			);
+			return;
+		}
+	}
+	let _ = par;
+	fill(0, n);
+}
+
+/// An owned column-major copy of `src`, bit for bit [`MatRef::to_owned`]'s, built on `par`:
+/// the allocation is left uninitialised and each thread writes its own columns, so the pages
+/// are first touched, and the copy runs, on the team instead of as a serial pass on the
+/// caller (tensor4all/colmat-rs#191: the owning `PartialPivLu::new` spent more time in its
+/// copies than in the factorization at 1024 on 8 threads). A row-major `src` is copied in
+/// [`copy_across_layouts_block`] tiles, one tile of columns after its zeroing.
+pub(crate) fn owned_copy<T: ComplexField>(
+	src: MatRef<'_, T>,
+	par: Par,
+) -> Mat<T> {
+	let (m, n) = src.shape();
+	let mut out = Mat::<T>::with_capacity(m, n);
+	let ld = out.col_stride() as usize;
+	let base = SendPtr(out.as_ptr_mut());
+	let row_major = src.col_stride().unsigned_abs() == 1
+		&& src.row_stride().unsigned_abs() != 1;
+	// SAFETY: the capacity holds `ld * n` elements with `ld >= m`; every task writes the `m`
+	// leading elements of its own columns (`j0..j1`, disjoint across tasks) before any view of
+	// them is formed, and `set_dims` runs once every column is written.
+	let fill = |j0: usize, j1: usize| unsafe {
+		if row_major {
+			let mut t0 = j0;
+			while t0 < j1 {
+				let t1 = Ord::min(t0 + COPY_TILE, j1);
+				for j in t0..t1 {
+					let col = base.get().add(j * ld);
+					for i in 0..m {
+						col.add(i).write(zero::<T>());
+					}
+				}
+				copy_across_layouts_block(
+					MatMut::from_raw_parts_mut(
+						base.get().add(t0 * ld),
+						m,
+						t1 - t0,
+						1,
+						ld as isize,
+					),
+					src.subcols(t0, t1 - t0),
+				);
+				t0 = t1;
+			}
+		} else {
+			for j in j0..j1 {
+				let col = base.get().add(j * ld);
+				for i in 0..m {
+					col.add(i).write(src[(i, j)].copy());
+				}
+			}
+		}
+	};
+	for_column_ranges(n, par, fill);
+	unsafe { out.set_dims(m, n) };
+	out
+}
+
+/// The `(L, U)` split of a packed `m x n` LU (unit lower trapezoidal `L`, upper trapezoidal
+/// `U`), the same values as the serial split, built on `par`: the new square factor is
+/// allocated uninitialised and written once, each column by one thread, and the packed matrix
+/// becomes the other factor in place (tensor4all/colmat-rs#191).
+pub(crate) fn split_lu_owned<T: ComplexField>(
+	LU: Mat<T>,
+	par: Par,
+) -> (Mat<T>, Mat<T>) {
+	let (m, n) = LU.shape();
+	let size = Ord::min(m, n);
+	let mut packed = LU;
+	let ld_p = packed.col_stride() as usize;
+	let p = SendPtr(packed.as_ptr_mut());
+	let mut square = Mat::<T>::with_capacity(size, size);
+	let ld_s = square.col_stride() as usize;
+	let s = SendPtr(square.as_ptr_mut());
+	let tall = m >= n;
+	// SAFETY: column `j` of both matrices is touched by the one task whose range holds `j`; the
+	// packed matrix is initialised and is assigned to, the square one is written before it is
+	// read, and `set_dims` runs once every column is written.
+	let fill = |j0: usize, j1: usize| unsafe {
+		for j in j0..j1 {
+			let pc = p.get().add(j * ld_p);
+			let sc = s.get().add(j * ld_s);
+			if tall {
+				// square = U: the upper triangle of the packed one, zeros below the diagonal;
+				// packed = L: zeros above the diagonal, ones on it
+				for i in 0..=j {
+					sc.add(i).write((*pc.add(i)).copy());
+				}
+				for i in j + 1..size {
+					sc.add(i).write(zero::<T>());
+				}
+				for i in 0..j {
+					*pc.add(i) = zero::<T>();
+				}
+				*pc.add(j) = one::<T>();
+			} else {
+				// square = L: zeros above the diagonal, ones on it, the packed strict lower
+				// triangle below; packed = U: zeros below the diagonal
+				for i in 0..j {
+					sc.add(i).write(zero::<T>());
+				}
+				sc.add(j).write(one::<T>());
+				for i in j + 1..size {
+					sc.add(i).write((*pc.add(i)).copy());
+				}
+				for i in j + 1..m {
+					*pc.add(i) = zero::<T>();
+				}
+			}
+		}
+	};
+	for_column_ranges(size, par, fill);
+	unsafe { square.set_dims(size, size) };
+	if tall {
+		(packed, square)
+	} else {
+		(square, packed)
+	}
+}
 /// The base of [`column_major_copy`]'s buffer, handed to the threads that
 /// initialise disjoint ranges of it.
 struct SendPtr<T>(*mut T);

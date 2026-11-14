@@ -1190,9 +1190,15 @@ impl<T: ComplexField> PartialPivLu<T> {
 	#[track_caller]
 	pub fn new<C: Conjugate<Canonical = T>>(
 		A: MatRef<'_, C>,
-		par: Par<'_>,
+		mut par: Par<'_>,
 	) -> Self {
-		let LU = A.to_owned();
+		// the copy and the split in `new_imp` run on `par` (#191): at 1024 on 8 threads they were
+		// longer than the factorization while they ran on the caller
+		let LU = if const { C::IS_CANONICAL } {
+			linalg::owned_copy(A.canonical(), par.reborrow())
+		} else {
+			A.to_owned()
+		};
 		Self::new_imp(LU, par)
 	}
 
@@ -1215,7 +1221,7 @@ impl<T: ComplexField> PartialPivLu<T> {
 			)),
 			default(),
 		);
-		let (L, U) = split_LU(LU);
+		let (L, U) = linalg::split_lu_owned(LU, par);
 		Self {
 			L,
 			U,
@@ -3293,6 +3299,107 @@ mod tests {
 		);
 	}
 
+	/// `PartialPivLu::new` copies and splits on its `par` (#191): the factors and the permutation
+	/// must be the serial copy and split of the same `lu_in_place`, bit for bit, for square, tall
+	/// and wide shapes, column-major and row-major inputs, a conjugated input (the serial copy) and
+	/// teams of 1, 3 and 8 (column ranges that do not divide the width).
+	#[test]
+	fn partial_piv_lu_new_matches_the_serial_split() {
+		let rng = &mut StdRng::seed_from_u64(0x5917);
+		for (m, n) in [
+			(0usize, 0usize),
+			(1, 1),
+			(17, 17),
+			(100, 100),
+			(130, 70),
+			(70, 130),
+			(257, 33),
+			(33, 257),
+		] {
+			let A = CwiseMatDistribution {
+				nrows: m,
+				ncols: n,
+				dist: ComplexDistribution::new(StandardNormal, StandardNormal),
+			}
+			.rand::<Mat<c64>>(rng);
+			let At = A.transpose().to_owned();
+			let row_major = At.transpose();
+			// the reference: the serial copy, the factorization, the serial split
+			let reference = |A: MatRef<'_, c64>| {
+				let mut LU = A.to_owned();
+				let mut fwd = vec![0usize; m];
+				let mut bwd = vec![0usize; m];
+				linalg::lu::partial_pivoting::factor::lu_in_place(
+					LU.as_mut(),
+					&mut fwd,
+					&mut bwd,
+					Par::Seq,
+					MemStack::new(&mut MemBuffer::new(linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<usize, c64>(
+						m,
+						n,
+						Par::Seq.shape(),
+						default(),
+					))),
+					default(),
+				);
+				let (L, U) = split_LU(LU);
+				(L, U, fwd)
+			};
+			let bits = |M: MatRef<'_, c64>| -> Vec<(u64, u64)> {
+				(0..M.ncols())
+					.flat_map(|j| (0..M.nrows()).map(move |i| (i, j)))
+					.map(|(i, j)| {
+						(M[(i, j)].re.to_bits(), M[(i, j)].im.to_bits())
+					})
+					.collect()
+			};
+			for (label, src) in
+				[("col-major", A.as_ref()), ("row-major", row_major)]
+			{
+				let (L_ref, U_ref, p_ref) = reference(src);
+				for width in [1usize, 3, 8] {
+					crate::team::with_team(width, |par| {
+						let lu = PartialPivLu::new(src, par);
+						assert!(
+							lu.L().shape() == L_ref.shape(),
+							"{label} {m}x{n} width={width}: L shape"
+						);
+						assert!(
+							lu.U().shape() == U_ref.shape(),
+							"{label} {m}x{n} width={width}: U shape"
+						);
+						assert!(
+							bits(lu.L()) == bits(L_ref.as_ref()),
+							"{label} {m}x{n} width={width}: L bits"
+						);
+						assert!(
+							bits(lu.U()) == bits(U_ref.as_ref()),
+							"{label} {m}x{n} width={width}: U bits"
+						);
+						assert!(
+							lu.P().arrays().0 == &p_ref[..],
+							"{label} {m}x{n} width={width}: permutation"
+						);
+					});
+				}
+			}
+			// a conjugated input takes the serial copy; its factors are those of the conjugate
+			let conj = A.conjugate();
+			let (L_ref, U_ref, _) =
+				reference(A.conjugate().to_owned().as_ref());
+			crate::team::with_team(3, |par| {
+				let lu = PartialPivLu::new(conj, par);
+				assert!(
+					bits(lu.L()) == bits(L_ref.as_ref()),
+					"conjugate {m}x{n}: L bits"
+				);
+				assert!(
+					bits(lu.U()) == bits(U_ref.as_ref()),
+					"conjugate {m}x{n}: U bits"
+				);
+			});
+		}
+	}
 	#[track_caller]
 	fn test_solver(A: MatRef<'_, c64>, A_dec: impl SolveCore<c64>) {
 		#[track_caller]
