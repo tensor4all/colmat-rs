@@ -5,6 +5,8 @@
 
 [![documentation](https://docs.rs/colmat/badge.svg)](https://docs.rs/colmat)
 [![crate](https://img.shields.io/crates/v/colmat.svg)](https://crates.io/crates/colmat)
+[![ci](https://github.com/tensor4all/colmat-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tensor4all/colmat-rs/actions/workflows/ci.yml)
+[![code quality](https://github.com/tensor4all/colmat-rs/actions/workflows/code-quality.yml/badge.svg?branch=main)](https://github.com/tensor4all/colmat-rs/actions/workflows/code-quality.yml)
 
 `colmat` is a pure-Rust dense and sparse linear algebra library for scientific and HPC work. It
 began as the linear algebra backend of [tenferro](https://github.com/tensor4all/tenferro-rs) and the

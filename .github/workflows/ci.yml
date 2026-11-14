@@ -59,3 +59,47 @@ jobs:
           }
           C
           cc -std=c11 -Wall -Wextra -Werror -Ifaer-ffi -c "$RUNNER_TEMP/faer_ffi_smoke.c" -o "$RUNNER_TEMP/faer_ffi_smoke.o"
+
+  # Coverage floor (#184). `cargo llvm-cov` over the whole workspace, failing below a checked-in
+  # number. The number is a measurement, not an aim: on 2026-11-14 this exact command ran 1089 tests
+  # (166 `#[ignore]`d ones skipped) and covered 79272 of 95861 lines = 82.694 %, twice with identical
+  # counts on a 32-thread x86_64 host and once on 4 CPUs. The table's `Lines` column prints the same
+  # ratio as 82.69 %; it is the `Lines` column, not `Regions` (85.21 %) or `Functions` (73.61 %).
+  #
+  # Raise the floor when coverage improves. Lowering it needs a maintainer's decision stated in the PR,
+  # and bumping the toolchain pin below means re-measuring it in the same PR. Nothing is excluded:
+  # `faer-macros` reads 0 % because proc-macro code runs inside rustc, and `faer-ffi`/`faer-traits` are
+  # covered by their own tests, so no crate is hidden behind an `--ignore-filename-regex`.
+  #
+  # The toolchain is pinned twice on purpose: `rust-toolchain.toml` outranks the action and carries
+  # only `clippy`/`rustfmt`, so a channel bump there would otherwise run this job on a compiler without
+  # `llvm-tools-preview` and move the number. Doctests are not measured (nextest does not run them);
+  # see `docs/coverage.md`.
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RUSTUP_TOOLCHAIN: "1.96.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          # The action tag moves; the tools it installs are the pinned part.
+          tool: cargo-llvm-cov@0.9.1,cargo-nextest@0.9.151
+      # The report is published twice: in the log and in the job summary, so a red check shows which
+      # file moved without a rerun. `pipefail` keeps the gate's exit status through `tee`. Exact
+      # uncovered line numbers are a local rerun with `--show-missing-lines` (16k lines, see
+      # `docs/coverage.md`), not something to paste into every log.
+      - name: Coverage floor
+        run: |
+          set -o pipefail
+          {
+            echo '```'
+            cargo llvm-cov nextest --workspace --all-targets --locked --fail-under-lines 82.694
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
