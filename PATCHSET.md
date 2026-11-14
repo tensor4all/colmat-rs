@@ -3,6 +3,14 @@
 The ledger of the experiments this fork runs. It records the diff against
 upstream `faer`.
 
+## Pending EVD experiment
+
+- **EXPERIMENT**: independent divide-and-conquer EVD weight and eigenvector
+  column repairs run on the caller-owned team ([#84](https://github.com/tensor4all/colmat-rs/issues/84)).
+  Tridiagonal reduction is unchanged. Local f64 512/8T paired reference scan:
+  whole-call ratio 0.7502; host-only estimates, campaign and 64-core validation
+  still pending. [Isolation, evidence and limits](docs/worklogs/2026-11-14-eigh-parallel-repair.md).
+
 ## Pending public API extension
 
 - EXPERIMENT: owned `Mat::row_capacity/col_capacity` and
