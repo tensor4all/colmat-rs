@@ -279,6 +279,8 @@ fn lu_in_place_unblocked_scalar<I: Index, T: ComplexField>(
 /// second runs on caches the first filled or evicted, so the two are counted as the cold-region
 /// rule of the thresholds design (provisional).
 const TRAILING_UPDATE_SECTIONS: u32 = 2;
+/// Fewest columns of the right half one member swaps and solves in a trailing update.
+const MIN_CHUNK_COLS: usize = 2;
 /// Sections of the swap stage of one level when both the columns left of the panel and the
 /// columns right of it are swapped: the two blocks one after the other, each a split of its
 /// columns; memory bound, so a section costs more than its share of the work (provisional,
@@ -520,7 +522,10 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 				Par::Seq => swap_and_solve(A_r.rb_mut()),
 				#[cfg(feature = "rayon")]
 				_ => {
-					let k = par_here.degree();
+					// at least MIN_CHUNK_COLS columns per chunk: a one-column solve and product take the
+					// matrix-vector route, which rounds differently from the same column inside a wider
+					// call, so a split into single columns would change the factor's bits (#191)
+					let k = Ord::min(par_here.degree(), Ord::max(1, A_r.ncols() / MIN_CHUNK_COLS));
 					crate::utils::thread::for_each(
 						par_here.reborrow(),
 						k,
@@ -688,15 +693,32 @@ pub enum LdltError {
 /// | 4096, 1 | 614.7 | 615.3 | 619.9 | 630.2 |
 /// | 4096, 8 | 101.7 | 102.6 | 107.6 | 119.5 |
 ///
-/// 8 wins or ties everywhere (4 is within 2 %, ahead at large n and behind at 256). The other scalar
-/// types keep 16: they were not scanned.
+/// 8 wins or ties everywhere (4 is within 2 %, ahead at large n and behind at 256).
 const F64_RECURSION_THRESHOLD: usize = 8;
+/// Width of the unblocked leaf panel for `c64` (tensor4all/colmat-rs#191). The leaves are the serial
+/// part of a team call here too, and a complex column costs four times the arithmetic of a real one,
+/// so at 16 they were 30 % of an 8-thread factorization at n = 1024 (2.45 of 8.22 ms). Median of 15
+/// calls, ms, column-major, a team of `T` on one L3 domain; evo2 (Zen 5):
+///
+/// | n, T    | 16    | 8     | 4     |
+/// |---------|-------|-------|-------|
+/// | 512, 1  | 5.298 | 5.292 | 5.327 |
+/// | 512, 8  | 1.722 | 1.644 | 1.678 |
+/// | 1024, 1 | 37.11 | 36.84 | 36.98 |
+/// | 1024, 8 | 8.155 | 7.788 | 7.893 |
+///
+/// 8 is 4.5 % faster at 8 threads and level at one thread. A different leaf width is a different
+/// blocking, so the factors differ from the 16-wide ones by rounding; they stay the same at every team
+/// width (`lu::tests::par_identity`). `f32` and `c32` keep 16: they were not scanned.
+const C64_RECURSION_THRESHOLD: usize = 8;
 impl<T: ComplexField> Auto<T> for PartialPivLuParams {
 	#[inline]
 	fn auto() -> Self {
 		Self {
 			recursion_threshold: if const { T::IS_NATIVE_F64 } {
 				F64_RECURSION_THRESHOLD
+			} else if const { T::IS_NATIVE_C64 } {
+				C64_RECURSION_THRESHOLD
 			} else {
 				16
 			},
@@ -1312,8 +1334,8 @@ mod tests {
 		crate::team::with_team(8, run);
 	}
 
-	/// The `f64` default leaf is 8 columns (the other types keep 16), and it factors shapes whose
-	/// width leaves a leaf tail, sequentially and on a team: `P A = L U` to rounding.
+	/// The `f64` and `c64` default leaves are 8 columns (`f32` and `c32` keep 16), and they factor
+	/// shapes whose width leaves a leaf tail, sequentially and on a team: `P A = L U` to rounding.
 	fn simd_leaf_picks_the_scalar_pivots_for<T: ComplexField<Real = T> + Copy + PartialEq>(
 		from: impl Fn(f64) -> T,
 	) {
@@ -1365,7 +1387,8 @@ mod tests {
 		assert!(all(
 			rt_f64 == F64_RECURSION_THRESHOLD,
 			rt_f32 == 16,
-			rt_c64 == 16
+			rt_c64 == C64_RECURSION_THRESHOLD,
+			C64_RECURSION_THRESHOLD == 8
 		));
 		let rng = &mut StdRng::seed_from_u64(0x1EAF);
 		for n in [7usize, 8, 9, 17, 100, 257] {
@@ -1414,6 +1437,50 @@ mod tests {
 					err <= tol,
 					"n={n} team={team}: |PA - LU| = {err:e} > {tol:e}"
 				);
+			}
+		}
+	}
+
+	#[test]
+	fn c64_default_leaf_factors() {
+		let rng = &mut StdRng::seed_from_u64(0xC1EAF);
+		for n in [7usize, 8, 9, 15, 16, 17, 100, 257] {
+			let re = CwiseMatDistribution { nrows: n, ncols: n, dist: StandardNormal }.rand::<Mat<f64>>(rng);
+			let im = CwiseMatDistribution { nrows: n, ncols: n, dist: StandardNormal }.rand::<Mat<f64>>(rng);
+			let A = Mat::<c64>::from_fn(n, n, |i, j| c64::new(re[(i, j)], im[(i, j)]));
+			for team in [1usize, 4] {
+				let mut LU = A.clone();
+				let (mut perm, mut inv) = (vec![0usize; n], vec![0usize; n]);
+				crate::team::with_team(team, |par| {
+					lu_in_place(
+						LU.as_mut(),
+						&mut perm,
+						&mut inv,
+						par,
+						MemStack::new(&mut MemBuffer::new(lu_in_place_scratch::<usize, c64>(
+							n,
+							n,
+							ParShape::Seq,
+							default(),
+						))),
+						default(),
+					);
+				});
+				let zero = c64::new(0.0, 0.0);
+				let L = Mat::<c64>::from_fn(n, n, |i, j| {
+					if i > j {
+						LU[(i, j)]
+					} else if i == j {
+						c64::new(1.0, 0.0)
+					} else {
+						zero
+					}
+				});
+				let U = Mat::<c64>::from_fn(n, n, |i, j| if i <= j { LU[(i, j)] } else { zero });
+				let PA = Mat::<c64>::from_fn(n, n, |i, j| A[(perm[i], j)]);
+				let err = (&PA - &L * &U).norm_max();
+				let tol = 64.0 * n as f64 * f64::EPSILON * A.norm_max();
+				assert!(err <= tol, "n={n} team={team}: |PA - LU| = {err:e} > {tol:e}");
 			}
 		}
 	}
