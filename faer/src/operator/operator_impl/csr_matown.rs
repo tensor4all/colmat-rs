@@ -45,7 +45,11 @@ impl<I: Index, T: ComplexField, ViewT: Conjugate<Canonical = T>> BiLinOp<T>
 	for SparseRowMat<I, ViewT>
 {
 	#[inline]
-	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn transpose_apply_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		self.rb().transpose_apply_scratch(rhs_ncols, par)
 	}
 

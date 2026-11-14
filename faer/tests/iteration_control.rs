@@ -1,4 +1,3 @@
-use core::ops::ControlFlow;
 use colmat::dyn_stack::{MemBuffer, MemStack};
 use colmat::matrix_free::{
 	IdentityPrecond, InitialGuessStatus, bicgstab as bi,
@@ -6,6 +5,7 @@ use colmat::matrix_free::{
 };
 use colmat::traits::{ComplexField, math_utils::from_f64};
 use colmat::{Mat, Par, c32, c64};
+use core::ops::ControlFlow;
 
 fn check<T: ComplexField>(tol: f64, value: fn(f64, f64) -> T) {
 	let a = Mat::<T>::from_fn(4, 4, |i, j| {

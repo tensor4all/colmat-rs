@@ -66,6 +66,7 @@ pub fn sparse_sparse_matmul_numeric_scratch<I: Index, T: ComplexField>(
 	temp_mat_scratch::<T>(dst.nrows(), par.degree())
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// performs a numeric matrix multiplication of a sparse matrix `lhs` by a
 /// sparse matrix `rhs` multiplied by `alpha`, and stores or adds the result to
 /// `dst`.
@@ -150,7 +151,7 @@ pub fn sparse_sparse_matmul_numeric<
 		for j in col_start..col_end {
 			for (k, b_k) in iter::zip(rhs.row_idx_of_col(j), rhs.val_of_col(j))
 			{
-				let ref b_k = Conj::apply(b_k) * alpha;
+				let b_k = &(Conj::apply(b_k) * alpha);
 				for (i, a_i) in
 					iter::zip(lhs.row_idx_of_col(k), lhs.val_of_col(k))
 				{
@@ -181,7 +182,7 @@ pub fn sparse_sparse_matmul_numeric<
 			par,
 			nthreads,
 			(0..nthreads).into_par_iter(),
-			|tid| job(tid),
+			job,
 		);
 	});
 	#[cfg(not(feature = "rayon"))]
@@ -205,7 +206,7 @@ pub fn sparse_sparse_matmul<
 	alpha: T,
 	mut par: Par,
 ) -> Result<SparseColMat<I, T>, FaerError> {
-		let par_shape = par.shape();
+	let par_shape = par.shape();
 	assert!(lhs.ncols() == rhs.nrows());
 	let (symbolic, info) =
 		sparse_sparse_matmul_symbolic(lhs.symbolic(), rhs.symbolic())?;
@@ -223,7 +224,10 @@ pub fn sparse_sparse_matmul<
 		&info,
 		par.reborrow(),
 		MemStack::new(&mut MemBuffer::try_new(
-			sparse_sparse_matmul_numeric_scratch::<I, T>(symbolic.rb(), par_shape),
+			sparse_sparse_matmul_numeric_scratch::<I, T>(
+				symbolic.rb(),
+				par_shape,
+			),
 		)?),
 	);
 	Ok(SparseColMat::new(symbolic, val))
@@ -379,10 +383,10 @@ fn sparse_dense_csc_matmul<
 	let mut dst = dst.as_shape_mut(M, N);
 	let lhs = lhs.as_shape(M, K);
 	let rhs = rhs.as_shape(K, N);
-	let ref alpha = alpha;
+	let alpha = &alpha;
 	for j in N.indices() {
 		for depth in K.indices() {
-			let ref rhs_kj = Conj::apply(&rhs[(depth, j)]) * alpha;
+			let rhs_kj = &(Conj::apply(&rhs[(depth, j)]) * alpha);
 			for (i, lhs_ik) in
 				iter::zip(lhs.row_idx_of_col(depth), lhs.val_of_col(depth))
 			{
@@ -429,7 +433,7 @@ fn dense_sparse_csc_matmul<
 		dst.ncols() == rhs.ncols(),
 		lhs.ncols() == rhs.nrows()
 	));
-	let ref alpha = alpha;
+	let alpha = &alpha;
 	let _ = par;
 	with_dim!(M, dst.nrows());
 	with_dim!(N, dst.ncols());
@@ -499,8 +503,10 @@ mod tests {
 			],
 		)
 		.unwrap();
-		let c =
-			crate::team::with_team(12, |par| sparse_sparse_matmul(a.rb(), b.rb(), 2.0, par)).unwrap();
+		let c = crate::team::with_team(12, |par| {
+			sparse_sparse_matmul(a.rb(), b.rb(), 2.0, par)
+		})
+		.unwrap();
 		assert!(c.to_dense() == Scale(2.0) * a.to_dense() * b.to_dense());
 	}
 }

@@ -4,8 +4,8 @@ use crate::internal_prelude::*;
 use crate::row::RowRef;
 use crate::utils::bound::{Dim, Partition};
 use crate::{ContiguousFwd, Idx, IdxInc};
-use equator::{assert, debug_assert};
 use colmat_traits::Real;
+use equator::{assert, debug_assert};
 use generativity::Guard;
 /// see [`super::MatRef`]
 pub struct Ref<
@@ -308,23 +308,23 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// col: i + 1)`). this offset is specified in number of elements, not in
 	/// bytes
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * for each matrix unit, the entire memory region addressed by the matrix
 	///   must be contained
-	/// within a single allocation, accessible in its entirety by the
-	/// corresponding pointer in `ptr`
+	///   within a single allocation, accessible in its entirety by the
+	///   corresponding pointer in `ptr`
 	/// * for each matrix unit, the corresponding pointer must be properly
 	///   aligned,
-	/// even for a zero-sized matrix
+	///   even for a zero-sized matrix
 	/// * the values accessible by the matrix must be initialized at some point
 	///   before they are
-	/// read, or references to them are formed
+	///   read, or references to them are formed
 	/// * no mutable aliasing is allowed. in other words, none of the elements
 	///   accessible by any
-	/// matrix unit may be accessed for writes by any other means for the
-	/// duration of the lifetime `'a`
+	///   matrix unit may be accessed for writes by any other means for the
+	///   duration of the lifetime `'a`
 	///
 	/// # example
 	///
@@ -430,7 +430,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the matrix bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -448,6 +448,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 			.offset(col.unbound() as isize * self.col_stride().element_stride())
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// splits the matrix horizontally and vertically at the given index into
 	/// four corners and returns an array of each submatrix, in the following
 	/// order:
@@ -456,7 +457,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// * bottom left
 	/// * bottom right
 	///
-	/// # safety
+	/// # Safety
 	/// the function panics if any of the following conditions are violated:
 	/// * `row <= self.nrows()`
 	/// * `col <= self.ncols()`
@@ -513,6 +514,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// splits the matrix horizontally at the given row into two parts and
 	/// returns an array of each submatrix, in the following order:
 	/// * top
@@ -555,6 +557,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// splits the matrix vertically at the given column into two parts and
 	/// returns an array of each submatrix, in the following order:
 	/// * left
@@ -794,15 +797,15 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// ```
 	/// use colmat::mat;
 	/// let matrix = mat![
-	/// 	[1.0, 5.0, 9.0], //
-	/// 	[2.0, 6.0, 10.0],
-	/// 	[3.0, 7.0, 11.0],
-	/// 	[4.0, 8.0, 12.0f64],
+	///     [1.0, 5.0, 9.0], //
+	///     [2.0, 6.0, 10.0],
+	///     [3.0, 7.0, 11.0],
+	///     [4.0, 8.0, 12.0f64],
 	/// ];
 	/// let view = matrix.as_ref();
 	/// let submatrix = view.submatrix(
-	/// 	/* row_start: */ 2, /* col_start: */ 1, /* nrows: */ 2,
-	/// 	/* ncols: */ 2,
+	///     /* row_start: */ 2, /* col_start: */ 1, /* nrows: */ 2,
+	///     /* ncols: */ 2,
 	/// );
 	/// let expected = mat![[7.0, 11.0], [8.0, 12.0f64]];
 	/// assert_eq!(expected.as_ref(), submatrix);
@@ -854,10 +857,10 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// ```
 	/// use colmat::mat;
 	/// let matrix = mat![
-	/// 	[1.0, 5.0, 9.0], //
-	/// 	[2.0, 6.0, 10.0],
-	/// 	[3.0, 7.0, 11.0],
-	/// 	[4.0, 8.0, 12.0f64],
+	///     [1.0, 5.0, 9.0], //
+	///     [2.0, 6.0, 10.0],
+	///     [3.0, 7.0, 11.0],
+	///     [4.0, 8.0, 12.0f64],
 	/// ];
 	/// let view = matrix.as_ref();
 	/// let subrows = view.subrows(/* row_start: */ 1, /* nrows: */ 2);
@@ -903,10 +906,10 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// ```
 	/// use colmat::mat;
 	/// let matrix = mat![
-	/// 	[1.0, 5.0, 9.0], //
-	/// 	[2.0, 6.0, 10.0],
-	/// 	[3.0, 7.0, 11.0],
-	/// 	[4.0, 8.0, 12.0f64],
+	///     [1.0, 5.0, 9.0], //
+	///     [2.0, 6.0, 10.0],
+	///     [3.0, 7.0, 11.0],
+	///     [4.0, 8.0, 12.0f64],
 	/// ];
 	/// let view = matrix.as_ref();
 	/// let subcols = view.subcols(/* col_start: */ 2, /* ncols: */ 1);
@@ -1285,6 +1288,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 			.map(MatRef::transpose)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns a reference to the first row and a view over the remaining ones
 	/// if the matrix has at least one row, otherwise `None`
 	#[inline]
@@ -1302,6 +1306,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns a reference to the first column and a view over the remaining
 	/// ones if the matrix has at least one column, otherwise `None`
 	#[inline]
@@ -1319,6 +1324,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns a reference to the last row and a view over the remaining ones
 	/// if the matrix has at least one row, otherwise `None`
 	#[inline]
@@ -1337,6 +1343,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 		}
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns a reference to the last column and a view over the remaining
 	/// ones if the matrix has at least one column, otherwise `None`
 	#[inline]
@@ -1533,7 +1540,7 @@ impl<'a, T, Rows: Shape, Cols: Shape, RStride: Stride, CStride: Stride>
 	/// returns references to the element at the given index, or submatrices if
 	/// either `row` or `col` is a range, without bound checks
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row` must be contained in `[0, self.nrows())`
@@ -1758,10 +1765,10 @@ impl<
 	/// let a = mat![[1.0, 2.0], [3.0, 4.0]];
 	/// let b = mat![[0.0, 5.0], [6.0, 7.0]];
 	/// let c = mat![
-	/// 	[0.0, 5.0, 0.0, 10.0],
-	/// 	[6.0, 7.0, 12.0, 14.0],
-	/// 	[0.0, 15.0, 0.0, 20.0],
-	/// 	[18.0, 21.0, 24.0, 28.0],
+	///     [0.0, 5.0, 0.0, 10.0],
+	///     [6.0, 7.0, 12.0, 14.0],
+	///     [0.0, 15.0, 0.0, 20.0],
+	///     [18.0, 21.0, 24.0, 28.0],
 	/// ];
 	/// let mut dst = Mat::zeros(4, 4);
 	/// kron(dst.as_mut(), a.as_ref(), b.as_ref());
@@ -1897,6 +1904,7 @@ impl<'a, T, Dim: Shape, RStride: Stride, CStride: Stride>
 impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 	MatRef<'a, T, Dim<'ROWS>, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_with<'TOP, 'BOT, 'LEFT, 'RIGHT>(
@@ -1921,6 +1929,7 @@ impl<'ROWS, 'COLS, 'a, T, RStride: Stride, CStride: Stride>
 impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 	MatRef<'a, T, Dim<'ROWS>, Cols, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_rows_with<'TOP, 'BOT>(
@@ -1937,6 +1946,7 @@ impl<'ROWS, 'a, T, Cols: Shape, RStride: Stride, CStride: Stride>
 impl<'COLS, 'a, T, Rows: Shape, RStride: Stride, CStride: Stride>
 	MatRef<'a, T, Rows, Dim<'COLS>, RStride, CStride>
 {
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	#[doc(hidden)]
 	#[inline]
 	pub fn split_cols_with<'LEFT, 'RIGHT>(
@@ -1996,7 +2006,7 @@ impl<'a, T: RealField> MatRef<'a, T, usize, usize> {
 		this.row_iter().for_each(|row| {
 			row.iter().for_each(|val| {
 				if val > max_val {
-					max_val = &val;
+					max_val = val;
 				}
 			});
 		});
@@ -2021,7 +2031,7 @@ impl<'a, T: RealField> MatRef<'a, T, usize, usize> {
 		this.row_iter().for_each(|row| {
 			row.iter().for_each(|val| {
 				if val < min_val {
-					min_val = &val;
+					min_val = val;
 				}
 			});
 		});
@@ -2135,26 +2145,32 @@ mod tests {
 			} else {
 				(m - 1) * rs.unsigned_abs() + (n - 1) * cs.unsigned_abs() + 1
 			};
-			let raw: Vec<f64> = (0..span).map(|k| (k % 37) as f64 * 0.5 - 3.0).collect();
+			let raw: Vec<f64> =
+				(0..span).map(|k| (k % 37) as f64 * 0.5 - 3.0).collect();
 			let base = if m == 0 || n == 0 {
 				0
 			} else {
-				(if rs < 0 { (m - 1) * rs.unsigned_abs() } else { 0 })
-					+ (if cs < 0 { (n - 1) * cs.unsigned_abs() } else { 0 })
+				(if rs < 0 {
+					(m - 1) * rs.unsigned_abs()
+				} else {
+					0
+				}) + (if cs < 0 {
+					(n - 1) * cs.unsigned_abs()
+				} else {
+					0
+				})
 			};
 			let src = unsafe {
-				MatRef::from_raw_parts(
-					raw.as_ptr().add(base),
-					m,
-					n,
-					rs,
-					cs,
-				)
+				MatRef::from_raw_parts(raw.as_ptr().add(base), m, n, rs, cs)
 			};
-			let expected = Mat::from_fn(m, n, |i, j| src.at(i, j).clone());
+			let expected = Mat::from_fn(m, n, |i, j| *src.at(i, j));
 			let got = src.cloned();
 			if got.nrows() != m || got.ncols() != n {
-				panic!("cloned {m}x{n}: shape is {}x{}", got.nrows(), got.ncols());
+				panic!(
+					"cloned {m}x{n}: shape is {}x{}",
+					got.nrows(),
+					got.ncols()
+				);
 			}
 			for j in 0..n {
 				for i in 0..m {

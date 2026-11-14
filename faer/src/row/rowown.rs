@@ -33,11 +33,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 	/// function
 	#[inline]
 	pub fn from_fn(ncols: Cols, f: impl FnMut(Idx<Cols>) -> T) -> Self {
-		Self {
-			0: Own {
-				trans: Col::from_fn(ncols, f),
-			},
-		}
+		Self(Own {
+			trans: Col::from_fn(ncols, f),
+		})
 	}
 
 	/// returns a new row with dimension `ncols`, filled with zeros
@@ -46,11 +44,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 	where
 		T: ComplexField,
 	{
-		Self {
-			0: Own {
-				trans: Col::zeros(ncols),
-			},
-		}
+		Self(Own {
+			trans: Col::zeros(ncols),
+		})
 	}
 
 	/// returns a new row with dimension `ncols`, filled with ones
@@ -59,11 +55,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 	where
 		T: ComplexField,
 	{
-		Self {
-			0: Own {
-				trans: Col::ones(ncols),
-			},
-		}
+		Self(Own {
+			trans: Col::ones(ncols),
+		})
 	}
 
 	/// returns a new row with dimension `ncols`, filled with `value`
@@ -72,11 +66,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 	where
 		T: Clone,
 	{
-		Self {
-			0: Own {
-				trans: Col::full(ncols, value),
-			},
-		}
+		Self(Own {
+			trans: Col::full(ncols, value),
+		})
 	}
 
 	/// reserves the minimum capacity for `col_capacity` columns without
@@ -210,6 +202,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 		self.rb().ptr_at(col)
 	}
 
+	///
+	/// # Safety
+	/// `col` must be in bounds of the view.
 	#[inline(always)]
 	#[track_caller]
 	/// see [`RowRef::ptr_inbounds_at`]
@@ -273,6 +268,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 		<RowRef<'_, T, Cols> as RowIndex<ColRange>>::get(self.rb(), col)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`RowRef::get_unchecked`]
@@ -359,6 +357,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 		self.rb().as_diagonal()
 	}
 
+	///
+	/// # Safety
+	/// no mutable reference to the storage may be live while the returned view is used.
 	#[inline(always)]
 	/// see [`RowRef::const_cast`]
 	pub unsafe fn const_cast(&self) -> RowMut<'_, T, Cols> {
@@ -390,6 +391,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 		self.rb_mut().ptr_at_mut(col)
 	}
 
+	///
+	/// # Safety
+	/// `col` must be in bounds of the view, and no other borrow of the element may be live while the returned pointer is used.
 	#[inline(always)]
 	#[track_caller]
 	/// see [`RowMut::ptr_inbounds_at_mut`]
@@ -453,6 +457,9 @@ impl<T, Cols: Shape> Row<T, Cols> {
 		<RowMut<'_, T, Cols> as RowIndex<ColRange>>::get(self.rb_mut(), col)
 	}
 
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view and must not overlap any other live borrow of the same elements.
 	#[track_caller]
 	#[inline(always)]
 	/// see [`RowMut::get_mut_unchecked`]

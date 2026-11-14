@@ -92,7 +92,7 @@ pub fn pfaffian_scratch<T: ComplexField>(dim: usize) -> StackReq {
 // Like SVD's work matrix, avoid cache-set aliasing in strided row accesses.
 fn work_rows<T>(n: usize) -> usize {
 	let size = core::mem::size_of::<T>();
-	if size > 0 && (n * size) % 1024 == 0 {
+	if size > 0 && (n * size).is_multiple_of(1024) {
 		n + 64usize.div_ceil(size)
 	} else {
 		n
@@ -588,7 +588,13 @@ fn update_trailing<const INITIAL: bool, T: ComplexField>(
 		let tile_ptr = Ptr(tiles.as_ptr_mut());
 		let tile_stride = tiles.col_stride();
 		let run = &|rank: usize, parts: usize| {
+			// these two rebindings move the raw pointers into the closure; without them the
+			// closure would capture `a` and `tiles` and stop being `Sync`
+			#[allow(clippy::redundant_locals)]
+			// the rebinding moves the raw pointers into the closure, which is what keeps it `Sync`
 			let ptr = ptr;
+			#[allow(clippy::redundant_locals)]
+			// the rebinding moves the raw pointers into the closure, which is what keeps it `Sync`
 			let tile_ptr = tile_ptr;
 			// The lower triangle in row-major tile order: rank `r` owns the
 			// contiguous tile range `[tiles r / parts, tiles (r+1) / parts)`.
@@ -805,10 +811,10 @@ mod tests {
 								work[(r, c)].copy()
 							};
 							for k in (0..PANEL).step_by(2) {
-								value = value
-									+ &factors[(i, k)] * &factors[(j, k + 1)];
-								value = value
-									- &factors[(i, k + 1)] * &factors[(j, k)];
+								value +=
+									&factors[(i, k)] * &factors[(j, k + 1)];
+								value -=
+									&factors[(i, k + 1)] * &factors[(j, k)];
 							}
 							expected[(r, c)] = value.copy();
 							expected[(c, r)] = -value;
@@ -905,7 +911,7 @@ mod tests {
 			check(Par::Seq);
 			#[cfg(feature = "threadteam")]
 			for width in [3, 8, 70] {
-				crate::team::with_team(width, |par| check(par));
+				crate::team::with_team(width, check);
 			}
 		}
 	}
@@ -984,7 +990,11 @@ mod tests {
 				}
 			}
 		}
-		let sign = if inversions % 2 == 0 { 1.0 } else { -1.0 };
+		let sign = if inversions.is_multiple_of(2) {
+			1.0
+		} else {
+			-1.0
+		};
 		// A block `[[0, -t], [t, 0]]` has Pfaffian `-t`, this module's convention
 		// (see its 2x2 doctest), so a direct sum of `pairs` blocks is
 		// `(-1)^pairs * prod(t)`.
@@ -1002,7 +1012,7 @@ mod tests {
 		// column 0 is the forced far-corner pivot and nothing else
 		assert!(block(n - 1, 0) != 0.0);
 		assert!((1..n - 1).all(|r| block(r, 0) == 0.0));
-		let a = Mat::<f64>::from_fn(n, n, |i, j| block(i, j));
+		let a = Mat::<f64>::from_fn(n, n, block);
 		let mut memory = dyn_stack::MemBuffer::new(pfaffian_scratch::<f64>(n));
 		let mut check = |mut par: Par<'_>| {
 			let value = pfaffian(
@@ -1019,7 +1029,7 @@ mod tests {
 		check(Par::Seq);
 		#[cfg(feature = "threadteam")]
 		for width in [2, 3, 8] {
-			crate::team::with_team(width, |par| check(par));
+			crate::team::with_team(width, &mut check);
 		}
 	}
 

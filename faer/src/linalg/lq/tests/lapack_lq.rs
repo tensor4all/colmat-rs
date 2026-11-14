@@ -11,6 +11,7 @@
 // See COPYING.LAPACK.BSD.
 
 use crate::linalg::lq::no_pivoting::{factor, reconstruct, unitary};
+#[allow(clippy::neg_cmp_op_on_partial_ord)] // a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 #[allow(clippy::too_many_arguments)]
 fn lq_case(
 	run: &mut Run,
@@ -198,7 +199,7 @@ fn lq_case(
 						// keeps the raw sign and is accepted as zero.
 						let mut worst = 0.0 as Real;
 						for j in 0..k {
-							let d = l_api[(j, j)].clone();
+							let d = l_api[(j, j)];
 							let abs = real(&d).hypot(imag(&d));
 							if !(real(&d) >= 0.0) {
 								worst = Real::INFINITY;

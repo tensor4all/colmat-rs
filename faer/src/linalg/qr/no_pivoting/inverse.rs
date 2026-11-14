@@ -31,7 +31,11 @@ pub fn inverse<T: ComplexField>(
 	));
 	let mut out = out;
 	out.fill(zero());
-	linalg::triangular_inverse::invert_upper_triangular(out.rb_mut(), R, par.reborrow());
+	linalg::triangular_inverse::invert_upper_triangular(
+		out.rb_mut(),
+		R,
+		par.reborrow(),
+	);
 	linalg::householder::apply_block_householder_sequence_transpose_on_the_right_in_place_with_conj(
 		Q_basis,
 		Q_coeff,

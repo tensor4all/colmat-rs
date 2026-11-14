@@ -8,7 +8,8 @@ use colmat::linalg::gevd::{self, ComputeEigenvectors};
 use colmat::{Col, Mat, Par, ParShape};
 
 fn sample(i: usize, j: usize) -> f64 {
-	let mut x = (i as u64 + 7).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (j as u64 + 19);
+	let mut x =
+		(i as u64 + 7).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (j as u64 + 19);
 	x ^= x >> 30;
 	x = x.wrapping_mul(0xBF58_476D_1CE4_E5B9);
 	x ^= x >> 27;
@@ -50,7 +51,11 @@ fn fully_deflated_row_zero_window_does_not_overflow() {
 		let mut beta = Col::<f64>::zeros(n);
 		let params: gevd::GeneralizedSchurParams = colmat::auto!(f64);
 
-		let req = gevd::qz_real::hessenberg_to_qz_scratch::<f64>(n, ParShape::Seq, params);
+		let req = gevd::qz_real::hessenberg_to_qz_scratch::<f64>(
+			n,
+			ParShape::Seq,
+			params,
+		);
 		// Ample, valid storage: this test isolates the index arithmetic from
 		// the separately reported workspace query defect (#252).
 		let mut memory = MemBuffer::new(StackReq::all_of(&[
@@ -78,7 +83,10 @@ fn fully_deflated_row_zero_window_does_not_overflow() {
 				beta[k] != 0.0,
 				"n={n}: beta[{k}] == 0 in a non-singular pencil"
 			);
-			assert!(ar[k].is_finite() && ai[k].is_finite(), "n={n}: non-finite eigenvalue at {k}");
+			assert!(
+				ar[k].is_finite() && ai[k].is_finite(),
+				"n={n}: non-finite eigenvalue at {k}"
+			);
 		}
 	}
 }
@@ -98,9 +106,18 @@ extern "C" fn maximum_window(n: usize, _active: usize) -> usize {
 	w + w % 2
 }
 
-fn qz_cases() -> [(usize, Option<extern "C" fn(usize, usize) -> usize>, Option<usize>); 3] {
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+fn qz_cases() -> [(
+	usize,
+	Option<extern "C" fn(usize, usize) -> usize>,
+	Option<usize>,
+); 3] {
 	// (n, recommended window, blocking threshold)
-	[(18, None, Some(15)), (78, Some(maximum_window), None), (100, Some(maximum_window), None)]
+	[
+		(18, None, Some(15)),
+		(78, Some(maximum_window), None),
+		(100, Some(maximum_window), None),
+	]
 }
 
 fn qz_params<T: colmat::traits::ComplexField>(
@@ -145,12 +162,19 @@ where
 	let ea = q * s * z.adjoint() - a;
 	let eb = q * t * z.adjoint() - b;
 	let scale = one_norm(a.as_ref()).max(one_norm(b.as_ref()));
-	let coupled = one_norm(ea.as_ref()).max(one_norm(eb.as_ref())) / scale / (2.0 * n as f64 * eps);
-	let orth = |m: &Mat<T>| one_norm((m.adjoint() * m - Mat::<T>::identity(n, n)).as_ref()) / (n as f64 * eps);
+	let coupled = one_norm(ea.as_ref()).max(one_norm(eb.as_ref()))
+		/ scale
+		/ (2.0 * n as f64 * eps);
+	let orth = |m: &Mat<T>| {
+		one_norm((m.adjoint() * m - Mat::<T>::identity(n, n)).as_ref())
+			/ (n as f64 * eps)
+	};
 	(coupled, orth(q), orth(z))
 }
 
-fn real_qz_window_quality<T: colmat::traits::RealField + Into<f64>>(lift: fn(f64) -> T) {
+fn real_qz_window_quality<T: colmat::traits::RealField + Into<f64>>(
+	lift: fn(f64) -> T,
+) {
 	for (n, window, threshold) in qz_cases() {
 		let (a, b) = pencil(n);
 		let a = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)]));
@@ -162,7 +186,11 @@ fn real_qz_window_quality<T: colmat::traits::RealField + Into<f64>>(lift: fn(f64
 		let mut ai = Col::<T>::zeros(n);
 		let mut beta = Col::<T>::zeros(n);
 		let params = qz_params::<T>(window, threshold);
-		let req = gevd::qz_real::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let req = gevd::qz_real::hessenberg_to_qz_scratch::<T>(
+			n,
+			ParShape::Seq,
+			params,
+		);
 		let mut memory = MemBuffer::new(req);
 		gevd::qz_real::hessenberg_to_qz(
 			s.as_mut(),
@@ -180,19 +208,31 @@ fn real_qz_window_quality<T: colmat::traits::RealField + Into<f64>>(lift: fn(f64
 		let (coupled, q_orth, z_orth) = qz_quality(&a, &b, &s, &t, &q, &z);
 		let ty = core::any::type_name::<T>();
 		assert!(coupled < 20.0, "{ty} n={n}: coupled ratio {coupled:e}");
-		assert!(q_orth < 20.0, "{ty} n={n}: Q orthogonality ratio {q_orth:e}");
-		assert!(z_orth < 20.0, "{ty} n={n}: Z orthogonality ratio {z_orth:e}");
+		assert!(
+			q_orth < 20.0,
+			"{ty} n={n}: Q orthogonality ratio {q_orth:e}"
+		);
+		assert!(
+			z_orth < 20.0,
+			"{ty} n={n}: Z orthogonality ratio {z_orth:e}"
+		);
 	}
 }
 
-fn complex_qz_window_quality<T: colmat::traits::ComplexField>(lift: fn(f64, f64) -> T)
-where
+fn complex_qz_window_quality<T: colmat::traits::ComplexField>(
+	lift: fn(f64, f64) -> T,
+) where
 	T::Real: Into<f64>,
 {
 	for (n, window, threshold) in qz_cases() {
 		let (a, b) = pencil(n);
 		// An imaginary upper triangle keeps the pencil genuinely complex.
-		let a = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)], if i <= j { 0.01 * sample(i + 3, j) } else { 0.0 }));
+		let a = Mat::<T>::from_fn(n, n, |i, j| {
+			lift(
+				a[(i, j)],
+				if i <= j { 0.01 * sample(i + 3, j) } else { 0.0 },
+			)
+		});
 		let b = Mat::<T>::from_fn(n, n, |i, j| lift(b[(i, j)], 0.0));
 		let (mut s, mut t) = (a.clone(), b.clone());
 		let mut q = Mat::<T>::identity(n, n);
@@ -200,7 +240,11 @@ where
 		let mut alpha = Col::<T>::zeros(n);
 		let mut beta = Col::<T>::zeros(n);
 		let params = qz_params::<T>(window, threshold);
-		let req = gevd::qz_cplx::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let req = gevd::qz_cplx::hessenberg_to_qz_scratch::<T>(
+			n,
+			ParShape::Seq,
+			params,
+		);
 		let mut memory = MemBuffer::new(req);
 		gevd::qz_cplx::hessenberg_to_qz(
 			s.as_mut(),
@@ -231,7 +275,9 @@ fn real_qz_small_active_block_window_keeps_accuracy() {
 #[test]
 fn complex_qz_small_active_block_window_keeps_accuracy() {
 	complex_qz_window_quality::<colmat::c64>(colmat::c64::new);
-	complex_qz_window_quality::<colmat::c32>(|re, im| colmat::c32::new(re as f32, im as f32));
+	complex_qz_window_quality::<colmat::c32>(|re, im| {
+		colmat::c32::new(re as f32, im as f32)
+	});
 }
 
 extern "C" fn two_shifts(_n: usize, _active: usize) -> usize {
@@ -245,37 +291,76 @@ extern "C" fn two_shifts(_n: usize, _active: usize) -> usize {
 /// the sweep's own bound.
 #[test]
 fn qz_two_shift_sweep_fits_the_queried_workspace() {
-	fn real<T: colmat::traits::RealField>(n: usize, threshold: usize, lift: fn(f64) -> T) {
+	fn real<T: colmat::traits::RealField>(
+		n: usize,
+		threshold: usize,
+		lift: fn(f64) -> T,
+	) {
 		let (a, b) = pencil(n);
 		let mut s = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)]));
 		let mut t = Mat::<T>::from_fn(n, n, |i, j| lift(b[(i, j)]));
 		let mut q = Mat::<T>::identity(n, n);
 		let mut z = Mat::<T>::identity(n, n);
-		let (mut ar, mut ai, mut be) = (Col::<T>::zeros(n), Col::<T>::zeros(n), Col::<T>::zeros(n));
+		let (mut ar, mut ai, mut be) =
+			(Col::<T>::zeros(n), Col::<T>::zeros(n), Col::<T>::zeros(n));
 		let mut params = qz_params::<T>(None, Some(threshold));
 		params.recommended_shift_count = two_shifts;
-		let req = gevd::qz_real::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let req = gevd::qz_real::hessenberg_to_qz_scratch::<T>(
+			n,
+			ParShape::Seq,
+			params,
+		);
 		let mut memory = MemBuffer::new(req);
 		gevd::qz_real::hessenberg_to_qz(
-			s.as_mut(), t.as_mut(), Some(q.as_mut()), Some(z.as_mut()), ar.as_mut(), ai.as_mut(), be.as_mut(),
-			ComputeEigenvectors::Yes, Par::Seq, params, MemStack::new(&mut memory),
+			s.as_mut(),
+			t.as_mut(),
+			Some(q.as_mut()),
+			Some(z.as_mut()),
+			ar.as_mut(),
+			ai.as_mut(),
+			be.as_mut(),
+			ComputeEigenvectors::Yes,
+			Par::Seq,
+			params,
+			MemStack::new(&mut memory),
 		);
 		assert!(ar.is_all_finite() && ai.is_all_finite() && be.is_all_finite());
 	}
-	fn cplx<T: colmat::traits::ComplexField>(n: usize, threshold: usize, lift: fn(f64, f64) -> T) {
+	fn cplx<T: colmat::traits::ComplexField>(
+		n: usize,
+		threshold: usize,
+		lift: fn(f64, f64) -> T,
+	) {
 		let (a, b) = pencil(n);
-		let mut s = Mat::<T>::from_fn(n, n, |i, j| lift(a[(i, j)], if i <= j { 0.01 * sample(i + 3, j) } else { 0.0 }));
+		let mut s = Mat::<T>::from_fn(n, n, |i, j| {
+			lift(
+				a[(i, j)],
+				if i <= j { 0.01 * sample(i + 3, j) } else { 0.0 },
+			)
+		});
 		let mut t = Mat::<T>::from_fn(n, n, |i, j| lift(b[(i, j)], 0.0));
 		let mut q = Mat::<T>::identity(n, n);
 		let mut z = Mat::<T>::identity(n, n);
 		let (mut al, mut be) = (Col::<T>::zeros(n), Col::<T>::zeros(n));
 		let mut params = qz_params::<T>(None, Some(threshold));
 		params.recommended_shift_count = two_shifts;
-		let req = gevd::qz_cplx::hessenberg_to_qz_scratch::<T>(n, ParShape::Seq, params);
+		let req = gevd::qz_cplx::hessenberg_to_qz_scratch::<T>(
+			n,
+			ParShape::Seq,
+			params,
+		);
 		let mut memory = MemBuffer::new(req);
 		gevd::qz_cplx::hessenberg_to_qz(
-			s.as_mut(), t.as_mut(), Some(q.as_mut()), Some(z.as_mut()), al.as_mut(), be.as_mut(),
-			ComputeEigenvectors::Yes, Par::Seq, params, MemStack::new(&mut memory),
+			s.as_mut(),
+			t.as_mut(),
+			Some(q.as_mut()),
+			Some(z.as_mut()),
+			al.as_mut(),
+			be.as_mut(),
+			ComputeEigenvectors::Yes,
+			Par::Seq,
+			params,
+			MemStack::new(&mut memory),
 		);
 		assert!(al.is_all_finite() && be.is_all_finite());
 	}
@@ -283,6 +368,8 @@ fn qz_two_shift_sweep_fits_the_queried_workspace() {
 		real::<f64>(n, threshold, |x| x);
 		real::<f32>(n, threshold, |x| x as f32);
 		cplx::<colmat::c64>(n, threshold, colmat::c64::new);
-		cplx::<colmat::c32>(n, threshold, |re, im| colmat::c32::new(re as f32, im as f32));
+		cplx::<colmat::c32>(n, threshold, |re, im| {
+			colmat::c32::new(re as f32, im as f32)
+		});
 	}
 }

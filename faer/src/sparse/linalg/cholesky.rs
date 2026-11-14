@@ -13,458 +13,458 @@
 //! simplicial:
 //! ```
 //! fn simplicial_cholesky() -> Result<(), colmat::sparse::FaerError> {
-//! 	use colmat::Par;
-//! 	use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
-//! 	use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
-//! 	use colmat::linalg::cholesky::llt::factor::LltRegularization;
-//! 	use colmat::reborrow::*;
-//! 	use colmat::sparse::linalg::amd;
-//! 	use colmat::sparse::linalg::cholesky::simplicial;
-//! 	use colmat::sparse::{CreationError, SparseColMat, SymbolicSparseColMat, Triplet};
-//! 	use rand::prelude::*;
-//! 	// the simplicial cholesky api takes an upper triangular matrix as input, to be
-//! 	// interpreted as self-adjoint.
-//! 	let dim = 4;
-//! 	let A_upper = match SparseColMat::<usize, f64>::try_new_from_triplets(
-//! 		dim,
-//! 		dim,
-//! 		&[
-//! 			// diagonal entries
-//! 			Triplet::new(0, 0, 10.0),
-//! 			Triplet::new(1, 1, 11.0),
-//! 			Triplet::new(2, 2, 12.0),
-//! 			Triplet::new(3, 3, 13.0),
-//! 			// non diagonal entries
-//! 			Triplet::new(0, 1, 1.0),
-//! 			Triplet::new(0, 3, 1.5),
-//! 			Triplet::new(1, 3, -3.2),
-//! 		],
-//! 	) {
-//! 		Ok(A) => Ok(A),
-//! 		Err(CreationError::Generic(err)) => Err(err),
-//! 		Err(CreationError::OutOfBounds { .. }) => panic!(),
-//! 	}?;
-//! 	let mut A = colmat::sparse::ops::add(A_upper.rb(), A_upper.to_row_major()?.rb().transpose())?;
-//! 	for i in 0..dim {
-//! 		A[(i, i)] /= 2.0;
-//! 	}
-//! 	let A_nnz = A_upper.compute_nnz();
-//! 	let mut rhs = Vec::new();
-//! 	let mut rng = StdRng::seed_from_u64(0);
-//! 	rhs.try_reserve_exact(dim)?;
-//! 	rhs.resize_with(dim, || rng.random::<f64>());
-//! 	let mut sol = Vec::new();
-//! 	sol.try_reserve_exact(dim)?;
-//! 	sol.resize(dim, 0.0f64);
-//! 	let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
-//! 	let mut sol = colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
-//! 	// optional: fill reducing permutation
-//! 	let (perm, perm_inv) = {
-//! 		let mut perm = Vec::new();
-//! 		let mut perm_inv = Vec::new();
-//! 		perm.try_reserve_exact(dim)?;
-//! 		perm_inv.try_reserve_exact(dim)?;
-//! 		perm.resize(dim, 0usize);
-//! 		perm_inv.resize(dim, 0usize);
-//! 		let mut mem = MemBuffer::try_new(amd::order_scratch::<usize>(dim, A_nnz))?;
-//! 		amd::order(
-//! 			&mut perm,
-//! 			&mut perm_inv,
-//! 			A_upper.symbolic(),
-//! 			amd::Control::default(),
-//! 			MemStack::new(&mut mem),
-//! 		)?;
-//! 		(perm, perm_inv)
-//! 	};
-//! 	let perm = unsafe { colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim) };
-//! 	let A_perm_upper = {
-//! 		let mut A_perm_col_ptrs = Vec::new();
-//! 		let mut A_perm_row_indices = Vec::new();
-//! 		let mut A_perm_values = Vec::new();
-//! 		A_perm_col_ptrs.try_reserve_exact(dim + 1)?;
-//! 		A_perm_col_ptrs.resize(dim + 1, 0usize);
-//! 		A_perm_row_indices.try_reserve_exact(A_nnz)?;
-//! 		A_perm_row_indices.resize(A_nnz, 0usize);
-//! 		A_perm_values.try_reserve_exact(A_nnz)?;
-//! 		A_perm_values.resize(A_nnz, 0.0f64);
-//! 		let mut mem = MemBuffer::try_new(colmat::sparse::utils::permute_self_adjoint_scratch::<
-//! 			usize,
-//! 		>(dim))?;
-//! 		colmat::sparse::utils::permute_self_adjoint_to_unsorted(
-//! 			&mut A_perm_values,
-//! 			&mut A_perm_col_ptrs,
-//! 			&mut A_perm_row_indices,
-//! 			A_upper.rb(),
-//! 			perm,
-//! 			colmat::Side::Upper,
-//! 			colmat::Side::Upper,
-//! 			MemStack::new(&mut mem),
-//! 		);
-//! 		SparseColMat::<usize, f64>::new(
-//! 			unsafe {
-//! 				SymbolicSparseColMat::new_unchecked(
-//! 					dim,
-//! 					dim,
-//! 					A_perm_col_ptrs,
-//! 					None,
-//! 					A_perm_row_indices,
-//! 				)
-//! 			},
-//! 			A_perm_values,
-//! 		)
-//! 	};
-//! 	// symbolic analysis
-//! 	let symbolic = {
-//! 		let mut mem = MemBuffer::try_new(StackReq::any_of(&[
-//! 			simplicial::prefactorize_symbolic_cholesky_scratch::<usize>(dim, A_nnz),
-//! 			simplicial::factorize_simplicial_symbolic_cholesky_scratch::<usize>(dim),
-//! 		]))?;
-//! 		let stack = MemStack::new(&mut mem);
-//! 		let mut etree = Vec::new();
-//! 		let mut col_counts = Vec::new();
-//! 		etree.try_reserve_exact(dim)?;
-//! 		etree.resize(dim, 0isize);
-//! 		col_counts.try_reserve_exact(dim)?;
-//! 		col_counts.resize(dim, 0usize);
-//! 		simplicial::prefactorize_symbolic_cholesky(
-//! 			&mut etree,
-//! 			&mut col_counts,
-//! 			A_perm_upper.symbolic(),
-//! 			stack,
-//! 		);
-//! 		simplicial::factorize_simplicial_symbolic_cholesky(
-//! 			A_perm_upper.symbolic(),
-//! 			// SAFETY: `etree` was filled correctly by
-//! 			// `simplicial::prefactorize_symbolic_cholesky`.
-//! 			unsafe { simplicial::EliminationTreeRef::from_inner(&etree) },
-//! 			&col_counts,
-//! 			stack,
-//! 		)?
-//! 	};
-//! 	// numerical factorization
-//! 	let mut mem = MemBuffer::try_new(StackReq::all_of(&[
-//! 		simplicial::factorize_simplicial_numeric_llt_scratch::<usize, f64>(dim),
-//! 		simplicial::factorize_simplicial_numeric_ldlt_scratch::<usize, f64>(dim),
-//! 		colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
-//! 		symbolic.solve_in_place_scratch::<f64>(dim),
-//! 	]))?;
-//! 	let stack = MemStack::new(&mut mem);
-//! 	// numerical llt factorization
-//! 	{
-//! 		let mut L_values = Vec::new();
-//! 		L_values.try_reserve_exact(symbolic.len_val())?;
-//! 		L_values.resize(symbolic.len_val(), 0.0f64);
-//! 		match simplicial::factorize_simplicial_numeric_llt::<usize, f64>(
-//! 			&mut L_values,
-//! 			A_perm_upper.rb(),
-//! 			LltRegularization::default(),
-//! 			&symbolic,
-//! 			stack,
-//! 		) {
-//! 			Ok(_) => {},
-//! 			Err(err) => panic!("matrix is not positive definite: {err}"),
-//! 		};
-//! 		let llt = simplicial::SimplicialLltRef::<'_, usize, f64>::new(&symbolic, &L_values);
-//! 		sol.copy_from(rhs);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		llt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
-//! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
-//! 	}
-//! 	// numerical ldlt factorization
-//! 	{
-//! 		let mut L_values = Vec::new();
-//! 		L_values.try_reserve_exact(symbolic.len_val())?;
-//! 		L_values.resize(symbolic.len_val(), 0.0f64);
-//! 		simplicial::factorize_simplicial_numeric_ldlt::<usize, f64>(
-//! 			&mut L_values,
-//! 			A_perm_upper.rb(),
-//! 			LdltRegularization::default(),
-//! 			&symbolic,
-//! 			stack,
-//! 		);
-//! 		let ldlt = simplicial::SimplicialLdltRef::<'_, usize, f64>::new(&symbolic, &L_values);
-//! 		sol.copy_from(rhs);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		ldlt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
-//! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
-//! 	}
-//! 	Ok(())
+//!     use colmat::Par;
+//!     use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+//!     use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
+//!     use colmat::linalg::cholesky::llt::factor::LltRegularization;
+//!     use colmat::reborrow::*;
+//!     use colmat::sparse::linalg::amd;
+//!     use colmat::sparse::linalg::cholesky::simplicial;
+//!     use colmat::sparse::{CreationError, SparseColMat, SymbolicSparseColMat, Triplet};
+//!     use rand::prelude::*;
+//!     // the simplicial cholesky api takes an upper triangular matrix as input, to be
+//!     // interpreted as self-adjoint.
+//!     let dim = 4;
+//!     let A_upper = match SparseColMat::<usize, f64>::try_new_from_triplets(
+//!         dim,
+//!         dim,
+//!         &[
+//!             // diagonal entries
+//!             Triplet::new(0, 0, 10.0),
+//!             Triplet::new(1, 1, 11.0),
+//!             Triplet::new(2, 2, 12.0),
+//!             Triplet::new(3, 3, 13.0),
+//!             // non diagonal entries
+//!             Triplet::new(0, 1, 1.0),
+//!             Triplet::new(0, 3, 1.5),
+//!             Triplet::new(1, 3, -3.2),
+//!         ],
+//!     ) {
+//!         Ok(A) => Ok(A),
+//!         Err(CreationError::Generic(err)) => Err(err),
+//!         Err(CreationError::OutOfBounds { .. }) => panic!(),
+//!     }?;
+//!     let mut A = colmat::sparse::ops::add(A_upper.rb(), A_upper.to_row_major()?.rb().transpose())?;
+//!     for i in 0..dim {
+//!         A[(i, i)] /= 2.0;
+//!     }
+//!     let A_nnz = A_upper.compute_nnz();
+//!     let mut rhs = Vec::new();
+//!     let mut rng = StdRng::seed_from_u64(0);
+//!     rhs.try_reserve_exact(dim)?;
+//!     rhs.resize_with(dim, || rng.random::<f64>());
+//!     let mut sol = Vec::new();
+//!     sol.try_reserve_exact(dim)?;
+//!     sol.resize(dim, 0.0f64);
+//!     let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
+//!     let mut sol = colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
+//!     // optional: fill reducing permutation
+//!     let (perm, perm_inv) = {
+//!         let mut perm = Vec::new();
+//!         let mut perm_inv = Vec::new();
+//!         perm.try_reserve_exact(dim)?;
+//!         perm_inv.try_reserve_exact(dim)?;
+//!         perm.resize(dim, 0usize);
+//!         perm_inv.resize(dim, 0usize);
+//!         let mut mem = MemBuffer::try_new(amd::order_scratch::<usize>(dim, A_nnz))?;
+//!         amd::order(
+//!             &mut perm,
+//!             &mut perm_inv,
+//!             A_upper.symbolic(),
+//!             amd::Control::default(),
+//!             MemStack::new(&mut mem),
+//!         )?;
+//!         (perm, perm_inv)
+//!     };
+//!     let perm = unsafe { colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim) };
+//!     let A_perm_upper = {
+//!         let mut A_perm_col_ptrs = Vec::new();
+//!         let mut A_perm_row_indices = Vec::new();
+//!         let mut A_perm_values = Vec::new();
+//!         A_perm_col_ptrs.try_reserve_exact(dim + 1)?;
+//!         A_perm_col_ptrs.resize(dim + 1, 0usize);
+//!         A_perm_row_indices.try_reserve_exact(A_nnz)?;
+//!         A_perm_row_indices.resize(A_nnz, 0usize);
+//!         A_perm_values.try_reserve_exact(A_nnz)?;
+//!         A_perm_values.resize(A_nnz, 0.0f64);
+//!         let mut mem = MemBuffer::try_new(colmat::sparse::utils::permute_self_adjoint_scratch::<
+//!             usize,
+//!         >(dim))?;
+//!         colmat::sparse::utils::permute_self_adjoint_to_unsorted(
+//!             &mut A_perm_values,
+//!             &mut A_perm_col_ptrs,
+//!             &mut A_perm_row_indices,
+//!             A_upper.rb(),
+//!             perm,
+//!             colmat::Side::Upper,
+//!             colmat::Side::Upper,
+//!             MemStack::new(&mut mem),
+//!         );
+//!         SparseColMat::<usize, f64>::new(
+//!             unsafe {
+//!                 SymbolicSparseColMat::new_unchecked(
+//!                     dim,
+//!                     dim,
+//!                     A_perm_col_ptrs,
+//!                     None,
+//!                     A_perm_row_indices,
+//!                 )
+//!             },
+//!             A_perm_values,
+//!         )
+//!     };
+//!     // symbolic analysis
+//!     let symbolic = {
+//!         let mut mem = MemBuffer::try_new(StackReq::any_of(&[
+//!             simplicial::prefactorize_symbolic_cholesky_scratch::<usize>(dim, A_nnz),
+//!             simplicial::factorize_simplicial_symbolic_cholesky_scratch::<usize>(dim),
+//!         ]))?;
+//!         let stack = MemStack::new(&mut mem);
+//!         let mut etree = Vec::new();
+//!         let mut col_counts = Vec::new();
+//!         etree.try_reserve_exact(dim)?;
+//!         etree.resize(dim, 0isize);
+//!         col_counts.try_reserve_exact(dim)?;
+//!         col_counts.resize(dim, 0usize);
+//!         simplicial::prefactorize_symbolic_cholesky(
+//!             &mut etree,
+//!             &mut col_counts,
+//!             A_perm_upper.symbolic(),
+//!             stack,
+//!         );
+//!         simplicial::factorize_simplicial_symbolic_cholesky(
+//!             A_perm_upper.symbolic(),
+//!             // SAFETY: `etree` was filled correctly by
+//!             // `simplicial::prefactorize_symbolic_cholesky`.
+//!             unsafe { simplicial::EliminationTreeRef::from_inner(&etree) },
+//!             &col_counts,
+//!             stack,
+//!         )?
+//!     };
+//!     // numerical factorization
+//!     let mut mem = MemBuffer::try_new(StackReq::all_of(&[
+//!         simplicial::factorize_simplicial_numeric_llt_scratch::<usize, f64>(dim),
+//!         simplicial::factorize_simplicial_numeric_ldlt_scratch::<usize, f64>(dim),
+//!         colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
+//!         symbolic.solve_in_place_scratch::<f64>(dim),
+//!     ]))?;
+//!     let stack = MemStack::new(&mut mem);
+//!     // numerical llt factorization
+//!     {
+//!         let mut L_values = Vec::new();
+//!         L_values.try_reserve_exact(symbolic.len_val())?;
+//!         L_values.resize(symbolic.len_val(), 0.0f64);
+//!         match simplicial::factorize_simplicial_numeric_llt::<usize, f64>(
+//!             &mut L_values,
+//!             A_perm_upper.rb(),
+//!             LltRegularization::default(),
+//!             &symbolic,
+//!             stack,
+//!         ) {
+//!             Ok(_) => {},
+//!             Err(err) => panic!("matrix is not positive definite: {err}"),
+//!         };
+//!         let llt = simplicial::SimplicialLltRef::<'_, usize, f64>::new(&symbolic, &L_values);
+//!         sol.copy_from(rhs);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//!         llt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
+//!         assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
+//!     }
+//!     // numerical ldlt factorization
+//!     {
+//!         let mut L_values = Vec::new();
+//!         L_values.try_reserve_exact(symbolic.len_val())?;
+//!         L_values.resize(symbolic.len_val(), 0.0f64);
+//!         simplicial::factorize_simplicial_numeric_ldlt::<usize, f64>(
+//!             &mut L_values,
+//!             A_perm_upper.rb(),
+//!             LdltRegularization::default(),
+//!             &symbolic,
+//!             stack,
+//!         );
+//!         let ldlt = simplicial::SimplicialLdltRef::<'_, usize, f64>::new(&symbolic, &L_values);
+//!         sol.copy_from(rhs);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//!         ldlt.solve_in_place_with_conj(colmat::Conj::No, sol.rb_mut(), colmat::Par::Seq, stack);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm.inverse(), stack);
+//!         assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
+//!     }
+//!     Ok(())
 //! }
 //! simplicial_cholesky().unwrap()
 //! ```
 //! supernodal:
 //! ```
 //! fn supernodal_cholesky() -> Result<(), colmat::sparse::FaerError> {
-//! 	use colmat::Par;
-//! 	use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
-//! 	use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
-//! 	use colmat::reborrow::*;
-//! 	use colmat::sparse::linalg::amd;
-//! 	use colmat::sparse::linalg::cholesky::{simplicial, supernodal};
-//! 	use colmat::sparse::{
-//! 		CreationError, SparseColMat, SymbolicSparseColMat, Triplet,
-//! 	};
-//! 	use rand::prelude::*;
-//! 	// the supernodal cholesky api takes a lower triangular matrix as input, to be
-//! 	// interpreted as self-adjoint.
-//! 	let dim = 8;
-//! 	let A_lower = match SparseColMat::<usize, f64>::try_new_from_triplets(
-//! 		dim,
-//! 		dim,
-//! 		&[
-//! 			// diagonal entries
-//! 			Triplet::new(0, 0, 11.0),
-//! 			Triplet::new(1, 1, 11.0),
-//! 			Triplet::new(2, 2, 12.0),
-//! 			Triplet::new(3, 3, 13.0),
-//! 			Triplet::new(4, 4, 14.0),
-//! 			Triplet::new(5, 5, 16.0),
-//! 			Triplet::new(6, 6, 16.0),
-//! 			Triplet::new(7, 7, 16.0),
-//! 			// non diagonal entries
-//! 			Triplet::new(1, 0, 10.0),
-//! 			Triplet::new(3, 0, 10.5),
-//! 			Triplet::new(4, 0, 10.0),
-//! 			Triplet::new(7, 0, 10.5),
-//! 			Triplet::new(3, 1, 10.5),
-//! 			Triplet::new(4, 1, 10.0),
-//! 			Triplet::new(7, 1, 10.5),
-//! 			Triplet::new(3, 2, 10.5),
-//! 			Triplet::new(4, 2, 10.0),
-//! 			Triplet::new(7, 2, 10.0),
-//! 		],
-//! 	) {
-//! 		Ok(A) => Ok(A),
-//! 		Err(CreationError::Generic(err)) => Err(err),
-//! 		Err(CreationError::OutOfBounds { .. }) => panic!(),
-//! 	}?;
-//! 	let mut A = colmat::sparse::ops::add(
-//! 		A_lower.rb(),
-//! 		A_lower.to_row_major()?.rb().transpose(),
-//! 	)?;
-//! 	for i in 0..dim {
-//! 		A[(i, i)] /= 2.0;
-//! 	}
-//! 	let A_nnz = A_lower.compute_nnz();
-//! 	let mut rhs = Vec::new();
-//! 	let mut rng = StdRng::seed_from_u64(0);
-//! 	rhs.try_reserve_exact(dim)?;
-//! 	rhs.resize_with(dim, || rng.random::<f64>());
-//! 	let mut sol = Vec::new();
-//! 	sol.try_reserve_exact(dim)?;
-//! 	sol.resize(dim, 0.0f64);
-//! 	let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
-//! 	let mut sol =
-//! 		colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
-//! 	// optional: fill reducing permutation
-//! 	let (perm, perm_inv) = {
-//! 		let mut perm = Vec::new();
-//! 		let mut perm_inv = Vec::new();
-//! 		perm.try_reserve_exact(dim)?;
-//! 		perm_inv.try_reserve_exact(dim)?;
-//! 		perm.resize(dim, 0usize);
-//! 		perm_inv.resize(dim, 0usize);
-//! 		let mut mem =
-//! 			MemBuffer::try_new(amd::order_scratch::<usize>(dim, A_nnz))?;
-//! 		amd::order(
-//! 			&mut perm,
-//! 			&mut perm_inv,
-//! 			A_lower.symbolic(),
-//! 			amd::Control::default(),
-//! 			MemStack::new(&mut mem),
-//! 		)?;
-//! 		(perm, perm_inv)
-//! 	};
-//! 	let perm = unsafe {
-//! 		colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim)
-//! 	};
-//! 	let A_perm_lower = {
-//! 		let mut A_perm_col_ptrs = Vec::new();
-//! 		let mut A_perm_row_indices = Vec::new();
-//! 		let mut A_perm_values = Vec::new();
-//! 		A_perm_col_ptrs.try_reserve_exact(dim + 1)?;
-//! 		A_perm_col_ptrs.resize(dim + 1, 0usize);
-//! 		A_perm_row_indices.try_reserve_exact(A_nnz)?;
-//! 		A_perm_row_indices.resize(A_nnz, 0usize);
-//! 		A_perm_values.try_reserve_exact(A_nnz)?;
-//! 		A_perm_values.resize(A_nnz, 0.0f64);
-//! 		let mut mem = MemBuffer::try_new(
-//! 			colmat::sparse::utils::permute_self_adjoint_scratch::<usize>(dim),
-//! 		)?;
-//! 		colmat::sparse::utils::permute_self_adjoint_to_unsorted(
-//! 			&mut A_perm_values,
-//! 			&mut A_perm_col_ptrs,
-//! 			&mut A_perm_row_indices,
-//! 			A_lower.rb(),
-//! 			perm,
-//! 			colmat::Side::Lower,
-//! 			colmat::Side::Lower,
-//! 			MemStack::new(&mut mem),
-//! 		);
-//! 		SparseColMat::<usize, f64>::new(
-//! 			unsafe {
-//! 				SymbolicSparseColMat::new_unchecked(
-//! 					dim,
-//! 					dim,
-//! 					A_perm_col_ptrs,
-//! 					None,
-//! 					A_perm_row_indices,
-//! 				)
-//! 			},
-//! 			A_perm_values,
-//! 		)
-//! 	};
-//! 	let A_perm_upper =
-//! 		A_perm_lower.rb().transpose().symbolic().to_col_major()?;
-//! 	// symbolic analysis
-//! 	let symbolic = {
-//! 		let mut mem = MemBuffer::try_new(StackReq::any_of(&[
-//! 			simplicial::prefactorize_symbolic_cholesky_scratch::<usize>(
-//! 				dim, A_nnz,
-//! 			),
-//! 			supernodal::factorize_supernodal_symbolic_cholesky_scratch::<
-//! 				usize,
-//! 			>(dim),
-//! 		]))?;
-//! 		let stack = MemStack::new(&mut mem);
-//! 		let mut etree = Vec::new();
-//! 		let mut col_counts = Vec::new();
-//! 		etree.try_reserve_exact(dim)?;
-//! 		etree.resize(dim, 0isize);
-//! 		col_counts.try_reserve_exact(dim)?;
-//! 		col_counts.resize(dim, 0usize);
-//! 		simplicial::prefactorize_symbolic_cholesky(
-//! 			&mut etree,
-//! 			&mut col_counts,
-//! 			A_perm_upper.rb(),
-//! 			stack,
-//! 		);
-//! 		supernodal::factorize_supernodal_symbolic_cholesky(
-//! 			A_perm_upper.rb(),
-//! 			// SAFETY: `etree` was filled correctly by
-//! 			// `simplicial::prefactorize_symbolic_cholesky`.
-//! 			unsafe { simplicial::EliminationTreeRef::from_inner(&etree) },
-//! 			&col_counts,
-//! 			stack,
-//! 			colmat::sparse::linalg::SymbolicSupernodalParams {
-//! 				relax: Some(&[(usize::MAX, 1.0)]),
-//! 			},
-//! 		)?
-//! 	};
-//! 	// numerical factorization
-//! 	let mut mem =
-//! 		MemBuffer::try_new(StackReq::any_of(&[
-//! 			supernodal::factorize_supernodal_numeric_llt_scratch::<
-//! 				usize,
-//! 				f64,
-//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
-//! 			supernodal::factorize_supernodal_numeric_ldlt_scratch::<
-//! 				usize,
-//! 				f64,
-//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
-//! 			supernodal::factorize_supernodal_numeric_intranode_lblt_scratch::<
-//! 				usize,
-//! 				f64,
-//! 			>(&symbolic, colmat::ParShape::Seq, Default::default()),
-//! 			colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
-//! 			symbolic.solve_in_place_scratch::<f64>(dim, colmat::ParShape::Seq),
-//! 		]))?;
-//! 	let stack = MemStack::new(&mut mem);
-//! 	// llt skipped since a is not positive-definite
-//! 	// numerical ldlt factorization
-//! 	{
-//! 		let mut L_values = Vec::new();
-//! 		L_values.try_reserve_exact(symbolic.len_val())?;
-//! 		L_values.resize(symbolic.len_val(), 0.0f64);
-//! 		supernodal::factorize_supernodal_numeric_ldlt::<usize, f64>(
-//! 			&mut L_values,
-//! 			A_perm_lower.rb(),
-//! 			LdltRegularization::default(),
-//! 			&symbolic,
-//! 			colmat::Par::Seq,
-//! 			stack,
-//! 			Default::default(),
-//! 		);
-//! 		let ldlt = supernodal::SupernodalLdltRef::<'_, usize, f64>::new(
-//! 			&symbolic, &L_values,
-//! 		);
-//! 		sol.copy_from(rhs);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		ldlt.solve_in_place_with_conj(
-//! 			colmat::Conj::No,
-//! 			sol.rb_mut(),
-//! 			colmat::Par::Seq,
-//! 			stack,
-//! 		);
-//! 		colmat::perm::permute_rows_in_place(
-//! 			sol.rb_mut(),
-//! 			perm.inverse(),
-//! 			stack,
-//! 		);
-//! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
-//! 	}
-//! 	// numerical intranodal LBLT factorization
-//! 	{
-//! 		let mut L_values = Vec::new();
-//! 		let mut subdiag = Vec::new();
-//! 		let mut pivot_perm = Vec::new();
-//! 		let mut pivot_perm_inv = Vec::new();
-//! 		L_values.try_reserve_exact(symbolic.len_val())?;
-//! 		L_values.resize(symbolic.len_val(), 0.0f64);
-//! 		subdiag.try_reserve_exact(dim)?;
-//! 		subdiag.resize(dim, 0.0f64);
-//! 		pivot_perm.try_reserve(dim)?;
-//! 		pivot_perm.resize(dim, 0usize);
-//! 		pivot_perm_inv.try_reserve(dim)?;
-//! 		pivot_perm_inv.resize(dim, 0usize);
-//! 		supernodal::factorize_supernodal_numeric_intranode_lblt::<usize, f64>(
-//! 			&mut L_values,
-//! 			&mut subdiag,
-//! 			&mut pivot_perm,
-//! 			&mut pivot_perm_inv,
-//! 			A_perm_lower.rb(),
-//! 			&symbolic,
-//! 			colmat::Par::Seq,
-//! 			stack,
-//! 			Default::default(),
-//! 		);
-//! 		let piv_perm = unsafe {
-//! 			colmat::perm::PermRef::new_unchecked(
-//! 				&pivot_perm,
-//! 				&pivot_perm_inv,
-//! 				dim,
-//! 			)
-//! 		};
-//! 		let lblt =
-//! 			supernodal::SupernodalIntranodeLbltRef::<'_, usize, f64>::new(
-//! 				&symbolic, &L_values, &subdiag, piv_perm,
-//! 			);
-//! 		sol.copy_from(rhs);
-//! 		// we can merge these two permutations if we want to be optimal
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
-//! 		colmat::perm::permute_rows_in_place(sol.rb_mut(), piv_perm, stack);
-//! 		lblt.solve_in_place_no_numeric_permute_with_conj(
-//! 			colmat::Conj::No,
-//! 			sol.rb_mut(),
-//! 			colmat::Par::Seq,
-//! 			stack,
-//! 		);
-//! 		// we can also merge these two permutations if we want to be optimal
-//! 		colmat::perm::permute_rows_in_place(
-//! 			sol.rb_mut(),
-//! 			piv_perm.inverse(),
-//! 			stack,
-//! 		);
-//! 		colmat::perm::permute_rows_in_place(
-//! 			sol.rb_mut(),
-//! 			perm.inverse(),
-//! 			stack,
-//! 		);
-//! 		assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
-//! 	}
-//! 	Ok(())
+//!     use colmat::Par;
+//!     use colmat::dyn_stack::{MemBuffer, MemStack, StackReq};
+//!     use colmat::linalg::cholesky::ldlt::factor::LdltRegularization;
+//!     use colmat::reborrow::*;
+//!     use colmat::sparse::linalg::amd;
+//!     use colmat::sparse::linalg::cholesky::{simplicial, supernodal};
+//!     use colmat::sparse::{
+//!         CreationError, SparseColMat, SymbolicSparseColMat, Triplet,
+//!     };
+//!     use rand::prelude::*;
+//!     // the supernodal cholesky api takes a lower triangular matrix as input, to be
+//!     // interpreted as self-adjoint.
+//!     let dim = 8;
+//!     let A_lower = match SparseColMat::<usize, f64>::try_new_from_triplets(
+//!         dim,
+//!         dim,
+//!         &[
+//!             // diagonal entries
+//!             Triplet::new(0, 0, 11.0),
+//!             Triplet::new(1, 1, 11.0),
+//!             Triplet::new(2, 2, 12.0),
+//!             Triplet::new(3, 3, 13.0),
+//!             Triplet::new(4, 4, 14.0),
+//!             Triplet::new(5, 5, 16.0),
+//!             Triplet::new(6, 6, 16.0),
+//!             Triplet::new(7, 7, 16.0),
+//!             // non diagonal entries
+//!             Triplet::new(1, 0, 10.0),
+//!             Triplet::new(3, 0, 10.5),
+//!             Triplet::new(4, 0, 10.0),
+//!             Triplet::new(7, 0, 10.5),
+//!             Triplet::new(3, 1, 10.5),
+//!             Triplet::new(4, 1, 10.0),
+//!             Triplet::new(7, 1, 10.5),
+//!             Triplet::new(3, 2, 10.5),
+//!             Triplet::new(4, 2, 10.0),
+//!             Triplet::new(7, 2, 10.0),
+//!         ],
+//!     ) {
+//!         Ok(A) => Ok(A),
+//!         Err(CreationError::Generic(err)) => Err(err),
+//!         Err(CreationError::OutOfBounds { .. }) => panic!(),
+//!     }?;
+//!     let mut A = colmat::sparse::ops::add(
+//!         A_lower.rb(),
+//!         A_lower.to_row_major()?.rb().transpose(),
+//!     )?;
+//!     for i in 0..dim {
+//!         A[(i, i)] /= 2.0;
+//!     }
+//!     let A_nnz = A_lower.compute_nnz();
+//!     let mut rhs = Vec::new();
+//!     let mut rng = StdRng::seed_from_u64(0);
+//!     rhs.try_reserve_exact(dim)?;
+//!     rhs.resize_with(dim, || rng.random::<f64>());
+//!     let mut sol = Vec::new();
+//!     sol.try_reserve_exact(dim)?;
+//!     sol.resize(dim, 0.0f64);
+//!     let rhs = colmat::MatRef::from_column_major_slice(&rhs, dim, 1);
+//!     let mut sol =
+//!         colmat::MatMut::from_column_major_slice_mut(&mut sol, dim, 1);
+//!     // optional: fill reducing permutation
+//!     let (perm, perm_inv) = {
+//!         let mut perm = Vec::new();
+//!         let mut perm_inv = Vec::new();
+//!         perm.try_reserve_exact(dim)?;
+//!         perm_inv.try_reserve_exact(dim)?;
+//!         perm.resize(dim, 0usize);
+//!         perm_inv.resize(dim, 0usize);
+//!         let mut mem =
+//!             MemBuffer::try_new(amd::order_scratch::<usize>(dim, A_nnz))?;
+//!         amd::order(
+//!             &mut perm,
+//!             &mut perm_inv,
+//!             A_lower.symbolic(),
+//!             amd::Control::default(),
+//!             MemStack::new(&mut mem),
+//!         )?;
+//!         (perm, perm_inv)
+//!     };
+//!     let perm = unsafe {
+//!         colmat::perm::PermRef::new_unchecked(&perm, &perm_inv, dim)
+//!     };
+//!     let A_perm_lower = {
+//!         let mut A_perm_col_ptrs = Vec::new();
+//!         let mut A_perm_row_indices = Vec::new();
+//!         let mut A_perm_values = Vec::new();
+//!         A_perm_col_ptrs.try_reserve_exact(dim + 1)?;
+//!         A_perm_col_ptrs.resize(dim + 1, 0usize);
+//!         A_perm_row_indices.try_reserve_exact(A_nnz)?;
+//!         A_perm_row_indices.resize(A_nnz, 0usize);
+//!         A_perm_values.try_reserve_exact(A_nnz)?;
+//!         A_perm_values.resize(A_nnz, 0.0f64);
+//!         let mut mem = MemBuffer::try_new(
+//!             colmat::sparse::utils::permute_self_adjoint_scratch::<usize>(dim),
+//!         )?;
+//!         colmat::sparse::utils::permute_self_adjoint_to_unsorted(
+//!             &mut A_perm_values,
+//!             &mut A_perm_col_ptrs,
+//!             &mut A_perm_row_indices,
+//!             A_lower.rb(),
+//!             perm,
+//!             colmat::Side::Lower,
+//!             colmat::Side::Lower,
+//!             MemStack::new(&mut mem),
+//!         );
+//!         SparseColMat::<usize, f64>::new(
+//!             unsafe {
+//!                 SymbolicSparseColMat::new_unchecked(
+//!                     dim,
+//!                     dim,
+//!                     A_perm_col_ptrs,
+//!                     None,
+//!                     A_perm_row_indices,
+//!                 )
+//!             },
+//!             A_perm_values,
+//!         )
+//!     };
+//!     let A_perm_upper =
+//!         A_perm_lower.rb().transpose().symbolic().to_col_major()?;
+//!     // symbolic analysis
+//!     let symbolic = {
+//!         let mut mem = MemBuffer::try_new(StackReq::any_of(&[
+//!             simplicial::prefactorize_symbolic_cholesky_scratch::<usize>(
+//!                 dim, A_nnz,
+//!             ),
+//!             supernodal::factorize_supernodal_symbolic_cholesky_scratch::<
+//!                 usize,
+//!             >(dim),
+//!         ]))?;
+//!         let stack = MemStack::new(&mut mem);
+//!         let mut etree = Vec::new();
+//!         let mut col_counts = Vec::new();
+//!         etree.try_reserve_exact(dim)?;
+//!         etree.resize(dim, 0isize);
+//!         col_counts.try_reserve_exact(dim)?;
+//!         col_counts.resize(dim, 0usize);
+//!         simplicial::prefactorize_symbolic_cholesky(
+//!             &mut etree,
+//!             &mut col_counts,
+//!             A_perm_upper.rb(),
+//!             stack,
+//!         );
+//!         supernodal::factorize_supernodal_symbolic_cholesky(
+//!             A_perm_upper.rb(),
+//!             // SAFETY: `etree` was filled correctly by
+//!             // `simplicial::prefactorize_symbolic_cholesky`.
+//!             unsafe { simplicial::EliminationTreeRef::from_inner(&etree) },
+//!             &col_counts,
+//!             stack,
+//!             colmat::sparse::linalg::SymbolicSupernodalParams {
+//!                 relax: Some(&[(usize::MAX, 1.0)]),
+//!             },
+//!         )?
+//!     };
+//!     // numerical factorization
+//!     let mut mem =
+//!         MemBuffer::try_new(StackReq::any_of(&[
+//!             supernodal::factorize_supernodal_numeric_llt_scratch::<
+//!                 usize,
+//!                 f64,
+//!             >(&symbolic, colmat::ParShape::Seq, Default::default()),
+//!             supernodal::factorize_supernodal_numeric_ldlt_scratch::<
+//!                 usize,
+//!                 f64,
+//!             >(&symbolic, colmat::ParShape::Seq, Default::default()),
+//!             supernodal::factorize_supernodal_numeric_intranode_lblt_scratch::<
+//!                 usize,
+//!                 f64,
+//!             >(&symbolic, colmat::ParShape::Seq, Default::default()),
+//!             colmat::perm::permute_rows_in_place_scratch::<usize, f64>(dim, 1),
+//!             symbolic.solve_in_place_scratch::<f64>(dim, colmat::ParShape::Seq),
+//!         ]))?;
+//!     let stack = MemStack::new(&mut mem);
+//!     // llt skipped since a is not positive-definite
+//!     // numerical ldlt factorization
+//!     {
+//!         let mut L_values = Vec::new();
+//!         L_values.try_reserve_exact(symbolic.len_val())?;
+//!         L_values.resize(symbolic.len_val(), 0.0f64);
+//!         supernodal::factorize_supernodal_numeric_ldlt::<usize, f64>(
+//!             &mut L_values,
+//!             A_perm_lower.rb(),
+//!             LdltRegularization::default(),
+//!             &symbolic,
+//!             colmat::Par::Seq,
+//!             stack,
+//!             Default::default(),
+//!         );
+//!         let ldlt = supernodal::SupernodalLdltRef::<'_, usize, f64>::new(
+//!             &symbolic, &L_values,
+//!         );
+//!         sol.copy_from(rhs);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//!         ldlt.solve_in_place_with_conj(
+//!             colmat::Conj::No,
+//!             sol.rb_mut(),
+//!             colmat::Par::Seq,
+//!             stack,
+//!         );
+//!         colmat::perm::permute_rows_in_place(
+//!             sol.rb_mut(),
+//!             perm.inverse(),
+//!             stack,
+//!         );
+//!         assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
+//!     }
+//!     // numerical intranodal LBLT factorization
+//!     {
+//!         let mut L_values = Vec::new();
+//!         let mut subdiag = Vec::new();
+//!         let mut pivot_perm = Vec::new();
+//!         let mut pivot_perm_inv = Vec::new();
+//!         L_values.try_reserve_exact(symbolic.len_val())?;
+//!         L_values.resize(symbolic.len_val(), 0.0f64);
+//!         subdiag.try_reserve_exact(dim)?;
+//!         subdiag.resize(dim, 0.0f64);
+//!         pivot_perm.try_reserve(dim)?;
+//!         pivot_perm.resize(dim, 0usize);
+//!         pivot_perm_inv.try_reserve(dim)?;
+//!         pivot_perm_inv.resize(dim, 0usize);
+//!         supernodal::factorize_supernodal_numeric_intranode_lblt::<usize, f64>(
+//!             &mut L_values,
+//!             &mut subdiag,
+//!             &mut pivot_perm,
+//!             &mut pivot_perm_inv,
+//!             A_perm_lower.rb(),
+//!             &symbolic,
+//!             colmat::Par::Seq,
+//!             stack,
+//!             Default::default(),
+//!         );
+//!         let piv_perm = unsafe {
+//!             colmat::perm::PermRef::new_unchecked(
+//!                 &pivot_perm,
+//!                 &pivot_perm_inv,
+//!                 dim,
+//!             )
+//!         };
+//!         let lblt =
+//!             supernodal::SupernodalIntranodeLbltRef::<'_, usize, f64>::new(
+//!                 &symbolic, &L_values, &subdiag, piv_perm,
+//!             );
+//!         sol.copy_from(rhs);
+//!         // we can merge these two permutations if we want to be optimal
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), perm, stack);
+//!         colmat::perm::permute_rows_in_place(sol.rb_mut(), piv_perm, stack);
+//!         lblt.solve_in_place_no_numeric_permute_with_conj(
+//!             colmat::Conj::No,
+//!             sol.rb_mut(),
+//!             colmat::Par::Seq,
+//!             stack,
+//!         );
+//!         // we can also merge these two permutations if we want to be optimal
+//!         colmat::perm::permute_rows_in_place(
+//!             sol.rb_mut(),
+//!             piv_perm.inverse(),
+//!             stack,
+//!         );
+//!         colmat::perm::permute_rows_in_place(
+//!             sol.rb_mut(),
+//!             perm.inverse(),
+//!             stack,
+//!         );
+//!         assert!((&A * &sol - &rhs).norm_max() <= 1e-14);
+//!     }
+//!     Ok(())
 //! }
 //! supernodal_cholesky().unwrap()
 //! ```
@@ -512,6 +512,7 @@ pub mod simplicial {
 		pub(crate) inner: &'a [I::Signed],
 	}
 	impl<'a, I: Index> EliminationTreeRef<'a, I> {
+		#[allow(clippy::len_without_is_empty)] // `is_empty` would add public API; the fork keeps upstream surface only
 		/// dimension of the original matrix
 		pub fn len(&self) -> usize {
 			self.inner.len()
@@ -528,7 +529,7 @@ pub mod simplicial {
 
 		/// creates an elimination tree reference from the underlying array
 		///
-		/// # safety
+		/// # Safety
 		/// the elimination tree must come from an array that was previously
 		/// filled with [`prefactorize_symbolic_cholesky`]
 		#[inline]
@@ -757,6 +758,8 @@ pub mod simplicial {
 		Llt,
 		Ldlt,
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+	#[allow(clippy::neg_cmp_op_on_partial_ord)] // a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 	fn factorize_simplicial_numeric_with_row_idx<I: Index, T: ComplexField>(
 		L_values: &mut [T],
 		L_row_idx: &mut [I],
@@ -776,8 +779,8 @@ pub mod simplicial {
 		with_dim!(L_NNZ, l_nnz);
 		let etree = etree.as_bound(N);
 		let A = A.as_shape(N, N);
-		let ref eps = regularization.dynamic_regularization_epsilon.abs();
-		let ref delta = regularization.dynamic_regularization_delta.abs();
+		let eps = &regularization.dynamic_regularization_epsilon.abs();
+		let delta = &regularization.dynamic_regularization_delta.abs();
 		let has_delta = *delta > zero::<T::Real>();
 		let mut dynamic_regularization_count = 0usize;
 		let (mut x, stack) = temp_mat_zeroed::<T, _, _>(n, 1, stack);
@@ -814,11 +817,11 @@ pub mod simplicial {
 				let mut xj = x[j].copy();
 				x[j] = zero::<T>();
 				let dj = L_values[j_start].real().recip();
-				let ref lkj = xj.mul_real(dj);
+				let lkj = &xj.mul_real(dj);
 				if kind == FactorizationKind::Llt {
 					xj = lkj.copy();
 				}
-				let ref xj = xj;
+				let xj = &xj;
 				let range = j_start.next()..row_idx.into();
 				for (i, lij) in
 					iter::zip(&L_row_idx[range.clone()], &L_values[range])
@@ -826,7 +829,7 @@ pub mod simplicial {
 					let i = N.check(i.zx());
 					x[i] -= lij.conj() * xj;
 				}
-				d = d - (lkj * xj.conj()).real();
+				d -= (lkj * xj.conj()).real();
 				L_values[row_idx] = lkj.copy();
 				L_row_idx[row_idx] = *k.truncate();
 			}
@@ -886,6 +889,7 @@ pub mod simplicial {
 			dynamic_regularization_count,
 		})
 	}
+	#[allow(clippy::neg_cmp_op_on_partial_ord)] // a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 	fn factorize_simplicial_numeric_cholesky<I: Index, T: ComplexField>(
 		L_values: &mut [T],
 		kind: FactorizationKind,
@@ -911,8 +915,8 @@ pub mod simplicial {
 			N,
 		);
 		let A = A.as_shape(N, N);
-		let ref eps = regularization.dynamic_regularization_epsilon.abs();
-		let ref delta = regularization.dynamic_regularization_delta.abs();
+		let eps = &regularization.dynamic_regularization_epsilon.abs();
+		let delta = &regularization.dynamic_regularization_delta.abs();
 		let has_delta = *delta > zero::<T::Real>();
 		let mut dynamic_regularization_count = 0usize;
 		let (mut x, stack) = temp_mat_zeroed::<T, _, _>(n, 1, stack);
@@ -949,11 +953,11 @@ pub mod simplicial {
 				let mut xj = x[j].copy();
 				x[j] = zero::<T>();
 				let dj = L_values[j_start].real().recip();
-				let ref lkj = xj.mul_real(dj);
+				let lkj = &xj.mul_real(dj);
 				if kind == FactorizationKind::Llt {
 					xj = lkj.copy();
 				}
-				let ref xj = xj;
+				let xj = &xj;
 				let range = j_start.next()..row_idx.into();
 				for (i, lij) in
 					iter::zip(&L_row_idx[range.clone()], &L_values[range])
@@ -961,7 +965,7 @@ pub mod simplicial {
 					let i = N.check(i.zx());
 					x[i] -= lij.conj() * xj;
 				}
-				d = d - (lkj * xj.conj()).real();
+				d -= (lkj * xj.conj()).real();
 				L_values[row_idx] = lkj.copy();
 			}
 			let k_start = L_col_ptr_start[k].zx();
@@ -1441,6 +1445,7 @@ pub mod supernodal {
 			}
 		}
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	fn ereach_super_ata<'m, 'n, 'nsuper, I: Index>(
 		A: SymbolicSparseColMatRef<'_, I, Dim<'m>, Dim<'n>>,
 		perm: Option<PermRef<'_, I, Dim<'n>>>,
@@ -2305,25 +2310,23 @@ pub mod supernodal {
 				let subdiag = &self.subdiag[s.start()..s.start() + size];
 				let mut idx = 0;
 				while idx < size {
-					let ref subdiag = subdiag[idx];
+					let subdiag = &subdiag[idx];
 					let i = idx + s.start();
 					if *subdiag == zero::<T>() {
-						let ref d = Bs[(idx, idx)].real().recip();
+						let d = &Bs[(idx, idx)].real().recip();
 						for j in 0..k {
 							x[(i, j)] = x[(i, j)].mul_real(d);
 						}
 						idx += 1;
 					} else {
 						let d21 = conj_lb.apply_rt(subdiag);
-						let ref d21 = d21.recip();
-						let ref d11 =
-							d21.conj().mul_real(Bs[(idx, idx)].real());
-						let ref d22 =
-							d21.mul_real(Bs[(idx + 1, idx + 1)].real());
-						let ref denom = (d11 * d22 - one::<T>()).recip();
+						let d21 = &d21.recip();
+						let d11 = &d21.conj().mul_real(Bs[(idx, idx)].real());
+						let d22 = &d21.mul_real(Bs[(idx + 1, idx + 1)].real());
+						let denom = &(d11 * d22 - one::<T>()).recip();
 						for j in 0..k {
-							let ref xk = &x[(i, j)] * d21.conj();
-							let ref xkp1 = &x[(i + 1, j)] * d21;
+							let xk = &(&x[(i, j)] * d21.conj());
+							let xkp1 = &(&x[(i + 1, j)] * d21);
 							x[(i, j)] = (d22 * xk - xkp1) * denom;
 							x[(i + 1, j)] = (d11 * xkp1 - xk) * denom;
 						}
@@ -2408,10 +2411,12 @@ pub mod supernodal {
 			params,
 		)
 	}
+	#[allow(clippy::upper_case_acronyms)] // variant name is API and mirrors the upstream name
 	pub(crate) enum CholeskyInput {
 		A,
 		ATA,
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	pub(crate) fn ghost_factorize_supernodal_symbolic<'m, 'n, I: Index>(
 		A: SymbolicSparseColMatRef<'_, I, Dim<'m>, Dim<'n>>,
 		col_perm: Option<PermRef<'_, I, Dim<'n>>>,
@@ -3429,7 +3434,7 @@ pub mod supernodal {
 				par.reborrow(),
 			);
 			for j in 0..s_ncols {
-				let ref d = Ls_top[(j, j)].real().recip();
+				let d = &Ls_top[(j, j)].real().recip();
 				for i in 0..s_pattern.len() {
 					Ls_bot[(i, j)] = Ls_bot[(i, j)].mul_real(d);
 				}
@@ -3442,6 +3447,7 @@ pub mod supernodal {
 			dynamic_regularization_count,
 		})
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes the numeric values of the cholesky $LBL^\top$ factors of the
 	/// matrix $A$ with intranodal pivoting, and stores them in `l_values`
 	///
@@ -3558,20 +3564,20 @@ pub mod supernodal {
 				let mut Ld_mid_x_D = tmp2.as_mat_mut().transpose_mut();
 				let mut j = 0;
 				while j < d_ncols {
-					let ref subdiag = d_subdiag[j].copy();
+					let subdiag = &d_subdiag[j].copy();
 					if *subdiag == zero::<T>() {
-						let ref d = Ld_top[(j, j)].real();
+						let d = &Ld_top[(j, j)].real();
 						for i in 0..d_pattern_mid_len {
 							Ld_mid_x_D[(i, j)] = Ld_mid[(i, j)].mul_real(d);
 						}
 						j += 1;
 					} else {
-						let ref akp1k = *subdiag;
-						let ref ak = Ld_top[(j, j)].real();
-						let ref akp1 = Ld_top[(j + 1, j + 1)].real();
+						let akp1k = subdiag;
+						let ak = &Ld_top[(j, j)].real();
+						let akp1 = &Ld_top[(j + 1, j + 1)].real();
 						for i in 0..d_pattern_mid_len {
-							let ref xk = Ld_mid[(i, j)];
-							let ref xkp1 = Ld_mid[(i, j + 1)];
+							let xk = &Ld_mid[(i, j)];
+							let xkp1 = &Ld_mid[(i, j + 1)];
 							Ld_mid_x_D[(i, j)] = xk.mul_real(ak) + xkp1 * akp1k;
 							Ld_mid_x_D[(i, j + 1)] =
 								xkp1.mul_real(akp1) + xk * akp1k.conj();
@@ -3670,20 +3676,19 @@ pub mod supernodal {
 			let mut j = 0;
 			while j < s_ncols {
 				if s_subdiag[j] == zero::<T>() {
-					let ref d = Ls_top[(j, j)].real().recip();
+					let d = &Ls_top[(j, j)].real().recip();
 					for i in 0..s_pattern.len() {
 						Ls_bot[(i, j)] = Ls_bot[(i, j)].mul_real(d);
 					}
 					j += 1;
 				} else {
-					let ref akp1k = s_subdiag[j].conj().recip();
-					let ref ak = akp1k.conj().mul_real(Ls_top[(j, j)].real());
-					let ref akp1 =
-						akp1k.mul_real(Ls_top[(j + 1, j + 1)].real());
-					let ref denom = (ak * akp1 - one::<T>()).recip();
+					let akp1k = &s_subdiag[j].conj().recip();
+					let ak = &akp1k.conj().mul_real(Ls_top[(j, j)].real());
+					let akp1 = &akp1k.mul_real(Ls_top[(j + 1, j + 1)].real());
+					let denom = &(ak * akp1 - one::<T>()).recip();
 					for i in 0..s_pattern.len() {
-						let ref xk = &Ls_bot[(i, j)] * akp1k.conj();
-						let ref xkp1 = &Ls_bot[(i, j + 1)] * akp1k;
+						let xk = &(&Ls_bot[(i, j)] * akp1k.conj());
+						let xkp1 = &(&Ls_bot[(i, j + 1)] * akp1k);
 						Ls_bot[(i, j)] = (akp1 * xk - xkp1) * denom;
 						Ls_bot[(i, j + 1)] = (ak * xkp1 - xk) * denom;
 					}
@@ -3939,6 +3944,7 @@ impl<I: Index> SymbolicCholesky<I> {
 		])
 	}
 
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes a numerical llt factorization of a, or returns a [`LltError`]
 	/// if the matrix is not numerically positive definite
 	#[track_caller]
@@ -4020,6 +4026,7 @@ impl<I: Index> SymbolicCholesky<I> {
 		Ok(LltRef::<'out, I, T>::new(self, L_values))
 	}
 
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes a numerical $LDL^H$ factorization of a
 	#[inline]
 	pub fn factorize_numeric_ldlt<'out, T: ComplexField>(
@@ -4131,6 +4138,7 @@ impl<I: Index> SymbolicCholesky<I> {
 		Ok(LdltRef::<'out, I, T>::new(self, L_values))
 	}
 
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes a numerical intranodal $LBL^\top$ factorization of a
 	#[inline]
 	pub fn factorize_numeric_intranode_lblt<'out, T: ComplexField>(
@@ -4697,8 +4705,8 @@ pub fn factorize_symbolic_cholesky<I: Index>(
 		A.as_shape(n, n),
 		stack,
 	);
-	let L_nnz = I::sum_nonnegative(col_counts.as_ref())
-		.ok_or(FaerError::IndexOverflow)?;
+	let L_nnz =
+		I::sum_nonnegative(col_counts).ok_or(FaerError::IndexOverflow)?;
 	let col_counts = Array::from_mut(col_counts, N);
 	let flops = match flops {
 		Some(flops) => flops,
@@ -5037,7 +5045,8 @@ pub(super) mod tests {
 					x.rb_mut(),
 					Par::Seq,
 					MemStack::new(&mut MemBuffer::new(
-						symbolic.solve_in_place_scratch::<c64>(k, ParShape::Seq),
+						symbolic
+							.solve_in_place_scratch::<c64>(k, ParShape::Seq),
 					)),
 				);
 				let target = rhs.rb();
@@ -5099,7 +5108,8 @@ pub(super) mod tests {
 					tmp.rb_mut(),
 					Par::Seq,
 					MemStack::new(&mut MemBuffer::new(
-						symbolic.solve_in_place_scratch::<c64>(k, ParShape::Seq),
+						symbolic
+							.solve_in_place_scratch::<c64>(k, ParShape::Seq),
 					)),
 				);
 				for j in 0..k {
@@ -5157,7 +5167,8 @@ pub(super) mod tests {
 					x.rb_mut(),
 					Par::Seq,
 					MemStack::new(&mut MemBuffer::new(
-						symbolic.solve_in_place_scratch::<c64>(k, ParShape::Seq),
+						symbolic
+							.solve_in_place_scratch::<c64>(k, ParShape::Seq),
 					)),
 				);
 				let target = rhs.rb();
@@ -5335,7 +5346,7 @@ pub(super) mod tests {
 				SupernodalThreshold::FORCE_SUPERNODAL,
 			] {
 				let mut run = |mut par: Par<'_>| -> Result {
-			let par_shape = par.shape();
+					let par_shape = par.shape();
 					let symbolic = &factorize_symbolic_cholesky(
 						A.symbolic(),
 						side,
@@ -5391,10 +5402,10 @@ pub(super) mod tests {
 							assert!(rhs ~ target);
 						}
 					}
-				Ok(())
+					Ok(())
 				};
 				run(Par::Seq)?;
-				crate::team::with_team(4, |par| run(par))?;
+				crate::team::with_team(4, run)?;
 			}
 		}
 		Ok(())
@@ -5420,7 +5431,7 @@ pub(super) mod tests {
 				SupernodalThreshold::FORCE_SUPERNODAL,
 			] {
 				let mut run = |mut par: Par<'_>| -> Result {
-			let par_shape = par.shape();
+					let par_shape = par.shape();
 					let symbolic = &factorize_symbolic_cholesky(
 						A.symbolic(),
 						side,
@@ -5476,10 +5487,10 @@ pub(super) mod tests {
 							assert!(rhs ~ target);
 						}
 					}
-				Ok(())
+					Ok(())
 				};
 				run(Par::Seq)?;
-				crate::team::with_team(4, |par| run(par))?;
+				crate::team::with_team(4, run)?;
 			}
 		}
 		Ok(())
@@ -5505,7 +5516,7 @@ pub(super) mod tests {
 				SupernodalThreshold::FORCE_SUPERNODAL,
 			] {
 				let mut run = |mut par: Par<'_>| -> Result {
-			let par_shape = par.shape();
+					let par_shape = par.shape();
 					let symbolic = &factorize_symbolic_cholesky(
 						A.symbolic(),
 						side,
@@ -5567,10 +5578,10 @@ pub(super) mod tests {
 							assert!(rhs ~ target);
 						}
 					}
-				Ok(())
+					Ok(())
 				};
 				run(Par::Seq)?;
-				crate::team::with_team(4, |par| run(par))?;
+				crate::team::with_team(4, run)?;
 			}
 		}
 		Ok(())

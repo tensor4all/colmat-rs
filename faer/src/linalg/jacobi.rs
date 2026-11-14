@@ -72,17 +72,17 @@ impl<T: ComplexField> JacobiRotation<T> {
 				let s = s.to_cplx();
 				(Self { c, s }, q.to_cplx())
 			} else {
-				let ref safmin = min_positive::<T::Real>();
-				let ref safmax = safmin.recip();
-				let ref a = p;
-				let ref b = q;
-				let ref scl = a.abs().fmax(b.abs()).fmax(safmin).fmin(safmax);
+				let safmin = &min_positive::<T::Real>();
+				let safmax = &safmin.recip();
+				let a = &p;
+				let b = &q;
+				let scl = &a.abs().fmax(b.abs()).fmax(safmin).fmin(safmax);
 				let r = scl * ((a / scl).abs2() + (b / scl).abs2()).sqrt();
-				let ref r = if a.abs() > b.abs() {
+				let r = &(if a.abs() > b.abs() {
 					if *a > zero::<T::Real>() { r } else { -r }
 				} else {
 					if *b > zero::<T::Real>() { r } else { -r }
-				};
+				});
 				let c = (a / r).to_cplx();
 				let s = (-b / r).to_cplx();
 				let r = r.to_cplx();
@@ -102,23 +102,23 @@ impl<T: ComplexField> JacobiRotation<T> {
 					a,
 				);
 			}
-			let ref eps = eps::<T::Real>();
-			let ref sml = min_positive::<T::Real>();
-			let ref big = max_positive::<T::Real>();
-			let ref rtmin = (sml / eps).sqrt();
-			let ref rtmax = rtmin.recip();
+			let eps = &eps::<T::Real>();
+			let sml = &min_positive::<T::Real>();
+			let big = &max_positive::<T::Real>();
+			let rtmin = &(sml / eps).sqrt();
+			let rtmax = &rtmin.recip();
 			let (c, s, r);
 			if a == zero::<T>() {
 				c = zero::<T>();
-				let ref g1 = b.real().abs().fmax(b.imag().abs());
+				let g1 = &b.real().abs().fmax(b.imag().abs());
 				if g1 > rtmin && g1 < rtmax {
 					let g2 = b.abs2();
 					let d = g2.sqrt();
 					s = b.conj().mul_real(d.recip());
 					r = d.to_cplx();
 				} else {
-					let ref u = g1.fmax(sml).fmin(big);
-					let ref uu = u.recip();
+					let u = &g1.fmax(sml).fmin(big);
+					let uu = &u.recip();
 					let gs = b.mul_real(uu);
 					let g2 = gs.abs2();
 					let d = g2.sqrt();
@@ -126,26 +126,26 @@ impl<T: ComplexField> JacobiRotation<T> {
 					r = (d * u).to_cplx();
 				}
 			} else {
-				let ref f1 = a.real().abs().fmax(a.imag().abs());
-				let ref g1 = b.real().abs().fmax(b.imag().abs());
+				let f1 = &a.real().abs().fmax(a.imag().abs());
+				let g1 = &b.real().abs().fmax(b.imag().abs());
 				if f1 > rtmin && f1 < rtmax && g1 > rtmin && g1 < rtmax {
-					let ref f2 = a.abs2();
-					let ref g2 = b.abs2();
-					let ref h2 = f2 + g2;
+					let f2 = &a.abs2();
+					let g2 = &b.abs2();
+					let h2 = &(f2 + g2);
 					let d = if f2 > rtmin && h2 < rtmax {
 						(f2 * h2).sqrt()
 					} else {
 						f2.sqrt() * h2.sqrt()
 					};
-					let ref p = d.recip();
+					let p = &d.recip();
 					c = (f2 * p).to_cplx();
 					s = b.conj() * a.mul_real(p);
 					r = a.mul_real(h2 * p);
 				} else {
 					let u = f1.fmax(g1).fmax(sml).fmin(big);
-					let ref uu = u.recip();
-					let ref gs = b.mul_real(uu);
-					let ref g2 = gs.abs2();
+					let uu = &u.recip();
+					let gs = &b.mul_real(uu);
+					let g2 = &gs.abs2();
 					let (f2, h2, w);
 					let fs;
 					if f1 * uu < *rtmin {
@@ -166,7 +166,7 @@ impl<T: ComplexField> JacobiRotation<T> {
 					} else {
 						f2.sqrt() * h2.sqrt()
 					};
-					let ref p = d.recip();
+					let p = &d.recip();
 					c = ((&f2 * p) * &w).to_cplx();
 					s = gs.conj() * fs.mul_real(p);
 					r = fs.mul_real(h2 * p).mul_real(u);
@@ -457,8 +457,8 @@ mod tests {
 	#[test]
 	fn real_apply_on_the_right_2x2_matches_explicit_product() {
 		let j = JacobiRotation {
-			c: 0.6 as f64,
-			s: 0.8 as f64,
+			c: 0.6_f64,
+			s: 0.8_f64,
 		};
 		let (m00, m01, m10, m11) = (1.0, 2.0, 3.0, 4.0);
 		let (r00, r01, r10, r11) = j.apply_on_the_right_2x2(m00, m01, m10, m11);

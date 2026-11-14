@@ -93,7 +93,7 @@ fn work_rows<T>(m: usize) -> usize {
 	} else {
 		m
 	};
-	if (stride * size) % 1024 == 0 {
+	if (stride * size).is_multiple_of(1024) {
 		m + 64usize.div_ceil(size)
 	} else {
 		m
@@ -193,20 +193,27 @@ fn bidiag_real_svd_scratch<T: RealField>(
 	params: SvdParams,
 ) -> StackReq {
 	// the values-only route runs dqds first, and falls through to the paths below when it fails
-	let dqds = if compute_u || compute_v { StackReq::EMPTY } else { dqds::singular_values_scratch::<T>(n) };
+	let dqds = if compute_u || compute_v {
+		StackReq::EMPTY
+	} else {
+		dqds::singular_values_scratch::<T>(n)
+	};
 	if n < params.recursion_threshold {
 		dqds
 	} else {
-		StackReq::any_of(&[dqds, StackReq::all_of(&[
-			temp_mat_scratch::<T>(2, if compute_u { 0 } else { n + 1 }),
-			bidiag_svd::divide_and_conquer_scratch::<T>(
-				n,
-				params.recursion_threshold,
-				compute_u,
-				compute_v,
-				par,
-			),
-		])])
+		StackReq::any_of(&[
+			dqds,
+			StackReq::all_of(&[
+				temp_mat_scratch::<T>(2, if compute_u { 0 } else { n + 1 }),
+				bidiag_svd::divide_and_conquer_scratch::<T>(
+					n,
+					params.recursion_threshold,
+					compute_u,
+					compute_v,
+					par,
+				),
+			]),
+		])
 	}
 }
 fn compute_bidiag_cplx_svd<T: ComplexField>(
@@ -262,11 +269,11 @@ fn compute_bidiag_cplx_svd<T: ComplexField>(
 			let norm1 = x.real().abs().fmax(x.imag().abs());
 			// a subnormal component scale has an infinite reciprocal; rescale it the
 			// way reference `dlarfg` does instead of dividing by a zero product
-			let ref shift = if norm1 >= min_positive::<T::Real>() {
+			let shift = &(if norm1 >= min_positive::<T::Real>() {
 				from_f64::<T::Real>(1.0)
 			} else {
 				from_f64::<T::Real>(4503599627370496.0)
-			};
+			});
 			let y = x.mul_real(shift).mul_real((&norm1 * shift).recip());
 			y.mul_real(y.abs().recip())
 		}
@@ -369,7 +376,12 @@ fn compute_bidiag_real_svd<T: RealField>(
 		// units at all (#110). `dqds::singular_values` writes `diag` only on success and never
 		// writes `subdiag`, so the rotation path starts from the caller's bidiagonal.
 		if !diag.rb().iter().any(|x| *x == zero())
-			&& dqds::singular_values(diag.rb_mut().as_slice_mut(), subdiag.rb_mut().as_slice_mut(), stack).is_ok()
+			&& dqds::singular_values(
+				diag.rb_mut().as_slice_mut(),
+				subdiag.rb_mut().as_slice_mut(),
+				stack,
+			)
+			.is_ok()
 		{
 			return Ok(());
 		}
@@ -389,7 +401,7 @@ fn compute_bidiag_real_svd<T: RealField>(
 			u.rb_mut().map(|u| u.submatrix_mut(0, 0, n, n)),
 			v.rb_mut(),
 		)?;
-		return Ok(());
+		Ok(())
 	} else {
 		let (mut u2, stack) = unsafe {
 			temp_mat_uninit::<T::Real, _, _>(
@@ -421,9 +433,9 @@ fn compute_bidiag_real_svd<T: RealField>(
 /// use colmat::Par;
 /// use colmat::linalg::svd::bidiagonal_svd_scratch;
 /// let _buffer = dyn_stack::MemBuffer::new(bidiagonal_svd_scratch::<f64>(
-/// 	3,
-/// 	colmat::ParShape::Seq,
-/// 	Default::default(),
+///     3,
+///     colmat::ParShape::Seq,
+///     Default::default(),
 /// ));
 /// ```
 pub fn bidiagonal_svd_scratch<T: ComplexField>(
@@ -442,6 +454,7 @@ pub fn bidiagonal_svd_scratch<T: ComplexField>(
 		bidiag_cplx_svd_scratch::<T>(n, true, true, par, *params),
 	])
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// Computes a square bidiagonal SVD `B = U * diag(s) * V.adjoint()`.
 /// `diag` is overwritten with nonnegative, descending singular values (with
 /// zero imaginary part). `offdiag` has length `n.saturating_sub(1)` and is
@@ -466,19 +479,19 @@ pub fn bidiagonal_svd_scratch<T: ComplexField>(
 /// let mut d = [3.0f64, -2.0];
 /// let (mut u, mut v) = (Mat::zeros(2, 2), Mat::zeros(2, 2));
 /// let mut mem = MemBuffer::new(bidiagonal_svd_scratch::<f64>(
-/// 	2,
-/// 	colmat::ParShape::Seq,
-/// 	Default::default(),
+///     2,
+///     colmat::ParShape::Seq,
+///     Default::default(),
 /// ));
 /// bidiagonal_svd(
-/// 	&mut d,
-/// 	&[0.0],
-/// 	true,
-/// 	u.as_mut(),
-/// 	v.as_mut(),
-/// 	Par::Seq,
-/// 	MemStack::new(&mut mem),
-/// 	Default::default(),
+///     &mut d,
+///     &[0.0],
+///     true,
+///     u.as_mut(),
+///     v.as_mut(),
+///     Par::Seq,
+///     MemStack::new(&mut mem),
+///     Default::default(),
 /// )
 /// .unwrap();
 /// assert_eq!(d, [3.0, 2.0]);
@@ -558,6 +571,8 @@ pub fn bidiagonal_svd<T: ComplexField>(
 	}
 	Ok(())
 }
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// bidiag -> divide conquer svd / qr algo
 fn svd_imp<T: ComplexField>(
 	matrix: MatRef<'_, T>,
@@ -666,6 +681,7 @@ fn svd_imp<T: ComplexField>(
 	}
 	Ok(())
 }
+#[allow(clippy::missing_transmute_annotations)] // the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 fn compute_squareish_svd<T: ComplexField>(
 	matrix: MatRef<'_, T>,
 	s: ColMut<'_, T>,
@@ -946,6 +962,7 @@ pub fn pseudoinverse_from_svd<T: ComplexField>(
 		stack,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes a self-adjoint matrix's pseudoinverse, given the svd factors $S$,
 /// $U$ and $V$, and tolerance parameters for determining zero singular values
 pub fn pseudoinverse_from_svd_with_tolerance<T: ComplexField>(
@@ -984,7 +1001,7 @@ pub fn pseudoinverse_from_svd_with_tolerance<T: ComplexField>(
 	for j in 0..size {
 		let x = s[j].absmax();
 		if x > tol {
-			let ref p = s[j].real().recip();
+			let p = &s[j].real().recip();
 			u_trunc.rb_mut().col_mut(len).copy_from(u.col(j));
 			z!(vp_trunc.rb_mut().col_mut(len), v.col(j))
 				.for_each(|uz!(dst, src)| *dst = src.mul_real(p));
@@ -1012,7 +1029,7 @@ mod tests {
 		const GUARD: Scalar = -12345.0;
 		const ROTATION_PHASE: Scalar = 1.0;
 		fn diagonal_phase(i: usize) -> Scalar {
-			if i % 2 == 0 { 1.0 } else { -1.0 }
+			if i.is_multiple_of(2) { 1.0 } else { -1.0 }
 		}
 		use super::super::{
 			bidiag_real_svd_scratch as bidiagonal_scratch,
@@ -1034,7 +1051,7 @@ mod tests {
 		const GUARD: Scalar = -12345.0;
 		const ROTATION_PHASE: Scalar = 1.0;
 		fn diagonal_phase(i: usize) -> Scalar {
-			if i % 2 == 0 { 1.0 } else { -1.0 }
+			if i.is_multiple_of(2) { 1.0 } else { -1.0 }
 		}
 		use super::super::{
 			bidiag_real_svd_scratch as bidiagonal_scratch,
@@ -1342,7 +1359,8 @@ mod tests {
 				}
 			});
 			let mut params = Spec::<SvdParams, T>::default();
-			params.recursion_threshold = 4;
+
+			params.config.recursion_threshold = 4;
 			let mut s = Col::<T>::zeros(n);
 			let mut v = Mat::<T>::zeros(n, n);
 			let mut mem = MemBuffer::new(svd_scratch::<T>(
@@ -1409,7 +1427,7 @@ mod tests {
 		for n in [128, 256] {
 			for tiny in [0.0, 1e-15, 1e-13, 1e-10, 1e-6] {
 				let a = Mat::<f64>::from_fn(n, n, |i, j| {
-					if (i == j && i < 64) || (j == i + 1 && i < 64) {
+					if !(i >= 64 || i != j && j != i + 1) {
 						1.0
 					} else if i == 64 && j == 64 {
 						tiny
@@ -1887,13 +1905,13 @@ mod tests {
 		assert!((values[1] - 6.315239590698253e-4).abs() <= 1e-17);
 		let u = svd.U();
 		let v = svd.V();
-		let rec = &u * svd.S() * v.adjoint();
+		let rec = u * svd.S() * v.adjoint();
 		assert!((&rec - &a).norm_max() <= 1e-14);
 		assert!(
-			(u.adjoint() * &u - Mat::<c64>::identity(n, n)).norm_max() <= 1e-14
+			(u.adjoint() * u - Mat::<c64>::identity(n, n)).norm_max() <= 1e-14
 		);
 		assert!(
-			(v.adjoint() * &v - Mat::<c64>::identity(n, n)).norm_max() <= 1e-14
+			(v.adjoint() * v - Mat::<c64>::identity(n, n)).norm_max() <= 1e-14
 		);
 	}
 	/// full factors must be orthogonal even when the caller's output buffers
@@ -1930,8 +1948,8 @@ mod tests {
 				(v.transpose() * &v - Mat::<f64>::identity(n, n)).norm_max();
 			assert!(orth_u < 1e-12, "U orthogonality error {orth_u}");
 			assert!(orth_v < 1e-12, "V orthogonality error {orth_v}");
-			let rec = u.as_ref().get(.., ..size) * s.as_ref()
-				* v.as_ref().get(.., ..size).transpose();
+			let rec = u.as_ref().get(.., ..size)
+				* s.as_ref() * v.as_ref().get(.., ..size).transpose();
 			assert!((&rec - &a).norm_max() < 1e-12);
 		}
 	}

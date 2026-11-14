@@ -129,6 +129,7 @@ pub mod supernodal {
 			self.ncols
 		}
 
+		#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 		/// Materializes the saved unit lower and upper factors as CSC matrices.
 		///
 		/// # Errors
@@ -571,6 +572,8 @@ pub mod supernodal {
 		let _ = nrows;
 		linalg_sp::cholesky::supernodal::factorize_supernodal_symbolic_cholesky_scratch::<I>(ncols)
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// computes the symbolic structure of the $LU$ factors of the matrix $A$
 	#[track_caller]
 	pub fn factorize_supernodal_symbolic_lu<I: Index>(
@@ -691,6 +694,9 @@ pub mod supernodal {
 			StackReq::new::<I>(symbolic.supernode_ptr.len()),
 		])
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// computes the numeric values of the $LU$ factors of the matrix $A$ as
 	/// well as the row pivoting permutation, and stores them in `lu` and
 	/// `row_perm`/`row_perm_inv`
@@ -1608,6 +1614,7 @@ pub mod simplicial {
 			);
 		}
 	}
+	#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 	fn depth_first_search<I: Index>(
 		marked: &mut [I],
 		mark: I,
@@ -1679,6 +1686,7 @@ pub mod simplicial {
 		}
 		tail_start
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	fn l_incomplete_solve_sparse<I: Index, T: ComplexField>(
 		marked: &mut [I],
 		mark: I,
@@ -1706,7 +1714,7 @@ pub mod simplicial {
 			let li = l.row_idx_of_col_raw(pi);
 			let lx = l.val_of_col(pi);
 			let len = li.len();
-			let ref xi = x[i].copy();
+			let xi = &x[i].copy();
 			for (li, lx) in iter::zip(&li[1..], &lx[1..len]) {
 				let li = li.zx();
 				x[li] -= lx * xi;
@@ -1853,7 +1861,7 @@ pub mod simplicial {
 			if x_piv.abs1() == zero::<T::Real>() {
 				return Err(LuError::NumericSingular { index: j });
 			}
-			let ref x_piv_inv = x_piv.recip();
+			let x_piv_inv = &x_piv.recip();
 			row_perm_inv[pivot_idx] = I(j);
 			lu.u_row_idx[u_pos] = I(j);
 			u_val[u_pos] = x_piv;
@@ -1962,7 +1970,7 @@ impl<I: Index, T> Clone for LuRef<'_, I, T> {
 impl<'a, I: Index, T> LuRef<'a, I, T> {
 	/// creates $LU$ factors from their components
 	///
-	/// # safety
+	/// # Safety
 	/// the numeric part must be the output of
 	/// [`SymbolicLu::factorize_numeric_lu`], called with a matrix having the
 	/// same symbolic structure as the one used to create `symbolic`
@@ -1986,7 +1994,7 @@ impl<'a, I: Index, T> LuRef<'a, I, T> {
 	///
 	/// # Errors
 	/// Returns an allocation or index capacity error if output construction fails.
-
+	///
 	/// # Examples
 	/// ```
 	/// use colmat::{Par, sparse::{SparseColMat, Triplet}};
@@ -1998,6 +2006,7 @@ impl<'a, I: Index, T> LuRef<'a, I, T> {
 	/// assert_eq!((&l.to_dense() * &u.to_dense())[(0, 0)], 2.0);
 	/// # Ok::<(), Box<dyn std::error::Error>>(())
 	/// ```
+	#[allow(clippy::type_complexity)] // the returned factor pair is spelled out to match the upstream signature
 	pub fn factors(
 		self,
 	) -> Result<
@@ -2587,7 +2596,7 @@ mod tests {
 		let mut new_row_idx = vec![0usize; nnz];
 		let mut new_values = vec![zero::<T>(); nnz];
 		let AT = utils::transpose(
-			&mut *new_values,
+			&mut new_values,
 			&mut new_col_ptr,
 			&mut new_row_idx,
 			A,

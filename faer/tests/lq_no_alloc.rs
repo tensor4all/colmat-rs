@@ -128,8 +128,7 @@ fn lq_allocations<T: ComplexField>(a: &Mat<T>) -> Allocations {
 	let (m, n) = a.shape();
 	let k = Ord::min(m, n);
 	let params = <factor::LqParams as Auto<T>>::auto().into();
-	let block_size =
-		Ord::max(factor::recommended_block_size::<T>(m, n), 1);
+	let block_size = Ord::max(factor::recommended_block_size::<T>(m, n), 1);
 	let mut factor_mem = MemBuffer::new(factor::lq_in_place_scratch::<T>(
 		m,
 		n,
@@ -137,12 +136,9 @@ fn lq_allocations<T: ComplexField>(a: &Mat<T>) -> Allocations {
 		ParShape::Seq,
 		params,
 	));
-	let mut reconstruct_mem = MemBuffer::new(reconstruct::reconstruct_scratch::<T>(
-		m,
-		n,
-		block_size,
-		ParShape::Seq,
-	));
+	let mut reconstruct_mem = MemBuffer::new(
+		reconstruct::reconstruct_scratch::<T>(m, n, block_size, ParShape::Seq),
+	);
 	let mut unitary_mem = MemBuffer::new(unitary::unitary_scratch::<T>(
 		m,
 		n,

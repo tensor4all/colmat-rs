@@ -452,6 +452,8 @@ fn complex_identity_pencil_right_vectors_are_finite() {
 	}
 }
 
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 #[test]
 fn complex_identity_pencil_left_vectors_are_finite() {
 	let (a, b) = identity_pencil_cplx();
@@ -465,6 +467,8 @@ fn complex_identity_pencil_left_vectors_are_finite() {
 	}
 }
 
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 #[test]
 fn complex_identity_pencil_both_sides_are_finite() {
 	let (a, b) = identity_pencil_cplx();
@@ -594,6 +598,7 @@ fn residual_left_generic<C: ComplexField>(
 		.fold(zero::<C::Real>(), |m, x| m.fmax(x))
 }
 
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 /// Same as [`gevd_real_parts`], but also returns `beta`, which the eigenvalue
 /// is `alpha / beta` for. The pencils in this file are not normalized, so the
 /// callers cannot assume `beta == 1`.

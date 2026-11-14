@@ -24,9 +24,7 @@ fn hessenberg_input(n: usize, kind: usize) -> Mat<Scalar> {
 			},
 			3 => z(if i == j || i == j + 1 { 1.0 } else { 0.0 }),
 			4 => {
-				if i == j {
-					z(1.0)
-				} else if i % 2 == 0 && j == i + 1 {
+				if i == j || (i % 2 == 0 && j == i + 1) {
 					z(1.0)
 				} else if j % 2 == 0 && i == j + 1 {
 					z(-1.0)
@@ -112,6 +110,7 @@ fn eigenvalue_gap(a: &[(Real, Real)], b: &[(Real, Real)], eps: Real) -> Real {
 		m.max((x.0 / scale - y.0 / scale).hypot(x.1 / scale - y.1 / scale))
 	}) / eps
 }
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 fn schur_case(
 	run: &mut Run,
 	h: MatRef<'_, Scalar>,
@@ -213,13 +212,7 @@ fn schur_case(
 #[test]
 fn lapack_schur_checkers() {
 	let t = Mat::from_fn(2, 2, |i, j| {
-		z(if i == j {
-			1.0
-		} else if i < j {
-			1.0
-		} else {
-			-1.0
-		})
+		z(if i <= j { 1.0 } else { -1.0 })
 	});
 	assert_eq!(schur_form(t.as_ref()), <Scalar as ComplexField>::IS_REAL);
 	let t = Mat::from_fn(2, 2, |i, j| z(if i < j { 0.0 } else { 1.0 }));

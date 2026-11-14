@@ -24,22 +24,12 @@ jobs:
           components: clippy, rustfmt
 
       - name: Formatting check
-        run:
-          cargo fmt --all -- --check &&
-          cd ./faer-entity &&
-          cargo fmt --all -- --check
+        run: cargo fmt --all -- --check
         # want to get all quality issues
         continue-on-error: true
 
-      - name: Lint (clean crates only, blocking)
-        run: cargo clippy -p colmat-traits --all-targets -- -D warnings
-
-        # colmat: 2340 warnings on 1.96.0, measured 2026-11-07. Not a gate -- the number is a
-        # floor someone measured, not an assumption. A crate that reaches zero graduates into the
-        # blocking step above.
-      - name: Linting check
-        run:
-          cargo clippy --all-targets &&
-          cd ./faer-entity &&
-          cargo clippy --all-targets
-        continue-on-error: true
+        # colmat reached zero warnings on 1.96.0 (tensor4all/colmat-rs#183), so the whole
+        # workspace is a gate now. A crate that regresses fails here rather than joining a
+        # warning count nobody reads.
+      - name: Lint (blocking)
+        run: cargo clippy --workspace --all-targets -- -D warnings

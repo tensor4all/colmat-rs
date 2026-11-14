@@ -185,7 +185,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(& A * & X ~ B);
@@ -199,7 +203,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.transpose() * & X ~ B);
@@ -213,7 +221,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.conjugate() * & X ~ B);
@@ -227,7 +239,11 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<usize, c64>(n, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<usize, c64>(
+						n,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.adjoint() * & X ~ B);

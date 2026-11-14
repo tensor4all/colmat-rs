@@ -16,7 +16,11 @@ fn norm_l2_simd<'N, T: ComplexField>(
 		fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
 			let Self { data } = self;
 			let simd = SimdCtx::<T, S>::new(T::simd_ctx(simd), data.nrows());
+			#[allow(clippy::needless_borrows_for_generic_args)]
+			// `ByRef` covers `T` and `&T`; the borrow is the type hint
 			let sml = simd.splat_real(&sqrt_min_positive());
+			#[allow(clippy::needless_borrows_for_generic_args)]
+			// `ByRef` covers `T` and `&T`; the borrow is the type hint
 			let big = simd.splat_real(&sqrt_max_positive());
 			let mut acc_sml = [RealReg(simd.zero()); 2];
 			let mut acc_med = [RealReg(simd.zero()); 2];
@@ -50,7 +54,7 @@ fn norm_l2_simd_pairwise_rows<T: ComplexField>(
 		with_dim!(N, data.nrows());
 		norm_l2_simd(data.as_row_shape(N))
 	} else {
-		let split_point = ((data.nrows() + 1) / 2).next_power_of_two();
+		let split_point = data.nrows().div_ceil(2).next_power_of_two();
 		let (head, tail) = data.split_at_row(split_point);
 		let acc0 = norm_l2_simd_pairwise_rows(head);
 		let acc1 = norm_l2_simd_pairwise_rows(tail);
@@ -67,7 +71,7 @@ fn norm_l2_simd_pairwise_cols<T: ComplexField>(
 	if data.ncols() == 1 {
 		norm_l2_simd_pairwise_rows(data.col(0))
 	} else {
-		let split_point = ((data.ncols() + 1) / 2).next_power_of_two();
+		let split_point = data.ncols().div_ceil(2).next_power_of_two();
 		let (head, tail) = data.split_at_col(split_point);
 		let acc0 = norm_l2_simd_pairwise_cols(head);
 		let acc1 = norm_l2_simd_pairwise_cols(tail);
@@ -141,8 +145,8 @@ pub fn norm_l2_x3<T: ComplexField>(mut mat: MatRef<'_, T>) -> [T::Real; 3] {
 				}
 			}
 		}
-		let ref sml = sqrt_min_positive::<T::Real>();
-		let ref big = sqrt_max_positive::<T::Real>();
+		let sml = &sqrt_min_positive::<T::Real>();
+		let big = &sqrt_max_positive::<T::Real>();
 		let mut acc = zero::<T::Real>();
 		for j in 0..n {
 			for i in 0..m {
@@ -212,7 +216,7 @@ mod tests {
 				assert!(norm.is_finite());
 				assert!(
 					(norm - &expected).abs()
-						<= (&expected).abs() * from_f64::<T::Real>(tol)
+						<= expected.abs() * from_f64::<T::Real>(tol)
 				);
 			}
 		}

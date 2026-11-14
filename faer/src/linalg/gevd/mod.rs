@@ -30,7 +30,7 @@ pub use reorder::{
 	SchurReorderError, reorder_schur_cplx, reorder_schur_real,
 	reorder_schur_scratch,
 };
-pub use schur_eigenvalues::{SchurEigenvalueError,schur_eigenvalues_real};
+pub use schur_eigenvalues::{SchurEigenvalueError, schur_eigenvalues_real};
 
 /// eigendecomposition error
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -231,6 +231,8 @@ fn mul_pow2<T: ComplexField>(x: &T, e: isize) -> T {
 	x.mul_real(&f)
 }
 
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 fn compute_gevd_generic<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -331,10 +333,8 @@ fn compute_gevd_generic<T: ComplexField>(
 		{ alpha_re }.fill(nan());
 		{ alpha_im }.fill(nan());
 		{ beta }.fill(nan());
-		for u in [u_left, u_right] {
-			if let Some(mut u) = u {
-				u.fill(nan());
-			}
+		for mut u in [u_left, u_right].into_iter().flatten() {
+			u.fill(nan());
 		}
 		return Err(GevdError::NoConvergence);
 	}
@@ -389,14 +389,12 @@ fn compute_gevd_generic<T: ComplexField>(
 	let mut alpha_re = alpha_re;
 	let mut alpha_im = alpha_im;
 	let mut beta = beta;
-	for u in [u_left.rb_mut(), u_right.rb_mut()] {
-		if let Some(mut u) = u {
-			// the outputs may be reused buffers; initialize them as full identities,
-			// which is what LAPACK's `dgges` does with `dlaset` before `dhgeqz`
-			// accumulates the transformations
-			u.fill(zero());
-			u.diagonal_mut().column_vector_mut().fill(one());
-		}
+	for mut u in [u_left.rb_mut(), u_right.rb_mut()].into_iter().flatten() {
+		// the outputs may be reused buffers; initialize them as full identities,
+		// which is what LAPACK's `dgges` does with `dlaset` before `dhgeqz`
+		// accumulates the transformations
+		u.fill(zero());
+		u.diagonal_mut().column_vector_mut().fill(one());
 	}
 	{
 		let block_size =
@@ -547,11 +545,9 @@ fn compute_gevd_generic<T: ComplexField>(
 	// (tensor4all/faer#370). before the prescaling of tensor4all/faer#375 this
 	// is how a QZ that underflowed to `alpha = beta = 0` for a pencil below
 	// about `1e-280` (f64) showed up; it is kept as a safety net
-	for u in [u_left.rb(), u_right.rb()] {
-		if let Some(u) = u {
-			if !u.is_all_finite() {
-				return Err(GevdError::NoConvergence);
-			}
+	for u in [u_left.rb(), u_right.rb()].into_iter().flatten() {
+		if !u.is_all_finite() {
+			return Err(GevdError::NoConvergence);
 		}
 	}
 	Ok(())
@@ -564,9 +560,9 @@ fn solve_shifted_1x1<T: ComplexField>(
 	B: &mut T,
 	w: T,
 ) {
-	let ref safmin = min_positive::<T::Real>();
-	let ref smlnum = safmin + safmin;
-	let ref smin = smin.fmax(smlnum);
+	let safmin = &min_positive::<T::Real>();
+	let smlnum = &(safmin + safmin);
+	let smin = &smin.fmax(smlnum);
 	let CR = A.mul_real(ca) - w * d0;
 	let cmax = CR.abs();
 	if cmax < *smin {
@@ -577,6 +573,7 @@ fn solve_shifted_1x1<T: ComplexField>(
 	}
 	*B *= CR.recip();
 }
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn solve_complex_shifted_1x1<T: RealField>(
 	smin: T,
 	ca: T,
@@ -587,9 +584,9 @@ fn solve_complex_shifted_1x1<T: RealField>(
 	wi: T,
 ) {
 	let nw = B.ncols();
-	let ref safmin = min_positive::<T>();
-	let ref smlnum = safmin + safmin;
-	let ref smin = smin.fmax(smlnum);
+	let safmin = &min_positive::<T>();
+	let smlnum = &(safmin + safmin);
+	let smin = &smin.fmax(smlnum);
 	let CR = ca * &A[(0, 0)] - wr * d0;
 	let CI = -wi * d0;
 	let cmax = CR.abs().fmax(CI.abs());
@@ -597,12 +594,12 @@ fn solve_complex_shifted_1x1<T: RealField>(
 		// protected denominator, as in `solve_shifted_1x1` (LAPACK `ztgevc`:
 		// `IF( CABS1( D ).LE.DMIN ) D = CMPLX( DMIN )`); dividing by the
 		// complex shift afterwards would scale it twice
-		let ref smin_inv = smin.recip();
+		let smin_inv = &smin.recip();
 		zip!(B.rb_mut()).for_each(|unzip!(x)| *x *= smin_inv);
 		return;
 	}
 	if nw == 1 {
-		let ref C = CR.recip();
+		let C = &CR.recip();
 		zip!(B.rb_mut()).for_each(|unzip!(x)| *x *= C);
 	} else {
 		let (Br, Bi) = B.two_cols_mut(0, 1);
@@ -682,14 +679,14 @@ fn ladiv<T: RealField>(a: &T, b: &T, c: &T, d: &T) -> (T, T) {
 		}
 	}
 	fn ladiv1<T: RealField>(a: &T, b: &T, c: &T, d: &T) -> (T, T) {
-		let ref r = d / c;
-		let ref t = (c + d * r).recip();
+		let r = &(d / c);
+		let t = &(c + d * r).recip();
 		let p = ladiv2(a, b, c, d, r, t);
 		let q = ladiv2(b, &-a, c, d, r, t);
 		(p, q)
 	}
-	let ref half = from_f64::<T>(0.5);
-	let ref two = from_f64::<T>(2.0);
+	let half = &from_f64::<T>(0.5);
+	let two = &from_f64::<T>(2.0);
 	let (mut a, mut b, mut c, mut d) = (a.copy(), b.copy(), c.copy(), d.copy());
 	let ab = a.abs().fmax(b.abs());
 	let cd = c.abs().fmax(d.abs());
@@ -755,6 +752,8 @@ fn solve_scaled_2x2<T: ComplexField>(
 	scale
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn solve_complex_shifted_2x2<T: RealField>(
 	smin: T,
 	ref ca: T,
@@ -768,9 +767,9 @@ fn solve_complex_shifted_2x2<T: RealField>(
 ) -> T {
 	let nw = B.ncols();
 	let zero = zero::<T>;
-	let ref safmin = min_positive::<T>();
-	let ref smlnum = safmin + safmin;
-	let ref smin = smin.fmax(smlnum);
+	let safmin = &min_positive::<T>();
+	let smlnum = &(safmin + safmin);
+	let smin = &smin.fmax(smlnum);
 	if nw == 1 {
 		let (mut C, stack) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(2, 2, stack) };
@@ -787,7 +786,7 @@ fn solve_complex_shifted_2x2<T: RealField>(
 		if cmax < *smin {
 			// `C` is replaced by `smin * I` (LAPACK `dlaln2`), so the solve is
 			// this scaling alone
-			let ref smin_inv = smin.recip();
+			let smin_inv = &smin.recip();
 			let scale = shifted_2x2_scale(B.norm_max(), smin.copy());
 			zip!(B.rb_mut()).for_each(|unzip!(x)| {
 				*x = (&*x * &scale) * smin_inv;
@@ -861,7 +860,7 @@ fn solve_complex_shifted_2x2<T: RealField>(
 		let cmax = C.norm_max();
 		if cmax < *smin {
 			// `C` is replaced by `smin * I`, as in the real branch
-			let ref smin_inv = smin.recip();
+			let smin_inv = &smin.recip();
 			let scale = shifted_2x2_scale(B.norm_max(), smin.copy());
 			zip!(B.rb_mut()).for_each(|unzip!(x)| {
 				*x = (&*x * &scale) * smin_inv;
@@ -916,6 +915,7 @@ fn solve_complex_shifted_2x2<T: RealField>(
 
 // Apply the solve's scale to the remaining entries, then bound the whole
 // working vector before the next matrix update or the back transformation.
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn rescale_gevd_rhs<T: RealField>(
 	mut rhs: MatMut<'_, T>,
 	j: usize,
@@ -934,7 +934,7 @@ fn rescale_gevd_rhs<T: RealField>(
 	};
 	let xmax = rhs.norm_max();
 	if xmax > limit {
-		let ref scale = &limit / &xmax;
+		let scale = &(&limit / &xmax);
 		zip!(rhs).for_each(|unzip!(x)| *x *= scale);
 		one()
 	} else {
@@ -955,12 +955,12 @@ fn qz_to_gevd_real<T: RealField>(
 	}
 	let one = one::<T>;
 	let zero = zero::<T>;
-	let ref ulp = eps::<T>();
-	let ref safmin = min_positive::<T>();
-	let ref smallnum = safmin * from_f64::<T::Real>(n as f64);
-	let ref small = smallnum * ulp.recip();
-	let ref bignum = smallnum.recip();
-	let ref big = small.recip();
+	let ulp = &eps::<T>();
+	let safmin = &min_positive::<T>();
+	let smallnum = &(safmin * from_f64::<T::Real>(n as f64));
+	let small = &(smallnum * ulp.recip());
+	let bignum = &smallnum.recip();
+	let big = &small.recip();
 	let (mut acolnorm, stack) = linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
 	let acolnorm = acolnorm.as_mat_mut();
 	let (mut bcolnorm, stack) = linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
@@ -991,17 +991,17 @@ fn qz_to_gevd_real<T: RealField>(
 		bcolnorm[j] = b.copy();
 		bnorm = bnorm.fmax(b + B[(j, j)].abs());
 	}
-	let ref anorm = anorm;
-	let ref bnorm = bnorm;
-	let ref ascale = anorm.fmax(safmin).recip();
-	let ref bscale = bnorm.fmax(safmin).recip();
+	let anorm = &anorm;
+	let bnorm = &bnorm;
+	let ascale = &anorm.fmax(safmin).recip();
+	let bscale = &bnorm.fmax(safmin).recip();
 	if let Some(mut u) = Q {
 		let mut je = 0usize;
 		while je < n {
 			let cplx_eigval = je + 1 < n && A[(je + 1, je)] != zero();
 			let nw = if cplx_eigval { 2 } else { 1 };
 			if !cplx_eigval
-				&& A[(je, je)].abs().fmax(&B[(je, je)].abs()) < *safmin
+				&& A[(je, je)].abs().fmax(B[(je, je)].abs()) < *safmin
 			{
 				u.rb_mut().col_mut(je).fill(zero());
 				u[(je, je)] = one();
@@ -1018,12 +1018,12 @@ fn qz_to_gevd_real<T: RealField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, nw, stack);
 			let mut rhs = rhs.as_mat_mut();
 			if !cplx_eigval {
-				let ref temp = safmin.fmax(
+				let temp = &safmin.fmax(
 					(A[(je, je)].abs() * ascale)
 						.fmax(B[(je, je)].abs() * bscale),
 				);
-				let ref salfar = A[(je, je)].mul_real(temp).mul_real(ascale);
-				let ref sbeta = B[(je, je)].real() * temp * bscale;
+				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar * bscale;
 				bcoefi = zero();
@@ -1098,7 +1098,7 @@ fn qz_to_gevd_real<T: RealField>(
 					bcoefi = &scale * &bcoefi;
 					bcoefa = bcoefr.abs() + bcoefi.abs();
 				}
-				let ref temp = &acoef * &A[(je + 1, je)];
+				let temp = &(&acoef * &A[(je + 1, je)]);
 				let temp2r = &acoef * &A[(je, je)] - &bcoefr * &B[(je, je)];
 				let temp2i = -&bcoefi * &B[(je, je)];
 				if temp.abs() > temp2r.abs() + temp2i.abs() {
@@ -1109,7 +1109,7 @@ fn qz_to_gevd_real<T: RealField>(
 				} else {
 					rhs[(je + 1, 0)] = one();
 					rhs[(je + 1, 1)] = zero();
-					let ref temp = &acoef * &A[(je, je + 1)];
+					let temp = &(&acoef * &A[(je, je + 1)]);
 					rhs[(je, 0)] = (&bcoefr * &B[(je + 1, je + 1)]
 						- &acoef * &A[(je + 1, je + 1)])
 						/ temp;
@@ -1127,7 +1127,7 @@ fn qz_to_gevd_real<T: RealField>(
 				let na = if cplx { 2 } else { 1 };
 				// the guard below may only shrink the vector (LAPACK `dtgevc`:
 				// `XSCALE = ONE / MAX( ONE, XMAX )`)
-				let ref xscale = xmax.fmax(one()).recip();
+				let xscale = &xmax.fmax(one()).recip();
 				let mut temp = acolnorm[j]
 					.fmax(&bcolnorm[j])
 					.fmax(&acoefa * &acolnorm[j] + &bcoefa * &bcolnorm[j]);
@@ -1235,7 +1235,7 @@ fn qz_to_gevd_real<T: RealField>(
 			);
 			let mut u = u.rb_mut().subcols_mut(je, nw);
 			u.copy_from(&tmp);
-			let ref scale = u.norm_l2().recip();
+			let scale = &u.norm_l2().recip();
 			zip!(u).for_each(|unzip!(u)| {
 				*u *= scale;
 			});
@@ -1250,7 +1250,7 @@ fn qz_to_gevd_real<T: RealField>(
 			let nw = if cplx_eigval { 2 } else { 1 };
 			je -= nw - 1;
 			if !cplx_eigval
-				&& A[(je, je)].abs().fmax(&B[(je, je)].abs()) < *safmin
+				&& A[(je, je)].abs().fmax(B[(je, je)].abs()) < *safmin
 			{
 				u.rb_mut().col_mut(je).fill(zero());
 				u[(je, je)] = one();
@@ -1265,12 +1265,12 @@ fn qz_to_gevd_real<T: RealField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, nw, stack);
 			let mut rhs = rhs.as_mat_mut();
 			if !cplx_eigval {
-				let ref temp = safmin.fmax(
+				let temp = &safmin.fmax(
 					(A[(je, je)].abs() * ascale)
 						.fmax(B[(je, je)].abs() * bscale),
 				);
-				let ref salfar = A[(je, je)].mul_real(temp).mul_real(ascale);
-				let ref sbeta = B[(je, je)].real() * temp * bscale;
+				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar * bscale;
 				bcoefi = zero();
@@ -1348,10 +1348,10 @@ fn qz_to_gevd_real<T: RealField>(
 					bcoefi = &scale * &bcoefi;
 					bcoefa = bcoefr.abs() + bcoefi.abs();
 				}
-				let ref temp = &acoef * &A[(je + 1, je)];
-				let ref temp2r = &acoef * &A[(je + 1, je + 1)]
-					- &bcoefr * &B[(je + 1, je + 1)];
-				let ref temp2i = -&bcoefi * &B[(je + 1, je + 1)];
+				let temp = &(&acoef * &A[(je + 1, je)]);
+				let temp2r = &(&acoef * &A[(je + 1, je + 1)]
+					- &bcoefr * &B[(je + 1, je + 1)]);
+				let temp2i = &(-&bcoefi * &B[(je + 1, je + 1)]);
 				if temp.abs() > temp2r.abs() + temp2i.abs() {
 					rhs[(je + 1, 0)] = one();
 					rhs[(je + 1, 1)] = zero();
@@ -1360,23 +1360,23 @@ fn qz_to_gevd_real<T: RealField>(
 				} else {
 					rhs[(je, 0)] = one();
 					rhs[(je, 1)] = zero();
-					let ref temp = &acoef * &A[(je, je + 1)];
+					let temp = &(&acoef * &A[(je, je + 1)]);
 					rhs[(je + 1, 0)] =
 						(&bcoefr * &B[(je, je)] - &acoef * &A[(je, je)]) / temp;
 					rhs[(je + 1, 1)] = &bcoefi * &B[(je, je)] / temp;
 				}
-				let ref creala = &acoef * &rhs[(je, 0)];
-				let ref cimaga = &acoef * &rhs[(je, 1)];
-				let ref crealb =
-					&bcoefr * &rhs[(je, 0)] - &bcoefi * &rhs[(je, 1)];
-				let ref cimagb =
-					&bcoefi * &rhs[(je, 0)] + &bcoefr * &rhs[(je, 1)];
-				let ref cre2a = &acoef * &rhs[(je + 1, 0)];
-				let ref cim2a = &acoef * &rhs[(je + 1, 1)];
-				let ref cre2b =
-					&bcoefr * &rhs[(je + 1, 0)] - &bcoefi * &rhs[(je + 1, 1)];
-				let ref cim2b =
-					&bcoefi * &rhs[(je + 1, 0)] + &bcoefr * &rhs[(je + 1, 1)];
+				let creala = &(&acoef * &rhs[(je, 0)]);
+				let cimaga = &(&acoef * &rhs[(je, 1)]);
+				let crealb =
+					&(&bcoefr * &rhs[(je, 0)] - &bcoefi * &rhs[(je, 1)]);
+				let cimagb =
+					&(&bcoefi * &rhs[(je, 0)] + &bcoefr * &rhs[(je, 1)]);
+				let cre2a = &(&acoef * &rhs[(je + 1, 0)]);
+				let cim2a = &(&acoef * &rhs[(je + 1, 1)]);
+				let cre2b = &(&bcoefr * &rhs[(je + 1, 0)]
+					- &bcoefi * &rhs[(je + 1, 1)]);
+				let cim2b = &(&bcoefi * &rhs[(je + 1, 0)]
+					+ &bcoefr * &rhs[(je + 1, 1)]);
 				for jr in 0..je {
 					rhs[(jr, 0)] = -creala * &A[(jr, je)]
 						+ crealb * &B[(jr, je)]
@@ -1398,12 +1398,12 @@ fn qz_to_gevd_real<T: RealField>(
 				let na = if cplx { 2 } else { 1 };
 				j -= na - 1;
 				let b0 = B[(j, j)].copy();
-				let b1;
-				if cplx {
-					b1 = B[(j + 1, j + 1)].copy();
+
+				let b1 = if cplx {
+					B[(j + 1, j + 1)].copy()
 				} else {
-					b1 = zero();
-				}
+					zero()
+				};
 				let scale = if cplx {
 					solve_complex_shifted_2x2(
 						dmin.copy(),
@@ -1436,12 +1436,12 @@ fn qz_to_gevd_real<T: RealField>(
 				);
 				for ja in 0..na {
 					if cplx_eigval {
-						let ref creala = &acoef * &rhs[(j + ja, 0)];
-						let ref cimaga = &acoef * &rhs[(j + ja, 1)];
-						let ref crealb = &bcoefr * &rhs[(j + ja, 0)]
-							- &bcoefi * &rhs[(j + ja, 1)];
-						let ref cimagb = &bcoefi * &rhs[(j + ja, 0)]
-							+ &bcoefr * &rhs[(j + ja, 1)];
+						let creala = &(&acoef * &rhs[(j + ja, 0)]);
+						let cimaga = &(&acoef * &rhs[(j + ja, 1)]);
+						let crealb = &(&bcoefr * &rhs[(j + ja, 0)]
+							- &bcoefi * &rhs[(j + ja, 1)]);
+						let cimagb = &(&bcoefi * &rhs[(j + ja, 0)]
+							+ &bcoefr * &rhs[(j + ja, 1)]);
 						for jr in 0..j {
 							rhs[(jr, 0)] -= creala * &A[(jr, j + ja)]
 								- crealb * &B[(jr, j + ja)];
@@ -1449,8 +1449,8 @@ fn qz_to_gevd_real<T: RealField>(
 								- cimagb * &B[(jr, j + ja)];
 						}
 					} else {
-						let ref creala = &acoef * &rhs[(j + ja, 0)];
-						let ref crealb = &bcoefr * &rhs[(j + ja, 0)];
+						let creala = &(&acoef * &rhs[(j + ja, 0)]);
+						let crealb = &(&bcoefr * &rhs[(j + ja, 0)]);
 						for jr in 0..j {
 							rhs[(jr, 0)] -= creala * &A[(jr, j + ja)]
 								- crealb * &B[(jr, j + ja)];
@@ -1470,7 +1470,7 @@ fn qz_to_gevd_real<T: RealField>(
 			);
 			let mut u = u.rb_mut().subcols_mut(je, nw);
 			u.copy_from(&tmp);
-			let ref scale = u.norm_l2().recip();
+			let scale = &u.norm_l2().recip();
 			zip!(u).for_each(|unzip!(u)| {
 				*u *= scale;
 			});
@@ -1490,12 +1490,12 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 		return;
 	}
 	let one = one::<T::Real>;
-	let ref ulp = eps::<T::Real>();
-	let ref safmin = min_positive::<T::Real>();
-	let ref smallnum = safmin * from_f64::<T::Real>(n as f64);
-	let ref small = smallnum * ulp.recip();
-	let ref bignum = smallnum.recip();
-	let ref big = small.recip();
+	let ulp = &eps::<T::Real>();
+	let safmin = &min_positive::<T::Real>();
+	let smallnum = &(safmin * from_f64::<T::Real>(n as f64));
+	let small = &(smallnum * ulp.recip());
+	let bignum = &smallnum.recip();
+	let big = &small.recip();
 	let (mut acolnorm, stack) =
 		linalg::temp_mat_zeroed::<T::Real, _, _>(n, 1, stack);
 	let acolnorm = acolnorm.as_mat_mut();
@@ -1514,18 +1514,18 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 		j += 1;
 	}
 	for j in 0..n {
-		let ref b = B.rb().col(j).get(..j).norm_l1();
+		let b = &B.rb().col(j).get(..j).norm_l1();
 		bcolnorm[j] = b.copy();
 		bnorm = bnorm.fmax(b + B[(j, j)].abs());
 	}
-	let ref anorm = anorm;
-	let ref bnorm = bnorm;
-	let ref ascale = anorm.fmax(safmin).recip();
-	let ref bscale = bnorm.fmax(safmin).recip();
+	let anorm = &anorm;
+	let bnorm = &bnorm;
+	let ascale = &anorm.fmax(safmin).recip();
+	let bscale = &bnorm.fmax(safmin).recip();
 	if let Some(mut u) = Q {
 		let mut je = 0usize;
 		while je < n {
-			if A[(je, je)].abs().fmax(&B[(je, je)].abs()) < *safmin {
+			if A[(je, je)].abs().fmax(B[(je, je)].abs()) < *safmin {
 				u.rb_mut().col_mut(je).fill(zero());
 				u[(je, je)] = one().to_cplx();
 				je += 1;
@@ -1540,12 +1540,12 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
 			let mut rhs = rhs.as_mat_mut().col_mut(0);
 			{
-				let ref temp = safmin.fmax(
+				let temp = &safmin.fmax(
 					(A[(je, je)].abs() * ascale)
 						.fmax(B[(je, je)].abs() * bscale),
 				);
-				let ref salfar = A[(je, je)].mul_real(temp).mul_real(ascale);
-				let ref sbeta = B[(je, je)].real() * temp * bscale;
+				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * temp * bscale);
 				acoef = sbeta * ascale;
 				bcoef = salfar.mul_real(bscale);
 				let mut scale = one();
@@ -1567,7 +1567,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 					if lsa {
 						acoef = sbeta * &scale * ascale
 					} else {
-						acoef = acoef * &scale
+						acoef *= &scale
 					}
 					if lsb {
 						bcoef = salfar.mul_real(&scale).mul_real(bscale)
@@ -1585,8 +1585,8 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 				.fmax(ulp * &bcoefa * bnorm);
 			let mut j = je + 1;
 			while j < n {
-				let ref xscale = xmax.recip();
-				let ref temp = acolnorm[j]
+				let xscale = &xmax.recip();
+				let temp = &acolnorm[j]
 					.fmax(&bcolnorm[j])
 					.fmax(&acoefa * &acolnorm[j] + &bcoefa * &bcolnorm[j]);
 				let b0 = B[(j, j)].copy();
@@ -1594,7 +1594,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 					for jr in je..j {
 						rhs[jr] = rhs[jr].mul_real(xscale);
 					}
-					xmax = xmax * xscale;
+					xmax *= xscale;
 				}
 				let mut sums = zero::<T>();
 				let mut sump = zero::<T>();
@@ -1625,7 +1625,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 			);
 			let mut u = u.rb_mut().col_mut(je);
 			u.copy_from(&tmp);
-			let ref scale = u.norm_l2().recip();
+			let scale = &u.norm_l2().recip();
 			zip!(u).for_each(|unzip!(u)| {
 				*u = u.mul_real(scale);
 			});
@@ -1636,7 +1636,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 		let mut je = n;
 		while je > 0 {
 			je -= 1;
-			if A[(je, je)].abs().fmax(&B[(je, je)].abs()) < *safmin {
+			if A[(je, je)].abs().fmax(B[(je, je)].abs()) < *safmin {
 				u.rb_mut().col_mut(je).fill(zero());
 				u[(je, je)] = one().to_cplx();
 				continue;
@@ -1649,12 +1649,12 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
 			let mut rhs = rhs.as_mat_mut().col_mut(0);
 			{
-				let ref temp = safmin.fmax(
+				let temp = &safmin.fmax(
 					(A[(je, je)].abs() * ascale)
 						.fmax(B[(je, je)].abs() * bscale),
 				);
-				let ref salfar = A[(je, je)].mul_real(temp).mul_real(ascale);
-				let ref sbeta = B[(je, je)].real() * temp * bscale;
+				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar.mul_real(bscale);
 				let mut scale = one();
@@ -1676,7 +1676,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 					if lsa {
 						acoef = sbeta * &scale * ascale
 					} else {
-						acoef = acoef * &scale
+						acoef *= &scale
 					}
 					if lsb {
 						bcoefr = salfar.mul_real(&scale).mul_real(bscale)
@@ -1707,8 +1707,8 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 					&mut rhs[j],
 					bcoefr.copy(),
 				);
-				let ref creala = rhs[j].mul_real(&acoef);
-				let ref crealb = &bcoefr * &rhs[j];
+				let creala = &rhs[j].mul_real(&acoef);
+				let crealb = &(&bcoefr * &rhs[j]);
 				for jr in 0..j {
 					rhs[jr] =
 						&rhs[jr] - creala * &A[(jr, j)] + crealb * &B[(jr, j)];
@@ -1726,7 +1726,7 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 			);
 			let mut u = u.rb_mut().col_mut(je);
 			u.copy_from(&tmp);
-			let ref scale = u.norm_l2().recip();
+			let scale = &u.norm_l2().recip();
 			zip!(u).for_each(|unzip!(u)| {
 				*u = u.mul_real(scale);
 			});
@@ -1792,6 +1792,7 @@ pub fn gevd_scratch<T: ComplexField>(
 		},
 	])
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the real matrix pair $(A, B)$'s eigendecomposition
 ///
 /// the eigenvalues are stored in $S$, the left eigenvectors in $U_L$, and the
@@ -1882,6 +1883,7 @@ pub fn gevd_real<T: RealField>(
 		qz_to_gevd_real,
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the complex matrix pair $(A, B)$'s eigendecomposition
 ///
 /// the eigenvalues are stored in $S$, the left eigenvectors in $U_L$, and the
@@ -2215,6 +2217,7 @@ mod tests {
 		check_complex_shifted_2x2_large_rhs::<f64>();
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// tensor4all/faer#370: quotients whose denominator squares out of range.
 	/// `num_complex`'s `Div` returns NaN or `0` for each of these; `ladiv`
 	/// matches the exact quotient to a few ulps.
@@ -2232,8 +2235,7 @@ mod tests {
 		for (a, b, c, d, (re, im)) in cases {
 			let naive = c64::new(a, b) / c64::new(c, d);
 			let (p, q) = ladiv(&a, &b, &c, &d);
-			let err = ((p - re).abs() + (q - im).abs())
-				/ (re.abs() + im.abs());
+			let err = ((p - re).abs() + (q - im).abs()) / (re.abs() + im.abs());
 			assert!(
 				err <= 4.0 * f64::EPSILON,
 				"({a:e} + {b:e}i) / ({c:e} + {d:e}i) = ({p:e}, {q:e}), exact \
@@ -2342,7 +2344,7 @@ mod tests {
 						let u = UR.col(i);
 						let a = alpha_re[i];
 						let b = beta[i];
-						assert!((b / a) * & A * u ~ B * u);
+						assert!((b / a) * A * u ~ B * u);
 						i += 1;
 					} else {
 						let ur = UR.col(i);
@@ -2350,8 +2352,8 @@ mod tests {
 						let ar = alpha_re[i];
 						let ai = alpha_im[i];
 						let b = beta[i];
-						assert!(b * & A * ur ~ B * (ar * ur - ai * ui));
-						assert!(b * & A * ui ~ B * (ar * ui + ai * ur));
+						assert!(b * A * ur ~ B * (ar * ur - ai * ui));
+						assert!(b * A * ui ~ B * (ar * ui + ai * ur));
 						i += 2;
 					}
 				}
@@ -2363,7 +2365,7 @@ mod tests {
 						let u = UL.col(i);
 						let a = alpha_re[i];
 						let b = beta[i];
-						assert!(b / a * u.adjoint() * & A ~ u.adjoint() * B);
+						assert!(b / a * u.adjoint() * A ~ u.adjoint() * B);
 						i += 1;
 					} else {
 						let ur = UL.col(i);
@@ -2372,10 +2374,10 @@ mod tests {
 						let ai = alpha_im[i];
 						let b = beta[i];
 						assert!(
-							b * ur.adjoint() * & A ~ (ar * ur - ai * ui).adjoint() * B
+							b * ur.adjoint() * A ~ (ar * ur - ai * ui).adjoint() * B
 						);
 						assert!(
-							b * ui.adjoint() * & A ~ (ar * ui + ai * ur).adjoint() * B
+							b * ui.adjoint() * A ~ (ar * ui + ai * ur).adjoint() * B
 						);
 						i += 2;
 					}

@@ -20,14 +20,19 @@ pub const PAYS: f64 = 3.0;
 
 /// `estimate >= PAYS * sections * dispatch_cost` (mirrors `threadteam::pays_at`).
 #[cfg(not(feature = "threadteam"))]
-pub fn pays_at(estimate: Duration, sections: u32, dispatch_cost: Duration) -> bool {
+pub fn pays_at(
+	estimate: Duration,
+	sections: u32,
+	dispatch_cost: Duration,
+) -> bool {
 	if dispatch_cost == Duration::MAX {
 		return false;
 	}
 	if sections == 0 {
 		return true;
 	}
-	estimate.as_secs_f64() >= PAYS * f64::from(sections) * dispatch_cost.as_secs_f64()
+	estimate.as_secs_f64()
+		>= PAYS * f64::from(sections) * dispatch_cost.as_secs_f64()
 }
 
 /// The class of the machine, keyed by the kernel dispatch it will take, not by the CPU model.
@@ -85,7 +90,9 @@ impl HostClass {
 	fn detect_uncached() -> Self {
 		if std::arch::is_x86_feature_detected!("avx512f") {
 			HostClass::X86_64Avx512
-		} else if std::arch::is_x86_feature_detected!("avx2") && std::arch::is_x86_feature_detected!("fma") {
+		} else if std::arch::is_x86_feature_detected!("avx2")
+			&& std::arch::is_x86_feature_detected!("fma")
+		{
 			HostClass::X86_64Avx2
 		} else {
 			HostClass::X86_64Scalar
@@ -356,7 +363,10 @@ const fn fmin(a: f64, b: f64) -> f64 {
 }
 
 const fn rmin(a: Rate, b: Rate) -> Rate {
-	Rate { real: fmin(a.real, b.real), cplx: fmin(a.cplx, b.cplx) }
+	Rate {
+		real: fmin(a.real, b.real),
+		cplx: fmin(a.cplx, b.cplx),
+	}
 }
 
 const fn r(real: f64, cplx: f64) -> Rate {
@@ -380,9 +390,15 @@ impl Rates {
 			bidiag_svd_dc: rmin(a.bidiag_svd_dc, b.bidiag_svd_dc),
 			tridiag_evd_dc: rmin(a.tridiag_evd_dc, b.tridiag_evd_dc),
 			secular_roots: rmin(a.secular_roots, b.secular_roots),
-			triangular_inverse: rmin(a.triangular_inverse, b.triangular_inverse),
+			triangular_inverse: rmin(
+				a.triangular_inverse,
+				b.triangular_inverse,
+			),
 			sparse_matmul: rmin(a.sparse_matmul, b.sparse_matmul),
-			householder_rank_one: rmin(a.householder_rank_one, b.householder_rank_one),
+			householder_rank_one: rmin(
+				a.householder_rank_one,
+				b.householder_rank_one,
+			),
 			lu_swap: rmin(a.lu_swap, b.lu_swap),
 		}
 	}
@@ -436,7 +452,8 @@ impl Rates {
 	};
 
 	/// `generic` (every unmeasured class): per entry the smaller of the measured rows.
-	pub const GENERIC: Rates = Rates::min_of(&Rates::X86_64_AVX512, &Rates::AARCH64_APPLE);
+	pub const GENERIC: Rates =
+		Rates::min_of(&Rates::X86_64_AVX512, &Rates::AARCH64_APPLE);
 
 	/// The row of a host class.
 	pub fn for_class(class: HostClass) -> &'static Rates {
@@ -446,7 +463,10 @@ impl Rates {
 		match class {
 			HostClass::X86_64Avx512 => &AVX512,
 			HostClass::Aarch64Apple => &APPLE,
-			HostClass::X86_64Avx2 | HostClass::X86_64Scalar | HostClass::Aarch64 | HostClass::Generic => &GENERIC,
+			HostClass::X86_64Avx2
+			| HostClass::X86_64Scalar
+			| HostClass::Aarch64
+			| HostClass::Generic => &GENERIC,
 		}
 	}
 }
@@ -501,7 +521,6 @@ pub(crate) fn gemm_ns_per_mac<T: crate::ComplexField>() -> f64 {
 	}
 }
 
-
 /// Decision trace of the gates, for probes (feature `par-trace`). A gate calls
 /// [`trace::shape`] with the dimensions it decides on, and the next decision on the thread
 /// records them together with the units, the section count, the estimate and the answer.
@@ -531,10 +550,12 @@ pub mod trace {
 	}
 	/// Override of the block apply column split gate, for probes: 0 the rule, 1 the previous
 	/// rule (`M * K * 4 * M >= gemm threshold`), 2 always parallel, 3 never.
-	pub static N_TASKS_MODE: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+	pub static N_TASKS_MODE: core::sync::atomic::AtomicUsize =
+		core::sync::atomic::AtomicUsize::new(0);
 	/// The split of a team's product into a lower triangle, for probes (faer#160): 0 equal-area
 	/// column ranges, one sequential kernel call per participant; 1 the kernel's own tile split.
-	pub static LOWER_SPLIT: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+	pub static LOWER_SPLIT: core::sync::atomic::AtomicUsize =
+		core::sync::atomic::AtomicUsize::new(0);
 	static ON: AtomicBool = AtomicBool::new(false);
 	static LOG: Mutex<Vec<Record>> = Mutex::new(Vec::new());
 	std::thread_local! {
@@ -569,11 +590,27 @@ pub mod trace {
 		}
 		let (label, dims) = DIMS.with(|d| d.replace(("", [0; 3])));
 		let site: &'static str = if label.is_empty() {
-			Box::leak(format!("{}:{}", loc.file().rsplit('/').next().unwrap(), loc.line()).into_boxed_str())
+			Box::leak(
+				format!(
+					"{}:{}",
+					loc.file().rsplit('/').next().unwrap(),
+					loc.line()
+				)
+				.into_boxed_str(),
+			)
 		} else {
 			label
 		};
-		LOG.lock().unwrap().push(Record { site, dims, units, sections, estimate_ns, dispatch_ns, width, parallel });
+		LOG.lock().unwrap().push(Record {
+			site,
+			dims,
+			units,
+			sections,
+			estimate_ns,
+			dispatch_ns,
+			width,
+			parallel,
+		});
 	}
 }
 
@@ -581,7 +618,12 @@ pub mod trace {
 /// hundreds of times by a small factorization, and the shape of a team token copies its whole cost
 /// table on every call (`Par::shape`: 15 ns, the decision itself 40 ns, against 12 ns here, where the
 /// token answers from its own table). `width` is clamped to the degree, below 2 never pays.
-pub(crate) fn par_pays_time(par: &crate::Par, estimate: Duration, sections: u32, width: usize) -> bool {
+pub(crate) fn par_pays_time(
+	par: &crate::Par,
+	estimate: Duration,
+	sections: u32,
+	width: usize,
+) -> bool {
 	let width = width.min(par.degree());
 	let Some(width) = NonZeroUsize::new(width).filter(|w| w.get() >= 2) else {
 		return false;
@@ -604,7 +646,11 @@ pub(crate) fn par_pays_time(par: &crate::Par, estimate: Duration, sections: u32,
 /// *some* width: `estimate >= PAYS * sections * min over widths of the cost` ([`ParShape::min_dispatch_cost`]).
 /// "Does not pay at the cheapest width" is the rejection that is right for any shape of table (a
 /// rising one included); it says nothing about the width a region then chooses.
-pub(crate) fn par_can_pay_time(par: &crate::Par, estimate: Duration, sections: u32) -> bool {
+pub(crate) fn par_can_pay_time(
+	par: &crate::Par,
+	estimate: Duration,
+	sections: u32,
+) -> bool {
 	if par.degree() < 2 {
 		return false;
 	}
@@ -619,9 +665,18 @@ pub(crate) fn par_can_pay_time(par: &crate::Par, estimate: Duration, sections: u
 
 /// [`par_can_pay_time`] for a team token.
 #[cfg(feature = "threadteam")]
-pub(crate) fn par_can_pay_time_team(team: &threadteam::TeamExec<'_>, estimate: Duration, sections: u32) -> bool {
+pub(crate) fn par_can_pay_time_team(
+	team: &threadteam::TeamExec<'_>,
+	estimate: Duration,
+	sections: u32,
+) -> bool {
 	team.size().get() >= 2
-		&& pays_at(estimate, sections, team.dispatch_costs().min_cost(threadteam::DispatchKind::Team))
+		&& pays_at(
+			estimate,
+			sections,
+			team.dispatch_costs()
+				.min_cost(threadteam::DispatchKind::Team),
+		)
 }
 
 /// The widest width in `2..=degree` at which a region of serial time `estimate` that opens
@@ -631,7 +686,11 @@ pub(crate) fn par_can_pay_time_team(team: &threadteam::TeamExec<'_>, estimate: D
 /// that pays, which is the widest. A narrower width that does not pay says nothing about a wider
 /// one, because a measured row can fall with the width (`aarch64-apple`'s team row is 3.0, 2.3,
 /// 1.4 us at widths 2, 4, 6).
-pub(crate) fn par_width_time(par: &crate::Par, estimate: Duration, sections: u32) -> usize {
+pub(crate) fn par_width_time(
+	par: &crate::Par,
+	estimate: Duration,
+	sections: u32,
+) -> usize {
 	par_width_time_upto(par, estimate, sections, usize::MAX)
 }
 
@@ -676,7 +735,12 @@ pub(crate) fn max_region_width(degree: usize) -> usize {
 
 /// [`par_width_time`] among the widths up to `max` (a region that cannot use more participants,
 /// such as a split into at most `max` tasks).
-pub(crate) fn par_width_time_upto(par: &crate::Par, estimate: Duration, sections: u32, max: usize) -> usize {
+pub(crate) fn par_width_time_upto(
+	par: &crate::Par,
+	estimate: Duration,
+	sections: u32,
+	max: usize,
+) -> usize {
 	match par {
 		#[cfg(feature = "threadteam")]
 		crate::Par::Team(team) => par_width_team(team, estimate, sections, max),
@@ -689,7 +753,12 @@ pub(crate) fn par_width_time_upto(par: &crate::Par, estimate: Duration, sections
 
 /// [`par_width_time_upto`] for a team token.
 #[cfg(feature = "threadteam")]
-pub(crate) fn par_width_team(team: &threadteam::TeamExec<'_>, estimate: Duration, sections: u32, max: usize) -> usize {
+pub(crate) fn par_width_team(
+	team: &threadteam::TeamExec<'_>,
+	estimate: Duration,
+	sections: u32,
+	max: usize,
+) -> usize {
 	// the cheap rejection first: a region that does not pay at the cheapest width of the table
 	// pays at none (a QR 128 asks hundreds of times)
 	if max < 2 || !par_can_pay_time_team(team, estimate, sections) {
@@ -697,7 +766,13 @@ pub(crate) fn par_width_team(team: &threadteam::TeamExec<'_>, estimate: Duration
 	}
 	(2..=team.size().get().min(max))
 		.rev()
-		.find(|&w| pays_at(estimate, sections, team.dispatch_cost(NonZeroUsize::new(w).unwrap())))
+		.find(|&w| {
+			pays_at(
+				estimate,
+				sections,
+				team.dispatch_cost(NonZeroUsize::new(w).unwrap()),
+			)
+		})
 		.unwrap_or(1)
 }
 
@@ -725,9 +800,22 @@ pub(crate) fn par_width_upto<T: crate::ComplexField>(
 	if par.degree() < 2 || max < 2 {
 		return 1;
 	}
-	let w = par_width_time_upto(par, serial_time(units, rate.of::<T>()), sections, max);
+	let w = par_width_time_upto(
+		par,
+		serial_time(units, rate.of::<T>()),
+		sections,
+		max,
+	);
 	#[cfg(feature = "par-trace")]
-	trace_decision(par.shape(), w, units, rate.of::<T>(), sections, w > 1, core::panic::Location::caller());
+	trace_decision(
+		par.shape(),
+		w,
+		units,
+		rate.of::<T>(),
+		sections,
+		w > 1,
+		core::panic::Location::caller(),
+	);
 	w
 }
 
@@ -763,7 +851,15 @@ pub(crate) fn join_pays<T: crate::ComplexField>(
 	}
 	let r = par_pays_time(par, serial_time(units, rate.of::<T>()), sections, 2);
 	#[cfg(feature = "par-trace")]
-	trace_decision(par.shape(), 2, units, rate.of::<T>(), sections, r, core::panic::Location::caller());
+	trace_decision(
+		par.shape(),
+		2,
+		units,
+		rate.of::<T>(),
+		sections,
+		r,
+		core::panic::Location::caller(),
+	);
 	r
 }
 
@@ -807,7 +903,8 @@ pub(crate) fn block_apply_estimate_with<T: crate::ComplexField>(
 ) -> Duration {
 	let macs = m.saturating_mul(n).saturating_mul(k).saturating_mul(2);
 	// summed in nanoseconds: one `Duration`, not two and an addition (a gate asked per block apply)
-	let ns = macs as f64 * rt.block_apply_mac.of::<T>() + m.saturating_mul(k) as f64 * rt.householder_rank_one.of::<T>();
+	let ns = macs as f64 * rt.block_apply_mac.of::<T>()
+		+ m.saturating_mul(k) as f64 * rt.householder_rank_one.of::<T>();
 	Duration::from_secs_f64(ns * 1e-9)
 }
 
@@ -834,15 +931,29 @@ pub(crate) struct PanelTeam {
 /// with `panel` (`P(1)`) and `far` (`F`, the update of the columns beyond the next panel) serial
 /// estimates of the caller's own stages and `team` the panel's measured speed-up. `a` is 1, or 4
 /// from 8 participants on (the panel group widths that have been measured).
-pub(crate) fn lookahead_width(par: &crate::Par, panel: Duration, far: Duration, team: PanelTeam) -> Option<usize> {
+pub(crate) fn lookahead_width(
+	par: &crate::Par,
+	panel: Duration,
+	far: Duration,
+	team: PanelTeam,
+) -> Option<usize> {
 	let p = par.degree();
 	if p < 2 {
 		return None;
 	}
 	let (panel, far) = (panel.as_secs_f64(), far.as_secs_f64());
-	let panel_on = |a: usize| if (team.from..=team.to).contains(&a) { panel * team.ratio } else { panel };
+	let panel_on = |a: usize| {
+		if (team.from..=team.to).contains(&a) {
+			panel * team.ratio
+		} else {
+			panel
+		}
+	};
 	let sequential = panel_on(p) + far / p as f64;
-	let split = par.shape().dispatch_cost(NonZeroUsize::new(p).unwrap()).as_secs_f64();
+	let split = par
+		.shape()
+		.dispatch_cost(NonZeroUsize::new(p).unwrap())
+		.as_secs_f64();
 	let mut best: Option<(usize, f64)> = None;
 	for a in [1usize, 4] {
 		if a >= p || (a > 1 && p < 8) {
@@ -902,7 +1013,12 @@ impl ParShape {
 	/// Whether a region of serial time `estimate` that opens `sections` sections of `width`
 	/// participants pays on this shape: `estimate >= PAYS * sections * dispatch_cost(width)`.
 	/// `sections` is the number of dispatches the region really performs.
-	pub fn pays(self, estimate: Duration, sections: u32, width: NonZeroUsize) -> bool {
+	pub fn pays(
+		self,
+		estimate: Duration,
+		sections: u32,
+		width: NonZeroUsize,
+	) -> bool {
 		pays_at(estimate, sections, self.dispatch_cost(width))
 	}
 
@@ -926,22 +1042,38 @@ mod tests {
 	fn lookahead_width_follows_the_step_model() {
 		use core::time::Duration;
 		let ms = Duration::from_millis;
-		let team = super::PanelTeam { from: 4, to: 32, ratio: 0.68 };
-		assert!(super::lookahead_width(&crate::Par::Seq, ms(5), ms(500), team).is_none());
+		let team = super::PanelTeam {
+			from: 4,
+			to: 32,
+			ratio: 0.68,
+		};
+		assert!(
+			super::lookahead_width(&crate::Par::Seq, ms(5), ms(500), team)
+				.is_none()
+		);
 		crate::team::with_team(4, |par| {
 			// a one-participant panel (5 ms) against 0.68 * 5 + 1/4 on the team: no overlap
 			assert_eq!(super::lookahead_width(&par, ms(5), ms(1), team), None);
 			// F = 40 ms: max(5, 40/3) = 13.3 against 3.4 + 10 = 13.4
-			assert_eq!(super::lookahead_width(&par, ms(5), ms(40), team), Some(1));
+			assert_eq!(
+				super::lookahead_width(&par, ms(5), ms(40), team),
+				Some(1)
+			);
 		});
 		crate::team::with_team(16, |par| {
 			// F = 400 ms: a = 1 gives max(5, 26.7) = 26.7, a = 4 gives max(3.4, 33.3); sequential 28.4
-			assert_eq!(super::lookahead_width(&par, ms(5), ms(400), team), Some(1));
+			assert_eq!(
+				super::lookahead_width(&par, ms(5), ms(400), team),
+				Some(1)
+			);
 		});
 		crate::team::with_team(64, |par| {
 			// F = 1000 ms, P = 20 ms: a = 1 gives max(20, 15.9) = 20; a = 4 gives
 			// max(13.6, 16.7) = 16.7; sequential 20 + 15.6 = 35.6
-			assert_eq!(super::lookahead_width(&par, ms(20), ms(1000), team), Some(4));
+			assert_eq!(
+				super::lookahead_width(&par, ms(20), ms(1000), team),
+				Some(4)
+			);
 		});
 	}
 
@@ -966,14 +1098,27 @@ mod tests {
 		use threadteam::{DispatchCosts, DispatchKind, WidthCosts};
 		let us = Duration::from_micros;
 		// falling, flat and rising tables
-		for t in [[us(9), us(5), us(3)], [us(4), us(4), us(4)], [us(2), us(7), us(12)]] {
-			let costs = DispatchCosts::for_class(threadteam::HostClass::Generic).with(DispatchKind::Team, WidthCosts::new(t));
+		for t in [
+			[us(9), us(5), us(3)],
+			[us(4), us(4), us(4)],
+			[us(2), us(7), us(12)],
+		] {
+			let costs =
+				DispatchCosts::for_class(threadteam::HostClass::Generic)
+					.with(DispatchKind::Team, WidthCosts::new(t));
 			let s = ParShape::Team(nz(6), costs);
 			let want = (2..=6).map(|w| s.dispatch_cost(nz(w))).min().unwrap();
 			assert_eq!(s.min_dispatch_cost(), want, "{t:?}");
 		}
 		assert_eq!(ParShape::Seq.min_dispatch_cost(), Duration::MAX);
-		assert_eq!(ParShape::Team(nz(1), DispatchCosts::for_class(threadteam::HostClass::Generic)).min_dispatch_cost(), Duration::MAX);
+		assert_eq!(
+			ParShape::Team(
+				nz(1),
+				DispatchCosts::for_class(threadteam::HostClass::Generic)
+			)
+			.min_dispatch_cost(),
+			Duration::MAX
+		);
 	}
 
 	#[cfg(feature = "rayon")]
@@ -991,7 +1136,10 @@ mod tests {
 	fn team_shape_carries_the_costs_of_its_token() {
 		use threadteam::{DispatchCosts, DispatchKind, WidthCosts};
 		let costs = DispatchCosts::for_class(threadteam::HostClass::Generic)
-			.with(DispatchKind::Team, WidthCosts::flat(Duration::from_micros(5)));
+			.with(
+				DispatchKind::Team,
+				WidthCosts::flat(Duration::from_micros(5)),
+			);
 		let s = ParShape::Team(nz(4), costs);
 		assert_eq!(s.dispatch_cost(nz(4)), Duration::from_micros(5));
 		assert_eq!(s.dispatch_cost(nz(1)), Duration::MAX);
@@ -1017,9 +1165,8 @@ mod tests {
 		r: Rate,
 		sections: u32,
 	) -> usize {
-		let pays = |u: usize| {
-			shape.pays_full(serial_time(u, r.of::<T>()), sections)
-		};
+		let pays =
+			|u: usize| shape.pays_full(serial_time(u, r.of::<T>()), sections);
 		let mut hi = 1usize;
 		while !pays(hi) {
 			hi *= 2;
@@ -1082,30 +1229,76 @@ mod tests {
 
 	#[test]
 	fn every_class_resolves_to_its_table() {
-		assert_eq!(Rates::for_class(HostClass::X86_64Avx512), &Rates::X86_64_AVX512);
-		assert_eq!(Rates::for_class(HostClass::Aarch64Apple), &Rates::AARCH64_APPLE);
-		for c in [HostClass::X86_64Avx2, HostClass::X86_64Scalar, HostClass::Aarch64, HostClass::Generic] {
+		assert_eq!(
+			Rates::for_class(HostClass::X86_64Avx512),
+			&Rates::X86_64_AVX512
+		);
+		assert_eq!(
+			Rates::for_class(HostClass::Aarch64Apple),
+			&Rates::AARCH64_APPLE
+		);
+		for c in [
+			HostClass::X86_64Avx2,
+			HostClass::X86_64Scalar,
+			HostClass::Aarch64,
+			HostClass::Generic,
+		] {
 			assert_eq!(Rates::for_class(c), &Rates::GENERIC, "{}", c.name());
 		}
 		// the rows are the measured ones
-		assert_eq!(Rates::X86_64_AVX512.gemm_mac, Rate { real: 0.0641, cplx: 0.2565 });
-		assert_eq!(Rates::X86_64_AVX512.gemm_single, Rate { real: 0.0320, cplx: 0.1283 });
-		assert_eq!(Rates::AARCH64_APPLE.gemm_mac, Rate { real: 0.037, cplx: 0.165 });
-		assert_eq!(Rates::AARCH64_APPLE.bidiag_svd_dc, Rate { real: 53.0, cplx: 53.0 });
+		assert_eq!(
+			Rates::X86_64_AVX512.gemm_mac,
+			Rate {
+				real: 0.0641,
+				cplx: 0.2565
+			}
+		);
+		assert_eq!(
+			Rates::X86_64_AVX512.gemm_single,
+			Rate {
+				real: 0.0320,
+				cplx: 0.1283
+			}
+		);
+		assert_eq!(
+			Rates::AARCH64_APPLE.gemm_mac,
+			Rate {
+				real: 0.037,
+				cplx: 0.165
+			}
+		);
+		assert_eq!(
+			Rates::AARCH64_APPLE.bidiag_svd_dc,
+			Rate {
+				real: 53.0,
+				cplx: 53.0
+			}
+		);
 		// the single precision GEMM entry of the first row agrees with half of the double one
 		let g = Rates::X86_64_AVX512;
-		assert!((g.gemm_single.real / (g.gemm_mac.real / 2.0) - 1.0).abs() < 0.01);
-		assert!((g.gemm_single.cplx / (g.gemm_mac.cplx / 2.0) - 1.0).abs() < 0.01);
+		assert!(
+			(g.gemm_single.real / (g.gemm_mac.real / 2.0) - 1.0).abs() < 0.01
+		);
+		assert!(
+			(g.gemm_single.cplx / (g.gemm_mac.cplx / 2.0) - 1.0).abs() < 0.01
+		);
 	}
 
 	#[test]
 	fn generic_is_the_per_entry_minimum_of_the_measured_rows() {
-		let (a, b, g) = (entries(&Rates::X86_64_AVX512), entries(&Rates::AARCH64_APPLE), entries(&Rates::GENERIC));
+		let (a, b, g) = (
+			entries(&Rates::X86_64_AVX512),
+			entries(&Rates::AARCH64_APPLE),
+			entries(&Rates::GENERIC),
+		);
 		for i in 0..a.len() {
 			let (name, ga) = (a[i].0, a[i].1);
 			assert_eq!(g[i].1.real, ga.real.min(b[i].1.real), "{name} real");
 			assert_eq!(g[i].1.cplx, ga.cplx.min(b[i].1.cplx), "{name} cplx");
-			assert!(g[i].1.real <= ga.real && g[i].1.real <= b[i].1.real, "{name}");
+			assert!(
+				g[i].1.real <= ga.real && g[i].1.real <= b[i].1.real,
+				"{name}"
+			);
 		}
 	}
 
@@ -1164,19 +1357,35 @@ mod tests {
 			DispatchCosts::for_class(HostClass::X86_64Avx512),
 			DispatchCosts::for_class(HostClass::X86_64Avx2),
 			DispatchCosts::for_class(HostClass::Aarch64Apple),
-			DispatchCosts::for_class(HostClass::Generic).with(DispatchKind::Team, WidthCosts::flat(us(1))),
+			DispatchCosts::for_class(HostClass::Generic)
+				.with(DispatchKind::Team, WidthCosts::flat(us(1))),
 		];
 		for costs in rows {
 			let s = ParShape::Team(nz(128), costs);
 			for w in 2..=128 {
-				assert_eq!(s.dispatch_cost(nz(w)), costs.cost(DispatchKind::Team, nz(w)), "{costs:?} width {w}");
+				assert_eq!(
+					s.dispatch_cost(nz(w)),
+					costs.cost(DispatchKind::Team, nz(w)),
+					"{costs:?} width {w}"
+				);
 			}
 		}
 		// above the largest anchor: `cost(w_m) * w / w_m` in integer nanoseconds. The flat row ends
 		// at 6, the avx512 team row at 8, the Zen2 avx2 row at 64.
 		let flat = ParShape::Team(nz(128), rows[4]);
-		for (w, ns) in [(8, 1333), (12, 2000), (16, 2666), (32, 5333), (64, 10666), (128, 21333)] {
-			assert_eq!(flat.dispatch_cost(nz(w)), Duration::from_nanos(ns), "flat width {w}");
+		for (w, ns) in [
+			(8, 1333),
+			(12, 2000),
+			(16, 2666),
+			(32, 5333),
+			(64, 10666),
+			(128, 21333),
+		] {
+			assert_eq!(
+				flat.dispatch_cost(nz(w)),
+				Duration::from_nanos(ns),
+				"flat width {w}"
+			);
 		}
 		let avx512 = ParShape::Team(nz(128), rows[1]);
 		assert_eq!(avx512.dispatch_cost(nz(8)), Duration::from_nanos(980));
@@ -1194,11 +1403,28 @@ mod tests {
 	fn fixed_and_never_keep_their_meaning() {
 		let r = rate::lu_full_pivot();
 		// a fixed floor takes the whole degree at the floor, nothing below it; never is serial
-		assert_eq!(ParThreshold::Fixed(100).region_width::<f64>(&crate::Par::Seq, 100, r, 1), 1);
+		assert_eq!(
+			ParThreshold::Fixed(100).region_width::<f64>(
+				&crate::Par::Seq,
+				100,
+				r,
+				1
+			),
+			1
+		);
 		crate::team::with_team(6, |par| {
-			assert_eq!(ParThreshold::Never.region_width::<f64>(&par, usize::MAX, r, 1), 1);
-			assert_eq!(ParThreshold::Fixed(100).region_width::<f64>(&par, 99, r, 1), 1);
-			assert_eq!(ParThreshold::Fixed(100).region_width::<f64>(&par, 100, r, 1), 6);
+			assert_eq!(
+				ParThreshold::Never.region_width::<f64>(&par, usize::MAX, r, 1),
+				1
+			);
+			assert_eq!(
+				ParThreshold::Fixed(100).region_width::<f64>(&par, 99, r, 1),
+				1
+			);
+			assert_eq!(
+				ParThreshold::Fixed(100).region_width::<f64>(&par, 100, r, 1),
+				6
+			);
 		});
 		// the integer form of the C API
 		assert_eq!(ParThreshold::from(0), ParThreshold::Derived);
@@ -1211,16 +1437,38 @@ mod tests {
 	fn derived_gates_never_pay_on_a_sequential_shape() {
 		let seq = crate::Par::Seq;
 		for (_, r, sections) in gates(rates()) {
-			assert_eq!(ParThreshold::Derived.region_width::<f64>(&seq, usize::MAX / 2, r, sections), 1);
-			assert_eq!(ParThreshold::Derived.region_width::<c64>(&seq, usize::MAX / 2, r, sections), 1);
-			assert!(!ParShape::Seq.pays_full(serial_time(usize::MAX / 2, r.of::<f64>()), sections));
+			assert_eq!(
+				ParThreshold::Derived.region_width::<f64>(
+					&seq,
+					usize::MAX / 2,
+					r,
+					sections
+				),
+				1
+			);
+			assert_eq!(
+				ParThreshold::Derived.region_width::<c64>(
+					&seq,
+					usize::MAX / 2,
+					r,
+					sections
+				),
+				1
+			);
+			assert!(!ParShape::Seq.pays_full(
+				serial_time(usize::MAX / 2, r.of::<f64>()),
+				sections
+			));
 		}
 	}
 
 	#[test]
 	fn derived_floors_on_a_team_follow_the_rule() {
 		use threadteam::DispatchCosts;
-		let team = ParShape::Team(nz(6), DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple));
+		let team = ParShape::Team(
+			nz(6),
+			DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple),
+		);
 		let d = team.dispatch_cost(nz(6)).as_secs_f64() * 1e9;
 		for (name, r, sections) in gates(M5) {
 			for (ty, ns) in [("f64", r.real), ("c64", r.cplx)] {
@@ -1245,7 +1493,10 @@ mod tests {
 		assert!(!pays(100 * 100, M5.lu_full_pivot, 1));
 		assert!(pays(200 * 200, M5.lu_full_pivot, 1));
 		// bidiagonalization counts two sections: it needs twice the work of a one-section step
-		assert!(floor_units::<f64>(team, M5.bidiag, 2) >= 2 * floor_units::<f64>(team, M5.bidiag, 1) - 2);
+		assert!(
+			floor_units::<f64>(team, M5.bidiag, 2)
+				>= 2 * floor_units::<f64>(team, M5.bidiag, 1) - 2
+		);
 		// a 256 x 256 matrix-vector product (65536 elements) pays on a team, not below 100 x 100
 		assert!(pays(256 * 256, M5.matvec, 1));
 		assert!(!pays(64 * 64, M5.matvec, 1));
@@ -1259,15 +1510,27 @@ mod tests {
 	#[test]
 	fn par_width_reads_the_degree_of_the_token() {
 		let seq = crate::Par::Seq;
-		assert_eq!(par_width::<f64>(&seq, usize::MAX / 2, rate::matvec(), 1), 1);
+		assert_eq!(
+			par_width::<f64>(&seq, usize::MAX / 2, rate::matvec(), 1),
+			1
+		);
 		crate::team::with_team(6, |par| {
-			assert_eq!(par_width::<f64>(&par, 10_000_000, rate::matvec(), 1), 6);
+			assert_eq!(
+				par_width::<f64>(&par, 10_000_000, rate::matvec(), 1),
+				6
+			);
 			assert_eq!(par_width::<f64>(&par, 1_000, rate::matvec(), 1), 1);
 			// a cap below the degree bounds the search
-			assert_eq!(par_width_upto::<f64>(&par, 10_000_000, rate::matvec(), 1, 3), 3);
+			assert_eq!(
+				par_width_upto::<f64>(&par, 10_000_000, rate::matvec(), 1, 3),
+				3
+			);
 		});
 		crate::team::with_team(1, |par| {
-			assert_eq!(par_width::<f64>(&par, 10_000_000, rate::matvec(), 1), 1);
+			assert_eq!(
+				par_width::<f64>(&par, 10_000_000, rate::matvec(), 1),
+				1
+			);
 		});
 	}
 
@@ -1316,13 +1579,16 @@ mod tests {
 			let mut err = 0.0f64;
 			for j in 0..a.ncols() {
 				for i in 0..a.nrows() {
-					err = err.max((a[(i, j)].clone() - b[(i, j)].clone()).abs());
+					err =
+						err.max((a[(i, j)].clone() - b[(i, j)].clone()).abs());
 				}
 			}
 			core::assert!(err <= 1e-9, "{what}: error {err}");
 		}
 
-		fn check<T: crate::ComplexField<Real = f64>>(compare_complex_factors: bool) {
+		fn check<T: crate::ComplexField<Real = f64>>(
+			compare_complex_factors: bool,
+		) {
 			let a0 = fill::<T>(N, 1);
 			let sym = &a0 + a0.adjoint();
 			// results with a given par and `Fixed(1)`
@@ -1334,18 +1600,28 @@ mod tests {
 				let (c, ci) = rest.split_at_mut(N);
 				let mut params: fplu::FullPivLuParams = Auto::<T>::auto();
 				params.par_threshold = ParThreshold::Fixed(1);
-				let mut mem = MemBuffer::new(fplu::lu_in_place_scratch::<usize, T>(
-					N,
-					N,
-					par.shape(),
-					params.into(),
-				));
+				let mut mem =
+					MemBuffer::new(fplu::lu_in_place_scratch::<usize, T>(
+						N,
+						N,
+						par.shape(),
+						params.into(),
+					));
 				fplu::lu_in_place(
-					a.as_mut(), r, ri, c, ci, par, MemStack::new(&mut mem), params.into(),
+					a.as_mut(),
+					r,
+					ri,
+					c,
+					ci,
+					par,
+					MemStack::new(&mut mem),
+					params.into(),
 				);
 				a
 			};
-			crate::team::with_team(4, |par| close("lu", lu(Par::Seq).as_ref(), lu(par).as_ref()));
+			crate::team::with_team(4, |par| {
+				close("lu", lu(Par::Seq).as_ref(), lu(par).as_ref())
+			});
 			let bunch = |par: Par| {
 				let mut a = sym.clone();
 				let mut perm = vec![0usize; N];
@@ -1354,10 +1630,11 @@ mod tests {
 				let mut params: bk::LbltParams = Auto::<T>::auto();
 				params.pivoting = bk::PivotingStrategy::Full;
 				params.par_threshold = ParThreshold::Fixed(1);
-				let mut mem = MemBuffer::new(bk::cholesky_in_place_scratch::<usize, T>(
-					N,
-					par.shape(),
-					params.into(),
+				let mut mem = MemBuffer::new(bk::cholesky_in_place_scratch::<
+					usize,
+					T,
+				>(
+					N, par.shape(), params.into()
 				));
 				bk::cholesky_in_place(
 					a.as_mut(),
@@ -1370,7 +1647,9 @@ mod tests {
 				);
 				a
 			};
-			crate::team::with_team(4, |par| close("bunch", bunch(Par::Seq).as_ref(), bunch(par).as_ref()));
+			crate::team::with_team(4, |par| {
+				close("bunch", bunch(Par::Seq).as_ref(), bunch(par).as_ref())
+			});
 			let qr = |par: Par| {
 				let mut a = a0.clone();
 				let mut h = Mat::<T>::zeros(16, N);
@@ -1378,33 +1657,48 @@ mod tests {
 				let mut pi = vec![0usize; N];
 				let mut params: cpqr::ColPivQrParams = Auto::<T>::auto();
 				params.par_threshold = ParThreshold::Fixed(1);
-				let mut mem = MemBuffer::new(cpqr::qr_in_place_scratch::<usize, T>(
-					N,
-					N,
-					16,
-					par.shape(),
-					params.into(),
-				));
+				let mut mem =
+					MemBuffer::new(cpqr::qr_in_place_scratch::<usize, T>(
+						N,
+						N,
+						16,
+						par.shape(),
+						params.into(),
+					));
 				cpqr::qr_in_place(
-					a.as_mut(), h.as_mut(), &mut p, &mut pi, par, MemStack::new(&mut mem), params.into(),
+					a.as_mut(),
+					h.as_mut(),
+					&mut p,
+					&mut pi,
+					par,
+					MemStack::new(&mut mem),
+					params.into(),
 				);
 				a
 			};
-			crate::team::with_team(4, |par| close("qr", qr(Par::Seq).as_ref(), qr(par).as_ref()));
+			crate::team::with_team(4, |par| {
+				close("qr", qr(Par::Seq).as_ref(), qr(par).as_ref())
+			});
 			let bid = |par: Par| {
 				let mut a = a0.clone();
 				let mut hl = Mat::<T>::zeros(8, N);
 				let mut hr = Mat::<T>::zeros(8, N - 1);
 				let mut params: bidiag::BidiagParams = Auto::<T>::auto();
 				params.par_threshold = ParThreshold::Fixed(1);
-				let mut mem = MemBuffer::new(bidiag::bidiag_in_place_scratch::<T>(
-					N,
-					N,
-					par.shape(),
-					params.into(),
-				));
+				let mut mem =
+					MemBuffer::new(bidiag::bidiag_in_place_scratch::<T>(
+						N,
+						N,
+						par.shape(),
+						params.into(),
+					));
 				bidiag::bidiag_in_place(
-					a.as_mut(), hl.as_mut(), hr.as_mut(), par, MemStack::new(&mut mem), params.into(),
+					a.as_mut(),
+					hl.as_mut(),
+					hr.as_mut(),
+					par,
+					MemStack::new(&mut mem),
+					params.into(),
 				);
 				// the reflectors have a phase freedom for the complex scalars, so the parallel
 				// and sequential factorizations agree on the bidiagonal (what the SVD consumes)
@@ -1434,24 +1728,31 @@ mod tests {
 				// caught here; the oracle for the complex team route is the reconstruction in
 				// `bidiag::tests::bidiag_on_a_team_reconstructs`
 				let seq = bid(Par::Seq);
-				let team = crate::team::with_team(4, |par| bid(par));
+				let team = crate::team::with_team(4, bid);
 				core::assert!(seq.as_ref().is_all_finite(), "bid sequential");
 				core::assert!(team.as_ref().is_all_finite(), "bid team");
 			}
 			let hess = |par: Par| {
 				let mut a = a0.clone();
 				let mut h = Mat::<T>::zeros(8, N - 1);
-				let mut params: hessenberg::HessenbergParams = Auto::<T>::auto();
+				let mut params: hessenberg::HessenbergParams =
+					Auto::<T>::auto();
 				params.par_threshold = ParThreshold::Fixed(1);
 				params.blocking_threshold = usize::MAX;
-				let mut mem = MemBuffer::new(hessenberg::hessenberg_in_place_scratch::<T>(
-					N,
-					8,
-					par.shape(),
-					params.into(),
-				));
+				let mut mem = MemBuffer::new(
+					hessenberg::hessenberg_in_place_scratch::<T>(
+						N,
+						8,
+						par.shape(),
+						params.into(),
+					),
+				);
 				hessenberg::hessenberg_in_place(
-					a.as_mut(), h.as_mut(), par, MemStack::new(&mut mem), params.into(),
+					a.as_mut(),
+					h.as_mut(),
+					par,
+					MemStack::new(&mut mem),
+					params.into(),
 				);
 				a
 			};
@@ -1465,7 +1766,7 @@ mod tests {
 				});
 			} else {
 				let seq = hess(Par::Seq);
-				let team = crate::team::with_team(4, |par| hess(par));
+				let team = crate::team::with_team(4, hess);
 				core::assert!(seq.as_ref().is_all_finite(), "hess sequential");
 				core::assert!(team.as_ref().is_all_finite(), "hess team");
 			}
@@ -1474,17 +1775,24 @@ mod tests {
 				let mut h = Mat::<T>::zeros(8, N - 1);
 				let mut params: tridiag::TridiagParams = Auto::<T>::auto();
 				params.par_threshold = ParThreshold::Fixed(1);
-				let mut mem = MemBuffer::new(tridiag::tridiag_in_place_scratch::<T>(
-					N,
-					par.shape(),
-					params.into(),
-				));
+				let mut mem =
+					MemBuffer::new(tridiag::tridiag_in_place_scratch::<T>(
+						N,
+						par.shape(),
+						params.into(),
+					));
 				tridiag::tridiag_in_place(
-					a.as_mut(), h.as_mut(), par, MemStack::new(&mut mem), params.into(),
+					a.as_mut(),
+					h.as_mut(),
+					par,
+					MemStack::new(&mut mem),
+					params.into(),
 				);
 				a
 			};
-			crate::team::with_team(4, |par| close("tri", tri(Par::Seq).as_ref(), tri(par).as_ref()));
+			crate::team::with_team(4, |par| {
+				close("tri", tri(Par::Seq).as_ref(), tri(par).as_ref())
+			});
 		}
 
 		#[test]
@@ -1502,14 +1810,28 @@ mod tests {
 	#[test]
 	fn halves_join_gates_follow_the_rule() {
 		let seq = crate::Par::Seq;
-		for r in [rate::bidiag_svd_dc(), rate::tridiag_evd_dc(), rate::triangular_inverse()] {
+		for r in [
+			rate::bidiag_svd_dc(),
+			rate::tridiag_evd_dc(),
+			rate::triangular_inverse(),
+		] {
 			assert!(!halves_pays::<f64>(&seq, 1 << 20, r, 2));
 		}
 		crate::team::with_team(6, |par| {
-			for r in [rate::bidiag_svd_dc(), rate::tridiag_evd_dc(), rate::triangular_inverse()] {
+			for r in [
+				rate::bidiag_svd_dc(),
+				rate::tridiag_evd_dc(),
+				rate::triangular_inverse(),
+			] {
 				// the smallest size whose join pays is the one the rule gives, and it is monotone
-				let power = if r == rate::triangular_inverse() { 3 } else { 2 };
-				let first = (2..4096).find(|&n| halves_pays::<f64>(&par, n, r, power)).expect("never pays");
+				let power = if r == rate::triangular_inverse() {
+					3
+				} else {
+					2
+				};
+				let first = (2..4096)
+					.find(|&n| halves_pays::<f64>(&par, n, r, power))
+					.expect("never pays");
 				// a team section costs 0.9 us at width 6 instead of the 18 us a plain token from
 				// outside the pool paid, so the first paying join is small (was above 8)
 				assert!(first > 1, "{first}");
@@ -1519,7 +1841,8 @@ mod tests {
 				// work is the power of half the size, two halves
 				let h = first / 2;
 				let work_ns = 2.0 * (h as f64).powi(power as i32) * r.real;
-				let want = PAYS * par.shape().dispatch_cost(nz(2)).as_secs_f64() * 1e9;
+				let want =
+					PAYS * par.shape().dispatch_cost(nz(2)).as_secs_f64() * 1e9;
 				assert!(work_ns >= want * 0.999, "{work_ns} {want}");
 			}
 		});
@@ -1534,28 +1857,44 @@ mod tests {
 	#[test]
 	fn block_apply_split_starts_where_the_estimate_pays() {
 		use threadteam::DispatchCosts;
-		let team = ParShape::Team(nz(6), DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple));
+		let team = ParShape::Team(
+			nz(6),
+			DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple),
+		);
 		let pays = |m: usize| {
 			let (n, k) = (8, m - 8);
-			pays_at(block_apply_estimate_with::<f64>(M5, m, n, k), 1, team.dispatch_cost(nz(6)))
+			pays_at(
+				block_apply_estimate_with::<f64>(M5, m, n, k),
+				1,
+				team.dispatch_cost(nz(6)),
+			)
 		};
 		assert!(!pays(72));
 		assert!(pays(80));
 		// the GEMM term alone was 0.6 to 0.8 of the measured time and started at M = 96
 		let gemm_only = |m: usize| {
-			pays_at(serial_time(2 * m * 8 * (m - 8), M5.gemm_mac.real), 1, team.dispatch_cost(nz(6)))
+			pays_at(
+				serial_time(2 * m * 8 * (m - 8), M5.gemm_mac.real),
+				1,
+				team.dispatch_cost(nz(6)),
+			)
 		};
 		assert!(!gemm_only(88) && gemm_only(96));
 		// complex values: the streaming term is 0.54 ns per element, the GEMM 0.162 per multiply-add
-		let c = block_apply_estimate_with::<c64>(M5, 100, 8, 92).as_secs_f64() * 1e9;
-		let want = 2.0 * 100.0 * 8.0 * 92.0 * M5.block_apply_mac.cplx + 100.0 * 92.0 * M5.householder_rank_one.cplx;
+		let c = block_apply_estimate_with::<c64>(M5, 100, 8, 92).as_secs_f64()
+			* 1e9;
+		let want = 2.0 * 100.0 * 8.0 * 92.0 * M5.block_apply_mac.cplx
+			+ 100.0 * 92.0 * M5.householder_rank_one.cplx;
 		assert!((c - want).abs() < 2.0, "{c} {want}");
 	}
 
 	#[test]
 	fn join_gates_on_a_team_follow_the_width_two_cost() {
 		use threadteam::DispatchCosts;
-		let team = ParShape::Team(nz(6), DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple));
+		let team = ParShape::Team(
+			nz(6),
+			DispatchCosts::for_class(threadteam::HostClass::Aarch64Apple),
+		);
 		for (name, r, sections) in gates(M5) {
 			assert!(floor_units::<f64>(team, r, sections) > 0, "{name}");
 		}
@@ -1574,18 +1913,20 @@ mod tests {
 		] {
 			let pays = |n: usize| {
 				let h = n / 2;
-				pays_at(
-					serial_time(2 * h.pow(power), r.real),
-					1,
-					d2,
-				)
+				pays_at(serial_time(2 * h.pow(power), r.real), 1, d2)
 			};
 			assert!(pays(yes));
 			assert!(!pays(no));
 		}
 		// a sparse product of 1e6 multiply-adds is above the floor, 1e3 below
-		assert!(team.pays_full(serial_time(1_000_000, M5.sparse_matmul.of::<f64>()), 1));
-		assert!(!team.pays_full(serial_time(1_000, M5.sparse_matmul.of::<f64>()), 1));
+		assert!(team.pays_full(
+			serial_time(1_000_000, M5.sparse_matmul.of::<f64>()),
+			1
+		));
+		assert!(
+			!team
+				.pays_full(serial_time(1_000, M5.sparse_matmul.of::<f64>()), 1)
+		);
 	}
 }
 
@@ -1600,7 +1941,15 @@ pub fn trace_pub(
 	r: bool,
 	loc: &'static core::panic::Location<'static>,
 ) {
-	trace::record(loc, units, sections, estimate.as_secs_f64() * 1e9, dispatch.as_secs_f64() * 1e9, width, r);
+	trace::record(
+		loc,
+		units,
+		sections,
+		estimate.as_secs_f64() * 1e9,
+		dispatch.as_secs_f64() * 1e9,
+		width,
+		r,
+	);
 }
 
 #[cfg(all(test, feature = "sparse-linalg"))]
@@ -1610,7 +1959,9 @@ mod join_results {
 	use crate::dyn_stack::{MemBuffer, MemStack};
 	use crate::linalg::evd::{self, ComputeEigenvectors};
 	use crate::linalg::svd;
-	use crate::linalg::triangular_inverse::{invert_lower_triangular, invert_unit_lower_triangular};
+	use crate::linalg::triangular_inverse::{
+		invert_lower_triangular, invert_unit_lower_triangular,
+	};
 	use crate::{Accum, Mat, Par, Spec};
 
 	struct Rng(u64);
@@ -1642,7 +1993,11 @@ mod join_results {
 			let mut a = Mat::<f64>::zeros(n, n);
 			let mut b = Mat::<f64>::zeros(n, n);
 			if unit {
-				invert_unit_lower_triangular(a.as_mut(), src.as_ref(), Par::Seq);
+				invert_unit_lower_triangular(
+					a.as_mut(),
+					src.as_ref(),
+					Par::Seq,
+				);
 			} else {
 				invert_lower_triangular(a.as_mut(), src.as_ref(), Par::Seq);
 			}
@@ -1708,12 +2063,14 @@ mod join_results {
 		let run = |par: Par, out: &mut Vec<Vec<f64>>| {
 			let mut u = Mat::<f64>::zeros(n, n);
 			let mut s = Mat::<f64>::zeros(n, 1);
-			let mut mem = MemBuffer::new(evd::tridiagonal_self_adjoint_evd_scratch::<f64>(
-				n,
-				ComputeEigenvectors::Yes,
-				par.shape(),
-				Spec::default(),
-			));
+			let mut mem = MemBuffer::new(
+				evd::tridiagonal_self_adjoint_evd_scratch::<f64>(
+					n,
+					ComputeEigenvectors::Yes,
+					par.shape(),
+					Spec::default(),
+				),
+			);
 			let d = crate::col::ColRef::from_slice(&d0);
 			let e = crate::col::ColRef::from_slice(&e0);
 			evd::tridiagonal_self_adjoint_evd(
@@ -1751,7 +2108,8 @@ mod join_results {
 			SparseColMat::<usize, f64>::try_new_from_triplets(n, n, &t).unwrap()
 		};
 		let (a, b) = (mk(1), mk(2));
-		let s = sparse_sparse_matmul(a.as_ref(), b.as_ref(), 1.0, Par::Seq).unwrap();
+		let s = sparse_sparse_matmul(a.as_ref(), b.as_ref(), 1.0, Par::Seq)
+			.unwrap();
 		let p = crate::team::with_team(4, |par| {
 			sparse_sparse_matmul(a.as_ref(), b.as_ref(), 1.0, par).unwrap()
 		});

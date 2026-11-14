@@ -63,7 +63,11 @@ impl<I: Index, T: ComplexField> LinOp<T> for BinvAOperatorScratch<'_, I> {
 }
 
 impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperatorScratch<'_, I> {
-	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn transpose_apply_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		colmat::linalg::temp_mat_scratch::<T>(self.Binv.nrows(), rhs_ncols).and(
 			self.Binv
 				.solve_transpose_in_place_scratch::<T>(rhs_ncols, par),
@@ -156,7 +160,11 @@ impl<I: Index, T: ComplexField> LinOp<T> for BinvAOperator<'_, I, T> {
 
 // not needed for partial_eigen. left here as an example
 impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperator<'_, I, T> {
-	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn transpose_apply_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		BiLinOp::<T>::transpose_apply_scratch(
 			&BinvAOperatorScratch {
 				Binv: self.Binv.symbolic(),
@@ -227,11 +235,12 @@ impl<I: Index, T: ComplexField> BiLinOp<T> for BinvAOperator<'_, I, T> {
 	}
 }
 
-use dyn_stack::MemBuffer;
 use colmat::prelude::default;
 use colmat::sparse::{SparseRowMat, Triplet};
 use colmat::{Col, Mat};
+use dyn_stack::MemBuffer;
 
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 fn main() -> Result<(), Box<dyn core::error::Error>> {
 	use colmat::stats::prelude::*;
 	let rng = &mut StdRng::seed_from_u64(0);

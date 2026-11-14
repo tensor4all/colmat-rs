@@ -95,7 +95,10 @@ mod tests {
 			perm,
 			Par::Seq,
 			MemStack::new(&mut MemBuffer::new(
-				reconstruct::reconstruct_scratch::<usize, c64>(n, ParShape::Seq),
+				reconstruct::reconstruct_scratch::<usize, c64>(
+					n,
+					ParShape::Seq,
+				),
 			)),
 		);
 		for j in 0..n {
@@ -140,7 +143,10 @@ mod tests {
 			perm,
 			Par::Seq,
 			MemStack::new(&mut MemBuffer::new(
-				reconstruct::reconstruct_scratch::<usize, f64>(n, ParShape::Seq),
+				reconstruct::reconstruct_scratch::<usize, f64>(
+					n,
+					ParShape::Seq,
+				),
 			)),
 		);
 		// the stored factor is the rank-1 one, so every stored (lower
@@ -182,7 +188,10 @@ mod tests {
 				perm,
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					reconstruct::reconstruct_scratch::<usize, f64>(n, ParShape::Seq),
+					reconstruct::reconstruct_scratch::<usize, f64>(
+						n,
+						ParShape::Seq,
+					),
 				)),
 			);
 			for j in 0..n {

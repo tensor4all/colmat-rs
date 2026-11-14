@@ -35,8 +35,9 @@ fn seeded(n: usize) -> Mat<Scalar> {
 /// residual, the `V` orthogonality residual)
 fn thin_svd_at(n: usize, threshold: usize) -> (Vec<Real>, Real, Real, Real) {
 	let a = seeded(n);
+	#[allow(clippy::field_reassign_with_default)] // `Spec` reaches these fields through `DerefMut`, so struct-update syntax cannot set them
 	let mut params = Spec::<SvdParams, Scalar>::default();
-	params.recursion_threshold = threshold;
+	params.config.recursion_threshold = threshold;
 	let mut s = Col::<Scalar>::zeros(n);
 	let mut u = Mat::<Scalar>::zeros(n, n);
 	let mut v = Mat::<Scalar>::zeros(n, n);
@@ -60,8 +61,8 @@ fn thin_svd_at(n: usize, threshold: usize) -> (Vec<Real>, Real, Real, Real) {
 	.unwrap();
 	let back = &u * s.as_diagonal() * v.adjoint();
 	let scale = a.norm_l2();
-	let u_res = (&u.adjoint() * &u - Mat::<Scalar>::identity(n, n)).norm_max();
-	let v_res = (&v.adjoint() * &v - Mat::<Scalar>::identity(n, n)).norm_max();
+	let u_res = (u.adjoint() * &u - Mat::<Scalar>::identity(n, n)).norm_max();
+	let v_res = (v.adjoint() * &v - Mat::<Scalar>::identity(n, n)).norm_max();
 	(
 		(0..n).map(|i| real(&s[i])).collect(),
 		(&back - &a).norm_l2() / scale,

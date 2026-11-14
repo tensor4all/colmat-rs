@@ -101,6 +101,7 @@ macro_rules! stack_mat_16x16 {
 		}
 	};
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn mat_x_lower_impl_unchecked<'M, 'N, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'M>, Dim<'N>>,
 	beta: Accum,
@@ -169,37 +170,35 @@ fn mat_x_lower_impl_unchecked<'M, 'N, T: ComplexField>(
 			rhs.split_with(bs, bs);
 		let (lhs_left, lhs_right) = lhs.split_cols_with(bs);
 		let (mut dst_left, mut dst_right) = dst.split_cols_with_mut(bs);
-		{
-			join_raw(
-				|par| {
-					mat_x_lower_impl_unchecked(
-						dst_left.rb_mut(),
-						beta,
-						lhs_left,
-						rhs_top_left,
-						rhs_diag,
-						alpha,
-						conj_lhs,
-						conj_rhs,
-						par,
-					)
-				},
-				|par| {
-					mat_x_lower_impl_unchecked(
-						dst_right.rb_mut(),
-						beta,
-						lhs_right,
-						rhs_bot_right,
-						rhs_diag,
-						alpha,
-						conj_lhs,
-						conj_rhs,
-						par,
-					)
-				},
-				join_parallelism,
-			)
-		};
+		join_raw(
+			|par| {
+				mat_x_lower_impl_unchecked(
+					dst_left.rb_mut(),
+					beta,
+					lhs_left,
+					rhs_top_left,
+					rhs_diag,
+					alpha,
+					conj_lhs,
+					conj_rhs,
+					par,
+				)
+			},
+			|par| {
+				mat_x_lower_impl_unchecked(
+					dst_right.rb_mut(),
+					beta,
+					lhs_right,
+					rhs_bot_right,
+					rhs_diag,
+					alpha,
+					conj_lhs,
+					conj_rhs,
+					par,
+				)
+			},
+			join_parallelism,
+		);
 		super::matmul_with_conj(
 			dst_left,
 			Accum::Add,
@@ -212,6 +211,7 @@ fn mat_x_lower_impl_unchecked<'M, 'N, T: ComplexField>(
 		);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn lower_x_lower_into_lower_impl_unchecked<'N, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	beta: Accum,
@@ -337,6 +337,7 @@ fn lower_x_lower_into_lower_impl_unchecked<'N, T: ComplexField>(
 		)
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn upper_x_lower_impl_unchecked<'N, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	beta: Accum,
@@ -474,6 +475,7 @@ fn upper_x_lower_impl_unchecked<'N, T: ComplexField>(
 		);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn upper_x_lower_into_lower_impl_unchecked<'N, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	beta: Accum,
@@ -624,6 +626,7 @@ fn lower_by_area() -> bool {
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn mat_x_mat_into_lower_impl_unchecked<'N, 'K, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	beta: Accum,
@@ -934,6 +937,7 @@ fn mat_x_mat_into_lower_impl_unchecked<'N, 'K, T: ComplexField>(
 		);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn mat_x_lower_into_lower_impl_unchecked<'N, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	beta: Accum,
@@ -1131,6 +1135,7 @@ impl BlockStructure {
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 fn precondition<M: Shape, N: Shape, K: Shape>(
 	dst_nrows: M,
@@ -1164,13 +1169,14 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 		assert!(rhs_nrows == rhs_ncols);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the matrix product `[beta * acc] + alpha * lhs * rhs` (implicitly
 /// conjugating the operands if needed) and stores the result in `acc`
 ///
 /// performs the operation:
 /// - `acc = alpha * lhs * rhs` if `beta` is `accum::replace` (in this case, the
 ///   preexisting
-/// values in `acc` are not read)
+///   values in `acc` are not read)
 /// - `acc = acc + alpha * lhs * rhs` if `beta` is `accum::add`
 ///
 /// the left hand side and right hand side may be interpreted as triangular
@@ -1180,10 +1186,10 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// - fully computed if the structure is rectangular,
 /// - only the triangular half (including the diagonal) is computed if the
 ///   structure is
-/// triangular
+///   triangular
 /// - only the strict triangular half (excluding the diagonal) is computed if
 ///   the structure is
-/// strictly triangular or unit triangular
+///   strictly triangular or unit triangular
 ///
 /// # panics
 ///
@@ -1205,30 +1211,30 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
 /// let target = mat![
-/// 	[
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
-/// 		0.0,
-/// 	],
-/// 	[
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
-/// 	],
+///     [
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
+///         0.0,
+///     ],
+///     [
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
+///     ],
 /// ];
 /// matmul_with_conj(
-/// 	&mut acc,
-/// 	BlockStructure::TriangularLower,
-/// 	Accum::Replace,
-/// 	&lhs,
-/// 	BlockStructure::Rectangular,
-/// 	Conj::No,
-/// 	&rhs,
-/// 	BlockStructure::Rectangular,
-/// 	Conj::No,
-/// 	2.5,
-/// 	Par::Seq,
+///     &mut acc,
+///     BlockStructure::TriangularLower,
+///     Accum::Replace,
+///     &lhs,
+///     BlockStructure::Rectangular,
+///     Conj::No,
+///     &rhs,
+///     BlockStructure::Rectangular,
+///     Conj::No,
+///     2.5,
+///     Par::Seq,
 /// );
 /// zip!(&acc, &target)
-/// 	.for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
+///     .for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
 /// ```
 #[track_caller]
 #[inline]
@@ -1280,13 +1286,14 @@ pub fn matmul_with_conj<T: ComplexField, M: Shape, N: Shape, K: Shape>(
 		par,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the matrix product `[beta * acc] + alpha * lhs * rhs` (implicitly
 /// conjugating the operands if needed) and stores the result in `acc`
 ///
 /// performs the operation:
 /// - `acc = alpha * lhs * rhs` if `beta` is `accum::replace` (in this case, the
 ///   preexisting
-/// values in `acc` are not read)
+///   values in `acc` are not read)
 /// - `acc = acc + alpha * lhs * rhs` if `beta` is `accum::add`
 ///
 /// the left hand side and right hand side may be interpreted as triangular
@@ -1296,10 +1303,10 @@ pub fn matmul_with_conj<T: ComplexField, M: Shape, N: Shape, K: Shape>(
 /// - fully computed if the structure is rectangular,
 /// - only the triangular half (including the diagonal) is computed if the
 ///   structure is
-/// triangular
+///   triangular
 /// - only the strict triangular half (excluding the diagonal) is computed if
 ///   the structure is
-/// strictly triangular or unit triangular
+///   strictly triangular or unit triangular
 ///
 /// # panics
 ///
@@ -1321,28 +1328,28 @@ pub fn matmul_with_conj<T: ComplexField, M: Shape, N: Shape, K: Shape>(
 /// let rhs = mat![[4.0, 6.0], [5.0, 7.0]];
 /// let mut acc = Mat::<f64>::zeros(2, 2);
 /// let target = mat![
-/// 	[
-/// 		2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
-/// 		0.0,
-/// 	],
-/// 	[
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
-/// 		2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
-/// 	],
+///     [
+///         2.5 * (lhs[(0, 0)] * rhs[(0, 0)] + lhs[(0, 1)] * rhs[(1, 0)]),
+///         0.0,
+///     ],
+///     [
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 0)] + lhs[(1, 1)] * rhs[(1, 0)]),
+///         2.5 * (lhs[(1, 0)] * rhs[(0, 1)] + lhs[(1, 1)] * rhs[(1, 1)]),
+///     ],
 /// ];
 /// matmul(
-/// 	&mut acc,
-/// 	BlockStructure::TriangularLower,
-/// 	Accum::Replace,
-/// 	&lhs,
-/// 	BlockStructure::Rectangular,
-/// 	&rhs,
-/// 	BlockStructure::Rectangular,
-/// 	2.5,
-/// 	Par::Seq,
+///     &mut acc,
+///     BlockStructure::TriangularLower,
+///     Accum::Replace,
+///     &lhs,
+///     BlockStructure::Rectangular,
+///     &rhs,
+///     BlockStructure::Rectangular,
+///     2.5,
+///     Par::Seq,
 /// );
 /// zip!(&acc, &target)
-/// 	.for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
+///     .for_each(|unzip!(acc, target)| assert!((acc - target).abs() < 1e-10));
 /// ```
 #[track_caller]
 #[inline]
@@ -1399,6 +1406,7 @@ pub fn matmul<
 		par,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 	dst: MatMut<'_, T, Dim<'M>, Dim<'N>>,
 	dst_structure: BlockStructure,

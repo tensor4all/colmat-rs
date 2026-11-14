@@ -259,6 +259,7 @@ pub fn column_counts_aat_scratch<I: Index>(
 ///
 /// # warning
 /// the function takes as input `A.transpose()`, not `A`
+#[allow(clippy::extra_unused_lifetimes)] // the lifetimes appear inside the `Dim<'m>` argument types
 pub fn column_counts_ata<'m, 'n, I: Index>(
 	col_counts: &mut [I],
 	min_col: &mut [I],
@@ -437,6 +438,8 @@ pub mod supernodal {
 		let _ = nrows;
 		linalg_sp::cholesky::supernodal::factorize_supernodal_symbolic_cholesky_scratch::<I>(ncols)
 	}
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// computes the symbolic $QR$ factorization of a matrix $A$, given a
 	/// fill-reducing column permutation, and the outputs of the
 	/// pre-factorization steps
@@ -649,9 +652,10 @@ pub mod supernodal {
 		}
 	}
 	impl<'a, I: Index, T> SupernodalQrRef<'a, I, T> {
+		#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 		/// creates $QR$ factors from their components
 		///
-		/// # safety
+		/// # Safety
 		/// the inputs must be the outputs of
 		/// [`factorize_supernodal_numeric_qr`]
 		#[inline]
@@ -666,8 +670,6 @@ pub mod supernodal {
 			tau_val: &'a [T],
 		) -> Self {
 			let rt_val = r_val;
-			let householder_val = householder_val;
-			let tau_val = tau_val;
 			assert!(rt_val.len() == symbolic.R_adjoint().len_val());
 			assert!(tau_val.len() == symbolic.householder().len_tau_val());
 			assert!(
@@ -934,6 +936,7 @@ pub mod supernodal {
 		}
 		init_scratch.and(loop_scratch)
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes the numerical $QR$ factorization of $A$
 	///
 	/// - `householder_row_idx` must have length
@@ -1021,6 +1024,10 @@ pub mod supernodal {
 			)
 		}
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
+	#[allow(clippy::explicit_counter_loop)] // counter is the reversed index the body computes from, not an enumerate position
 	pub(crate) fn factorize_supernodal_numeric_qr_impl<
 		I: Index,
 		T: ComplexField,
@@ -1573,6 +1580,8 @@ pub mod simplicial {
 			self.tau_val
 		}
 
+		#[allow(clippy::needless_range_loop)]
+		// index loop kept as written: the body indexes parallel buffers and strided views
 		/// Applies $Q^{\top}$ to the input matrix `rhs`, implicitly conjugating
 		/// the $Q$ matrix if needed
 		pub fn apply_Q_transpose_in_place_with_conj(
@@ -1612,7 +1621,7 @@ pub mod simplicial {
 				for j in 0..n {
 					let hi = h.row_idx_of_col_raw(j);
 					let hx = h.val_of_col(j);
-					let ref tau_inv = tau[j].real().recip();
+					let tau_inv = &tau[j].real().recip();
 					if hi.is_empty() {
 						tmp.rb_mut().row_mut(j).fill(zero());
 						continue;
@@ -1630,7 +1639,7 @@ pub mod simplicial {
 							dot += v * &x[(i, k)];
 						}
 						dot = dot.mul_real(tau_inv);
-						let ref dot = dot;
+						let dot = &dot;
 						for (i, v) in iter::zip(hi, hx) {
 							let i = i.zx();
 							let v = if conj_qr == Conj::Yes {
@@ -1777,6 +1786,7 @@ pub mod simplicial {
 			temp_mat_scratch::<T>(m, 1),
 		])
 	}
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// computes the numerical $QR$ factorization of $A$.
 	///
 	/// - `r_col_ptr` has length `a.ncols() + 1`
@@ -1865,14 +1875,14 @@ pub mod simplicial {
 						pattern_len += 1;
 					}
 				}
-				let ref tau_inv = tau_val[d].real().recip();
+				let tau_inv = &tau_val[d].real().recip();
 				let mut dot = zero::<T>();
 				for (i, vi) in iter::zip(d_h_pattern, d_h_val) {
 					let i = i.zx();
 					dot += vi.conj() * &x[i];
 				}
 				dot = dot.mul_real(tau_inv);
-				let ref dot = dot;
+				let dot = &dot;
 				for (i, vi) in iter::zip(d_h_pattern, d_h_val) {
 					let i = i.zx();
 					x[i] -= dot * vi;
@@ -1953,6 +1963,7 @@ pub struct QrSymbolicParams<'a> {
 	/// supernodal factorization parameters
 	pub supernodal_params: SymbolicSupernodalParams<'a>,
 }
+#[allow(clippy::large_enum_variant)] // public enum shape; boxing a variant would change memory layout and the API
 /// the inner factorization used for the symbolic $QR$, either simplicial or
 /// symbolic
 #[derive(Debug)]
@@ -1989,7 +2000,7 @@ impl<'a, I: Index, T> QrRef<'a, I, T> {
 	/// creates a $QR$ decomposition reference from its symbolic and numerical
 	/// components
 	///
-	/// # safety
+	/// # Safety
 	/// the indices must be filled by a previous call to
 	/// [`SymbolicQr::factorize_numeric_qr`] with the right parameters
 	#[inline]
@@ -1998,7 +2009,6 @@ impl<'a, I: Index, T> QrRef<'a, I, T> {
 		indices: &'a [I],
 		val: &'a [T],
 	) -> Self {
-		let val = val;
 		assert!(all(
 			symbolic.len_val() == val.len(),
 			symbolic.len_idx() == indices.len(),
@@ -2898,7 +2908,7 @@ mod tests {
 			)),
 		);
 		let x = x.as_ref().subrows(0, n);
-		let linsolve_diff = a.adjoint() * (&a * &x - &rhs);
+		let linsolve_diff = a.adjoint() * (&a * x - &rhs);
 		let llt = reconstruct_from_supernodal_llt::<I, T>(
 			symbolic.R_adjoint(),
 			&L_val,
@@ -3029,7 +3039,7 @@ mod tests {
 				.qr(Par::Seq)
 				.solve_lstsq_in_place_with_conj(Conj::No, y.as_mut(), Par::Seq);
 			let x = x.as_ref().subrows(0, n);
-			let linsolve_diff = a.adjoint() * (&a * &x - &rhs);
+			let linsolve_diff = a.adjoint() * (&a * x - &rhs);
 			assert!(linsolve_diff.norm_max() <= 1e-10);
 		}
 		{
@@ -3047,7 +3057,7 @@ mod tests {
 			);
 			let x = x.as_ref().subrows(0, n);
 			let a = a.conjugate();
-			let linsolve_diff = a.adjoint() * (a * &x - &rhs);
+			let linsolve_diff = a.adjoint() * (a * x - &rhs);
 			assert!(linsolve_diff.norm_max() <= 1e-10);
 		}
 		let R = SparseColMatRef::<'_, usize, T>::new(
@@ -3140,7 +3150,7 @@ mod tests {
 					)),
 				);
 				let x = x.as_ref().subrows(0, n);
-				let linsolve_diff = a.adjoint() * (&a * &x - &rhs);
+				let linsolve_diff = a.adjoint() * (&a * x - &rhs);
 				assert!(linsolve_diff.norm_max() <= 1e-10);
 			}
 			{
@@ -3155,7 +3165,7 @@ mod tests {
 				);
 				let x = x.as_ref().subrows(0, n);
 				let a = a.conjugate();
-				let linsolve_diff = a.adjoint() * (a * &x - &rhs);
+				let linsolve_diff = a.adjoint() * (a * x - &rhs);
 				assert!(linsolve_diff.norm_max() <= 1e-10);
 			}
 		}

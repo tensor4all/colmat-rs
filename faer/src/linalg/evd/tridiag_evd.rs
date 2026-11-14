@@ -15,11 +15,11 @@ fn normalize_range<T: RealField>(
 	diag: &mut ColMut<'_, T, usize, ContiguousFwd>,
 	offdiag: &mut ColMut<'_, T, usize, ContiguousFwd>,
 ) -> T {
-	let ref anorm = diag.rb().norm_max().fmax(offdiag.rb().norm_max());
+	let anorm = &diag.rb().norm_max().fmax(offdiag.rb().norm_max());
 	// below `lo` the square of an entry of size `eps * anorm` underflows, above
 	// `hi` an entry squared overflows
-	let ref lo = min_positive::<T>().sqrt() / eps::<T>();
-	let ref hi = max_positive::<T>().sqrt();
+	let lo = &(min_positive::<T>().sqrt() / eps::<T>());
+	let hi = &max_positive::<T>().sqrt();
 	if *anorm == zero() || (*anorm > *lo && *anorm < *hi) {
 		return one();
 	}
@@ -49,27 +49,26 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	if n <= 1 {
 		return Ok(());
 	}
-	let ref eps = eps::<T>();
-	let ref sml = min_positive::<T>();
-	let ref scale = normalize_range(&mut diag, &mut offdiag);
+	let eps = &eps::<T>();
+	let sml = &min_positive::<T>();
+	let scale = &normalize_range(&mut diag, &mut offdiag);
 	if n == 2 {
-		let ref a = diag[0].copy();
-		let ref d = diag[1].copy();
-		let ref b = offdiag[0].copy();
-		let ref half = from_f64::<T>(0.5);
-		let ref t0 =
-			(a - d).hypot(b.mul_pow2(from_f64::<T>(2.0))).mul_pow2(half);
-		let ref sum = a + d;
+		let a = &diag[0].copy();
+		let d = &diag[1].copy();
+		let b = &offdiag[0].copy();
+		let half = &from_f64::<T>(0.5);
+		let t0 = &(a - d).hypot(b.mul_pow2(from_f64::<T>(2.0))).mul_pow2(half);
+		let sum = &(a + d);
 		// halve before summing only when the trace overflows: halving a
 		// subnormal is not exact, so the direct form is kept where it works
-		let ref t1 = if sum.is_finite() {
+		let t1 = &(if sum.is_finite() {
 			sum.mul_pow2(half)
 		} else {
 			a.mul_pow2(half) + d.mul_pow2(half)
-		};
-		let ref r0 = t1 - t0;
-		let ref r1 = t1 + t0;
-		let ref tol = r0.abs().fmax(r1.abs()) * eps;
+		});
+		let r0 = &(t1 - t0);
+		let r1 = &(t1 + t0);
+		let tol = &(r0.abs().fmax(r1.abs()) * eps);
 		if let Some(mut u) = u.rb_mut() {
 			if r1 - r0 <= *tol {
 				u[(0, 0)] = one();
@@ -94,12 +93,12 @@ pub(crate) fn qr_algorithm<T: RealField>(
 				if tau < zero() {
 					t = -t;
 				}
-				let ref c = t.hypot(one::<T>());
-				let ref s = c * t;
-				let ref r = c.hypot(s);
-				let ref c = c / r;
-				let ref s = s / r;
-				let ref r0_r = (c * a - s * b) / c;
+				let c = &t.hypot(one::<T>());
+				let s = &(c * t);
+				let r = &c.hypot(s);
+				let c = &(c / r);
+				let s = &(s / r);
+				let r0_r = &((c * a - s * b) / c);
 				if (r0 - r0_r).abs() < r1 - r0_r {
 					u[(0, 0)] = c.copy();
 					u[(1, 0)] = -s;
@@ -162,23 +161,23 @@ pub(crate) fn qr_algorithm<T: RealField>(
 			// Shift `g = diag[start] - mu`, where `mu` is the eigenvalue of the
 			// trailing 2x2 block that is nearest to `diag[end]`.
 			let p0 = diag[end].copy();
-			let ref e = offdiag[end - 1].copy();
+			let e = &offdiag[end - 1].copy();
 			let g0 = (&diag[end - 1] - &p0) / (e + e);
 			let r0 = g0.hypot(one::<T>());
-			let ref sgn = if g0 >= zero() { r0.copy() } else { -r0 };
+			let sgn = &(if g0 >= zero() { r0.copy() } else { -r0 });
 			// implicit QR step, chased from `start` to `end`. `p` carries the
 			// correction that the previous rotation applied to the entry being
 			// visited, so a diagonal is updated as `g + p` instead of being
 			// re-rounded as `c^2 d - 2 c s e + s^2 d'` on every rotation (#76).
-			let ref two = from_f64::<T>(2.0);
+			let two = &from_f64::<T>(2.0);
 			let mut g = &diag[start] - &p0 + e / (g0 + sgn);
 			let mut c = one::<T>();
 			let mut s = one::<T>();
 			let mut p = zero::<T>();
 			for k in start..end {
-				let ref ek = offdiag[k].copy();
-				let ref f = &s * ek;
-				let ref b = &c * ek;
+				let ek = &offdiag[k].copy();
+				let f = &(&s * ek);
+				let b = &(&c * ek);
 				let rot = JacobiRotation::make_givens(g.copy(), f.copy());
 				if k > start {
 					offdiag[k - 1] = &rot.c * &g - &rot.s * f;
@@ -189,7 +188,7 @@ pub(crate) fn qr_algorithm<T: RealField>(
 				s = -&rot.s;
 				c = rot.c.copy();
 				g = &diag[k] - &p;
-				let ref r = (&diag[k + 1] - &g) * &s + (&c * b).mul_pow2(two);
+				let r = &((&diag[k + 1] - &g) * &s + (&c * b).mul_pow2(two));
 				p = &s * r;
 				diag[k] = &g + &p;
 				g = &c * r - b;
@@ -224,6 +223,7 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	}
 	Ok(())
 }
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn secular_eq<T: RealField>(
 	ref shift: T,
 	ref mu: T,
@@ -236,15 +236,16 @@ fn secular_eq<T: RealField>(
 	let z = z.as_row_shape(n);
 	let mut res = rho_recip;
 	for i in n.indices() {
-		let ref d = d[i].copy();
-		let ref z = z[i].copy();
+		let d = &d[i].copy();
+		let z = &z[i].copy();
 		res += z * (z / ((d - shift) - mu));
 	}
 	res
 }
+#[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn batch_secular_eq<const N: usize, T: RealField>(
-	ref shift: &[T; N],
-	ref mu: &[T; N],
+	shift: &[T; N],
+	mu: &[T; N],
 	d: ColRef<'_, T, usize, ContiguousFwd>,
 	z: ColRef<'_, T, usize, ContiguousFwd>,
 	ref rho_recip: T,
@@ -254,8 +255,8 @@ fn batch_secular_eq<const N: usize, T: RealField>(
 	let z = z.as_row_shape(n);
 	let mut res = [(); N].map(|_| rho_recip.copy());
 	for i in n.indices() {
-		let ref d = d[i].copy();
-		let ref z = z[i].copy();
+		let d = &d[i].copy();
+		let z = &z[i].copy();
 		for ((res, mu), shift) in
 			res.iter_mut().zip(mu.iter()).zip(shift.iter())
 		{
@@ -330,8 +331,8 @@ fn compute_eigenvalues<T: RealField>(
 ) {
 	let n = non_deflated;
 	let full_n = d.nrows();
-	let ref rho = rho;
-	let ref rho_recip = rho.recip();
+	let rho = &rho;
+	let rho_recip = &rho.recip();
 	let width = secular_width::<T>(&par, n);
 	if width < 2 {
 		for i in 0..n {
@@ -366,6 +367,7 @@ fn compute_eigenvalues<T: RealField>(
 		mus[i] = d[i].copy();
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn divide_and_conquer_recurse<T: RealField>(
 	mut diag: ColMut<'_, T, usize, ContiguousFwd>,
 	mut offdiag: ColMut<'_, T, usize, ContiguousFwd>,
@@ -486,7 +488,7 @@ fn divide_and_conquer_recurse<T: RealField>(
 	} else {
 		z1.copy_from(u1.rb().row(0).transpose());
 	}
-	let ref inv_sqrt2 = from_f64::<T>(0.5).sqrt();
+	let inv_sqrt2 = &from_f64::<T>(0.5).sqrt();
 	z!(z.rb_mut()).for_each(|uz!(x)| *x *= inv_sqrt2);
 	rho = rho.abs().mul_pow2(from_f64::<T>(2.0));
 	{
@@ -511,10 +513,10 @@ fn divide_and_conquer_recurse<T: RealField>(
 	for (i, &pl_before) in pl_before.iter().enumerate() {
 		permuted_z[i] = z[pl_before].copy();
 	}
-	let ref dmax = permuted_diag.norm_max();
-	let ref zmax = permuted_z.norm_max();
-	let ref eps = eps::<T>();
-	let ref tol = from_f64::<T>(8.0) * eps * dmax;
+	let dmax = &permuted_diag.norm_max();
+	let zmax = &permuted_z.norm_max();
+	let eps = &eps::<T>();
+	let tol = &(from_f64::<T>(8.0) * eps * dmax);
 	if &rho * zmax <= *tol {
 		let (mut tmp_tl, mut tmp_tr, mut tmp_bl, mut tmp_br) =
 			tmp.rb_mut().split_at_mut(n1, n1);
@@ -531,7 +533,7 @@ fn divide_and_conquer_recurse<T: RealField>(
 		return Ok(());
 	}
 	for i in 0..n {
-		let ref zi = permuted_z[i].copy();
+		let zi = &permuted_z[i].copy();
 		if (&rho * zi).abs() <= *tol {
 			permuted_z[i] = zero();
 		}
@@ -540,7 +542,7 @@ fn divide_and_conquer_recurse<T: RealField>(
 	let mut idx = 0;
 	while idx < n {
 		let mut run_len = 1;
-		let ref d_prev = permuted_diag[idx].copy();
+		let d_prev = &permuted_diag[idx].copy();
 		while idx + run_len < n {
 			if &permuted_diag[idx + run_len] - d_prev <= *tol {
 				permuted_diag[idx + run_len] = d_prev.copy();
@@ -601,16 +603,16 @@ fn divide_and_conquer_recurse<T: RealField>(
 		par.reborrow(),
 	);
 	for i in 0..non_deflated {
-		let ref di = permuted_diag[i].copy();
-		let ref mu_i = mus[i].copy();
-		let ref shift_i = shifts[i].copy();
+		let di = &permuted_diag[i].copy();
+		let mu_i = &mus[i].copy();
+		let shift_i = &shifts[i].copy();
 		let mut prod = mu_i + (shift_i - di);
 		(0..i).chain(i + 1..non_deflated).for_each(|k| {
-			let ref dk = permuted_diag[k].copy();
-			let ref mu_k = mus[k].copy();
-			let ref shift_k = shifts[k].copy();
-			let ref numerator = mu_k + (shift_k - di);
-			let ref denominator = dk - di;
+			let dk = &permuted_diag[k].copy();
+			let mu_k = &mus[k].copy();
+			let shift_k = &shifts[k].copy();
+			let numerator = &(mu_k + (shift_k - di));
+			let denominator = &(dk - di);
 			prod *= numerator / denominator;
 		});
 		let prod = prod.abs().sqrt();
@@ -649,17 +651,17 @@ fn divide_and_conquer_recurse<T: RealField>(
 			repaired_u.rb_mut().col_mut(j).fill(zero());
 			repaired_u[(pl_after[pj], j)] = one();
 		} else {
-			let ref mu_j = mus[pj].copy();
-			let ref shift_j = shifts[pj].copy();
+			let mu_j = &mus[pj].copy();
+			let shift_j = &shifts[pj].copy();
 			for (i, &pl_after) in pl_after[..non_deflated].iter().enumerate() {
-				let ref zi = permuted_z[i].copy();
-				let ref di = permuted_diag[i].copy();
+				let zi = &permuted_z[i].copy();
+				let di = &permuted_diag[i].copy();
 				repaired_u[(pl_after, j)] = zi / ((di - shift_j) - mu_j);
 			}
 			for &pl_after in &pl_after[non_deflated..non_deflated + deflated] {
 				repaired_u[(pl_after, j)] = zero();
 			}
-			let ref inv_norm = repaired_u.rb().col(j).norm_l2().recip();
+			let inv_norm = &repaired_u.rb().col(j).norm_l2().recip();
 			z!(repaired_u.rb_mut().col_mut(j))
 				.for_each(|unzip!(x)| *x *= inv_norm);
 		}
@@ -676,16 +678,16 @@ fn divide_and_conquer_recurse<T: RealField>(
 				let householder = householder.rb();
 				let mut repaired_u =
 					repaired_u.rb_mut().subrows_mut(idx, run_len);
-				let ref tau_inv = tau.recip();
+				let tau_inv = &tau.recip();
 				for j in 0..n {
 					let mut col = repaired_u.rb_mut().col_mut(j);
-					let ref dot = tau_inv
+					let dot = &(tau_inv
 						* dot::inner_prod(
 							householder.as_dyn_stride().transpose(),
 							Conj::No,
 							col.rb().as_dyn_stride(),
 							Conj::No,
-						);
+						));
 					z!(col.rb_mut(), householder)
 						.for_each(|uz!(u, h)| *u -= dot * h);
 				}
@@ -736,7 +738,7 @@ pub(crate) fn divide_and_conquer<T: RealField>(
 	qr_fallback_threshold: usize,
 ) -> Result<(), EvdError> {
 	let n = diag.nrows();
-	let ref scale = normalize_range(&mut diag, &mut offdiag);
+	let scale = &normalize_range(&mut diag, &mut offdiag);
 	let (mut pl_before, stack) = stack.make_with(n, |_| 0usize);
 	let (mut pl_after, stack) = stack.make_with(n, |_| 0usize);
 	let (mut pr, stack) = stack.make_with(n, |_| 0usize);
@@ -1001,15 +1003,22 @@ mod secular_split_tests {
 	use dyn_stack::MemBuffer;
 
 	fn lcg(st: &mut u64) -> f64 {
-		*st = st.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+		*st = st
+			.wrapping_mul(6364136223846793005)
+			.wrapping_add(1442695040888963407);
 		((*st >> 11) as f64) / ((1u64 << 53) as f64)
 	}
 
 	/// The inputs of one merge: `full` sorted poles of which the first `k` are not deflated,
 	/// and a unit `z`.
-	fn merge_input(full: usize, k: usize, seed: u64) -> (Vec<f64>, Vec<f64>, f64) {
+	fn merge_input(
+		full: usize,
+		k: usize,
+		seed: u64,
+	) -> (Vec<f64>, Vec<f64>, f64) {
 		let mut st = seed;
-		let mut d: Vec<f64> = (0..full).map(|_| 4.0 * lcg(&mut st) - 2.0).collect();
+		let mut d: Vec<f64> =
+			(0..full).map(|_| 4.0 * lcg(&mut st) - 2.0).collect();
 		d[..k].sort_by(f64::total_cmp);
 		let mut z: Vec<f64> = (0..full).map(|_| lcg(&mut st) + 0.05).collect();
 		let norm = z[..k].iter().map(|x| x * x).sum::<f64>().sqrt();
@@ -1018,20 +1027,34 @@ mod secular_split_tests {
 	}
 
 	/// `(shifts, mus)` as bits.
-	fn roots(par: Par, d: &[f64], z: &[f64], rho: f64, k: usize) -> Vec<(u64, u64)> {
+	fn roots(
+		par: Par,
+		d: &[f64],
+		z: &[f64],
+		rho: f64,
+		k: usize,
+	) -> Vec<(u64, u64)> {
 		let full = d.len();
 		let mut mus = vec![f64::NAN; full];
 		let mut shifts = vec![f64::NAN; full];
 		compute_eigenvalues(
-			ColMut::from_slice_mut(&mut mus).try_as_col_major_mut().unwrap(),
-			ColMut::from_slice_mut(&mut shifts).try_as_col_major_mut().unwrap(),
+			ColMut::from_slice_mut(&mut mus)
+				.try_as_col_major_mut()
+				.unwrap(),
+			ColMut::from_slice_mut(&mut shifts)
+				.try_as_col_major_mut()
+				.unwrap(),
 			ColRef::from_slice(d).try_as_col_major().unwrap(),
 			ColRef::from_slice(z).try_as_col_major().unwrap(),
 			rho,
 			k,
 			par,
 		);
-		shifts.iter().zip(&mus).map(|(s, m)| (s.to_bits(), m.to_bits())).collect()
+		shifts
+			.iter()
+			.zip(&mus)
+			.map(|(s, m)| (s.to_bits(), m.to_bits()))
+			.collect()
 	}
 
 	#[test]
@@ -1066,17 +1089,21 @@ mod secular_split_tests {
 			let (d, z, rho) = merge_input(full, k, 0x391 + k as u64);
 			let seq = roots(Par::Seq, &d, &z, rho, k);
 			for threads in [2usize, 3, 8] {
-				let (first, second, width) = crate::team::with_team(threads, |mut par| {
-					(
-						roots(par.reborrow(), &d, &z, rho, k),
-						roots(par.reborrow(), &d, &z, rho, k),
-						secular_width::<f64>(&par, k),
-					)
-				});
+				let (first, second, width) =
+					crate::team::with_team(threads, |mut par| {
+						(
+							roots(par.reborrow(), &d, &z, rho, k),
+							roots(par.reborrow(), &d, &z, rho, k),
+							secular_width::<f64>(&par, k),
+						)
+					});
 				// same thread count, same split: same bits
 				assert!(first == second, "k = {k}, {threads} threads");
 				// the split changes nothing, so a different thread count, or none, does not either
-				assert!(first == seq, "k = {k}, {threads} threads against Par::Seq");
+				assert!(
+					first == seq,
+					"k = {k}, {threads} threads against Par::Seq"
+				);
 				// the gate is the cost model's, at most `k` participants and at most the team
 				assert!(width <= Ord::min(k, threads));
 			}
@@ -1088,6 +1115,8 @@ mod secular_split_tests {
 		});
 	}
 
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// The whole divide and conquer on a team, run twice at the same thread count: same bits
 	/// (`docs/reproducibility.md`). Against `Par::Seq` it is compared by its residual only.
 	#[cfg(feature = "threadteam")]
@@ -1096,20 +1125,24 @@ mod secular_split_tests {
 		let n = 128;
 		let mut st = 0x391u64;
 		let diag: Vec<f64> = (0..n).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
-		let offdiag: Vec<f64> = (0..n - 1).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
+		let offdiag: Vec<f64> =
+			(0..n - 1).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
 		let run = |par: Par| {
 			let mut d = diag.clone();
 			let mut e = offdiag.clone();
 			let mut u = Mat::<f64>::zeros(n, n);
 			divide_and_conquer(
-				ColMut::from_slice_mut(&mut d).try_as_col_major_mut().unwrap(),
-				ColMut::from_slice_mut(&mut e).try_as_col_major_mut().unwrap(),
+				ColMut::from_slice_mut(&mut d)
+					.try_as_col_major_mut()
+					.unwrap(),
+				ColMut::from_slice_mut(&mut e)
+					.try_as_col_major_mut()
+					.unwrap(),
 				u.as_mut(),
 				par,
-				MemStack::new(&mut MemBuffer::new(divide_and_conquer_scratch::<f64>(
-					n,
-					ParShape::Seq,
-				))),
+				MemStack::new(&mut MemBuffer::new(
+					divide_and_conquer_scratch::<f64>(n, ParShape::Seq),
+				)),
 				16,
 			)
 			.unwrap();
@@ -1124,7 +1157,9 @@ mod secular_split_tests {
 			}
 			v
 		};
-		let (a, b) = crate::team::with_team(8, |mut par| (run(par.reborrow()), run(par.reborrow())));
+		let (a, b) = crate::team::with_team(8, |mut par| {
+			(run(par.reborrow()), run(par.reborrow()))
+		});
 		assert!(bits(&a) == bits(&b));
 		// residual and orthogonality of the team result
 		let (s, u) = &a;

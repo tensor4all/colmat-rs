@@ -49,9 +49,12 @@ fn reconstruction_error(m: usize, n: usize, bl: usize) -> f64 {
 	);
 	let v = uv.as_ref().get(..size - 1, 1..size);
 	let mut b = check.as_mut().get_mut(.., 1..size);
-	let mut mem = MemBuffer::new(
-		hh::apply_block_householder_sequence_on_the_right_in_place_scratch::<f64>(n - 1, bl, m),
-	);
+	let mut mem =
+		MemBuffer::new(
+			hh::apply_block_householder_sequence_on_the_right_in_place_scratch::<
+				f64,
+			>(n - 1, bl, m),
+		);
 	hh::apply_block_householder_sequence_on_the_right_in_place_with_conj(
 		v.transpose(),
 		hr.as_ref(),
@@ -65,11 +68,7 @@ fn reconstruction_error(m: usize, n: usize, bl: usize) -> f64 {
 	for j in 0..n {
 		for i in 0..m {
 			let expected = if j == 0 {
-				if i == 0 {
-					check[(i, 0)]
-				} else {
-					0.0
-				}
+				if i == 0 { check[(i, 0)] } else { 0.0 }
 			} else if i + 1 == j || i == j {
 				b[(i, j - 1)]
 			} else {

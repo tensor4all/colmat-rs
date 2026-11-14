@@ -55,7 +55,11 @@ impl<T: ComplexField, ViewT: Conjugate<Canonical = T>> BiLinOp<T>
 	for DiagRef<'_, ViewT>
 {
 	#[inline]
-	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn transpose_apply_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		self.apply_scratch(rhs_ncols, par)
 	}
 
@@ -82,7 +86,11 @@ impl<T: ComplexField, ViewT: Conjugate<Canonical = T>> BiLinOp<T>
 impl<T: ComplexField, ViewT: Conjugate<Canonical = T>> Precond<T>
 	for DiagRef<'_, ViewT>
 {
-	fn apply_in_place_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn apply_in_place_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		let _ = rhs_ncols;
 		let _ = par;
 		StackReq::EMPTY

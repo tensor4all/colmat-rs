@@ -164,7 +164,7 @@ fn small_square_row_major_full_piv_lu_does_not_copy_the_matrix() {
 	};
 	run(Par::Seq);
 	#[cfg(feature = "threadteam")]
-	colmat::team::with_team(4, |par| run(par));
+	colmat::team::with_team(4, run);
 }
 
 /// The first pivot `lu_in_place` picks on a zero matrix with two entries of

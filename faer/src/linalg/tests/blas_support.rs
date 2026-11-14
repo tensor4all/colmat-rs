@@ -64,14 +64,14 @@ fn product(
 	Mat::from_fn(lhs.nrows(), rhs.ncols(), |i, j| {
 		let mut acc = zero();
 		for p in 0..lhs.ncols() {
-			acc = acc
-				+ conjugated(entry(lhs, lhs_structure, i, p), conj_lhs)
+			acc += conjugated(entry(lhs, lhs_structure, i, p), conj_lhs)
 					* conjugated(entry(rhs, rhs_structure, p, j), conj_rhs);
 		}
 		acc
 	})
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// `beta * dst + alpha * lhs * rhs`, with only the entries the destination
 /// structure says are computed written (the rest keep `dst`'s value)
 fn blended(

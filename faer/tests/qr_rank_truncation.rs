@@ -141,28 +141,6 @@ fn params<T: Entry>(
 	}
 }
 
-fn fnv(h: &mut u64, x: u64) {
-	for b in x.to_le_bytes() {
-		*h ^= b as u64;
-		*h = h.wrapping_mul(0x100_0000_01b3);
-	}
-}
-fn hash_f64(h: &mut u64, a: MatRef<'_, f64>) {
-	for j in 0..a.ncols() {
-		for i in 0..a.nrows() {
-			fnv(h, a[(i, j)].to_bits());
-		}
-	}
-}
-fn hash_c64(h: &mut u64, a: MatRef<'_, c64>) {
-	for j in 0..a.ncols() {
-		for i in 0..a.nrows() {
-			fnv(h, a[(i, j)].re.to_bits());
-			fnv(h, a[(i, j)].im.to_bits());
-		}
-	}
-}
-
 const SHAPES: [(usize, usize); 6] = [
 	(37, 37),
 	(64, 48),

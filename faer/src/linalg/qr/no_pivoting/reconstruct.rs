@@ -82,7 +82,12 @@ mod tests {
 				QR.get(..size, ..),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					reconstruct::reconstruct_scratch::<c64>(m, n, 4, ParShape::Seq),
+					reconstruct::reconstruct_scratch::<c64>(
+						m,
+						n,
+						4,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A_rec ~ A);

@@ -131,6 +131,8 @@ fn input_factor<T: Scalar>(v: &Mat<T>, prev: usize) -> Mat<T> {
 	})
 }
 
+#[allow(clippy::neg_cmp_op_on_partial_ord)]
+// a negated ordered comparison is the unordered-aware test the code wants; swapping it changes NaN behaviour
 /// Checks every entry of the upgraded factor separately: the within-block Gram coefficients
 /// against the `c64` product within the rounding bound, and the denominators, the lower triangle
 /// and the between-block entries for being exactly what the caller passed. Returns the report of

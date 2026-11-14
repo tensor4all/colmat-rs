@@ -35,7 +35,11 @@ pub fn inverse<I: Index, T: ComplexField>(
 		L,
 		par.reborrow(),
 	);
-	linalg::triangular_inverse::invert_upper_triangular(out.rb_mut(), U, par.reborrow());
+	linalg::triangular_inverse::invert_upper_triangular(
+		out.rb_mut(),
+		U,
+		par.reborrow(),
+	);
 	linalg::matmul::triangular::matmul(
 		tmp.rb_mut(),
 		BlockStructure::Rectangular,

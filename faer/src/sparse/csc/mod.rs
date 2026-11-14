@@ -508,7 +508,7 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 {
 	/// creates a new symbolic matrix view without checking its invariants
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -526,20 +526,18 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 			col_nnz,
 			row_idx,
 		);
-		Self {
-			0: symbolic::Ref {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Ref {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	/// creates a new symbolic matrix view after checking its invariants
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -564,21 +562,19 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 			col_nnz,
 			row_idx,
 		);
-		Self {
-			0: symbolic::Ref {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Ref {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	/// creates a new symbolic matrix view after checking its invariants
 	/// (excluding soft invariants)
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -603,15 +599,13 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 			col_nnz,
 			row_idx,
 		);
-		Self {
-			0: symbolic::Ref {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Ref {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	/// returns the components of the sparse matrix
@@ -745,6 +739,9 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 
 	/// returns the range specifying the indices of column `j`, without bound
 	/// checks
+	///
+	/// # Safety
+	/// `j` must be in bounds of the matrix.
 	#[inline]
 	#[track_caller]
 	pub unsafe fn col_range_unchecked(&self, j: Idx<Cols>) -> Range<usize> {
@@ -843,7 +840,7 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index>
 impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 	/// creates a new symbolic matrix view without checking its invariants
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -861,20 +858,18 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 			col_nnz.as_deref(),
 			&row_idx,
 		);
-		Self {
-			0: symbolic::Own {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Own {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	/// creates a new symbolic matrix view after checking its invariants
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -899,21 +894,19 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 			col_nnz.as_deref(),
 			&row_idx,
 		);
-		Self {
-			0: symbolic::Own {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Own {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	/// creates a new symbolic matrix view after checking its invariants
 	/// (excluding soft invariants)
 	///
-	/// # safety
+	/// # Safety
 	/// see type level documentation.
 	#[inline]
 	#[track_caller]
@@ -938,15 +931,13 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 			col_nnz.as_deref(),
 			&row_idx,
 		);
-		Self {
-			0: symbolic::Own {
-				nrows,
-				ncols,
-				col_ptr,
-				col_nnz,
-				row_idx,
-			},
-		}
+		Self(symbolic::Own {
+			nrows,
+			ncols,
+			col_ptr,
+			col_nnz,
+			row_idx,
+		})
 	}
 
 	#[inline]
@@ -1069,6 +1060,9 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 	#[inline]
 	#[track_caller]
 	/// see [`SymbolicSparseColMatRef::col_range_unchecked`]
+	///
+	/// # Safety
+	/// `j` must be in bounds of the matrix.
 	pub unsafe fn col_range_unchecked(&self, j: Idx<Cols>) -> Range<usize> {
 		self.rb().col_range_unchecked(j)
 	}
@@ -1159,6 +1153,8 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 		}
 	}
 
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[inline]
 	pub(crate) fn try_new_from_indices_impl(
 		nrows: Rows,
@@ -1175,15 +1171,13 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 		}
 		if all_nnz == 0 {
 			return Ok((
-				Self {
-					0: symbolic::Own {
-						nrows,
-						ncols,
-						col_ptr: try_zeroed(ncols.unbound() + 1)?,
-						col_nnz: None,
-						row_idx: alloc::vec::Vec::new(),
-					},
-				},
+				Self(symbolic::Own {
+					nrows,
+					ncols,
+					col_ptr: try_zeroed(ncols.unbound() + 1)?,
+					col_nnz: None,
+					row_idx: alloc::vec::Vec::new(),
+				}),
 				Argsort {
 					idx: alloc::vec::Vec::new(),
 					all_nnz,
@@ -1296,6 +1290,7 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 		))
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// create a new symbolic structure, and the corresponding order for the
 	/// numerical values from pairs of indices
 	#[inline]
@@ -1313,6 +1308,7 @@ impl<Rows: Shape, Cols: Shape, I: Index> SymbolicSparseColMat<I, Rows, Cols> {
 		)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// create a new symbolic structure, and the corresponding order for the
 	/// numerical values from pairs of indices
 	///
@@ -1363,9 +1359,7 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index, T>
 		val: &'a [T],
 	) -> Self {
 		assert!(symbolic.row_idx().len() == val.len());
-		Self {
-			0: numeric::Ref { symbolic, val },
-		}
+		Self(numeric::Ref { symbolic, val })
 	}
 
 	/// returns the symbolic and numeric components of the sparse matrix
@@ -1640,9 +1634,7 @@ impl<'a, Rows: Shape, Cols: Shape, I: Index, T>
 		val: &'a mut [T],
 	) -> Self {
 		assert!(symbolic.row_idx().len() == val.len());
-		Self {
-			0: numeric::Mut { symbolic, val },
-		}
+		Self(numeric::Mut { symbolic, val })
 	}
 
 	#[inline]
@@ -1963,9 +1955,7 @@ impl<Rows: Shape, Cols: Shape, I: Index, T> SparseColMat<I, T, Rows, Cols> {
 		val: alloc::vec::Vec<T>,
 	) -> Self {
 		assert!(symbolic.row_idx().len() == val.len());
-		Self {
-			0: numeric::Own { symbolic, val },
-		}
+		Self(numeric::Own { symbolic, val })
 	}
 
 	#[inline]
@@ -2341,9 +2331,7 @@ impl<Rows: Shape, Cols: Shape, I: Index, T> SparseColMat<I, T, Rows, Cols> {
 			}
 			pos += 1;
 		}
-		Ok(Self {
-			0: numeric::Own { symbolic, val },
-		})
+		Ok(Self(numeric::Own { symbolic, val }))
 	}
 
 	/// create a new matrix from a previously created symbolic structure and
@@ -2368,6 +2356,7 @@ impl<Rows: Shape, Cols: Shape, I: Index, T> SparseColMat<I, T, Rows, Cols> {
 		)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// create a new matrix from triplets
 	#[track_caller]
 	pub fn try_new_from_triplets(
@@ -2397,6 +2386,7 @@ impl<Rows: Shape, Cols: Shape, I: Index, T> SparseColMat<I, T, Rows, Cols> {
 		)?)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// create a new matrix from triplets
 	///
 	/// negative indices are ignored

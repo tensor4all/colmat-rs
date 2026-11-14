@@ -48,6 +48,7 @@ pub fn solve_transpose_in_place_scratch<I: Index, T: ComplexField>(
 		crate::perm::permute_rows_in_place_scratch::<I, T>(qr_dim, rhs_ncols),
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 pub fn solve_lstsq_in_place_with_conj<I: Index, T: ComplexField>(
 	Q_basis: MatRef<'_, T>,
@@ -103,6 +104,7 @@ pub fn solve_lstsq_in_place<
 		stack,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 	Q_basis: MatRef<'_, T>,
@@ -154,6 +156,7 @@ pub fn solve_in_place<
 		stack,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[track_caller]
 pub fn solve_transpose_in_place_with_conj<I: Index, T: ComplexField>(
 	Q_basis: MatRef<'_, T>,
@@ -247,7 +250,11 @@ mod tests {
 				usize,
 				c64,
 			>(
-				m, n, 4, ParShape::Seq, default()
+				m,
+				n,
+				4,
+				ParShape::Seq,
+				default(),
 			))),
 			default(),
 		);
@@ -272,7 +279,7 @@ mod tests {
 				)),
 			);
 			let X = X.get(..n, ..);
-			assert!(A.adjoint() * & A * & X ~ A.adjoint() * & B);
+			assert!(A.adjoint() * & A * X ~ A.adjoint() * & B);
 		}
 		{
 			let mut X = B.to_owned();
@@ -294,7 +301,7 @@ mod tests {
 				)),
 			);
 			let X = X.get(..n, ..);
-			assert!(A.transpose() * A.conjugate() * & X ~ A.transpose() * & B);
+			assert!(A.transpose() * A.conjugate() * X ~ A.transpose() * & B);
 		}
 	}
 	#[test]
@@ -328,7 +335,11 @@ mod tests {
 				usize,
 				c64,
 			>(
-				n, n, 4, ParShape::Seq, default()
+				n,
+				n,
+				4,
+				ParShape::Seq,
+				default(),
 			))),
 			default(),
 		);

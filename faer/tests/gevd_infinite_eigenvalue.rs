@@ -317,7 +317,9 @@ fn left_eigenvectors_of_issue_324_pencil() {
 fn residual_oracle_rejects_unnormalized_eigenpairs() {
 	let (a, b) = (to_c64(&from_bits(&A_BITS)), to_c64(&from_bits(&B_BITS)));
 	let n = a.nrows();
-	let e0 = |k: f64| Mat::from_fn(n, 1, |i, _| c64::new(if i == 0 { k } else { 0.0 }, 0.0));
+	let e0 = |k: f64| {
+		Mat::from_fn(n, 1, |i, _| c64::new(if i == 0 { k } else { 0.0 }, 0.0))
+	};
 	let tol = 10.0 * n as f64 * f32::EPSILON as f64;
 	let mut bad = Vec::new();
 	for (al, k) in [(f64::MAX / 2.0, 1e-300), (1e-150, 1e-200)] {

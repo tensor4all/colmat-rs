@@ -4,19 +4,19 @@ use linalg::householder::*;
 use linalg::jacobi::JacobiRotation;
 use linalg::matmul::matmul;
 fn lahqr_eig22<T: ComplexField>(a00: T, a01: T, a10: T, a11: T) -> (T, T) {
-	let ref s = a00.abs1() + a01.abs1() + a10.abs1() + a11.abs1();
+	let s = &(a00.abs1() + a01.abs1() + a10.abs1() + a11.abs1());
 	if *s == zero() {
 		return (zero(), zero());
 	}
-	let ref half = from_f64::<T::Real>(0.5);
-	let ref s_inv = s.recip();
-	let ref a00 = a00.mul_real(s_inv);
-	let ref a01 = a01.mul_real(s_inv);
-	let ref a10 = a10.mul_real(s_inv);
-	let ref a11 = a11.mul_real(s_inv);
-	let ref tr = (a00 + a11).mul_real(half);
+	let half = &from_f64::<T::Real>(0.5);
+	let s_inv = &s.recip();
+	let a00 = &a00.mul_real(s_inv);
+	let a01 = &a01.mul_real(s_inv);
+	let a10 = &a10.mul_real(s_inv);
+	let a11 = &a11.mul_real(s_inv);
+	let tr = &(a00 + a11).mul_real(half);
 	let det = (a00 - tr) * (a00 - tr) + (a01 * a10);
-	let ref rtdisc = det.sqrt();
+	let rtdisc = &det.sqrt();
 	((tr + rtdisc).mul_real(s), (tr - rtdisc).mul_real(s))
 }
 fn lahqr<T: ComplexField>(
@@ -32,11 +32,11 @@ fn lahqr<T: ComplexField>(
 	let mut A = A;
 	let mut Z = Z;
 	let mut w = w;
-	let ref eps = eps::<T::Real>();
-	let ref smlnum = min_positive::<T::Real>() / eps;
+	let eps = &eps::<T::Real>();
+	let smlnum = &(min_positive::<T::Real>() / eps);
 	let non_convergence_limit = 10usize;
-	let ref dat1 = from_f64::<T::Real>(0.75);
-	let ref dat2 = from_f64::<T::Real>(-0.4375);
+	let dat1 = &from_f64::<T::Real>(0.75);
+	let dat2 = &from_f64::<T::Real>(-0.4375);
 	if nh == 0 {
 		return 0;
 	}
@@ -84,15 +84,15 @@ fn lahqr<T: ComplexField>(
 				}
 			}
 			if A[(i, i - 1)].abs1() <= eps * tst {
-				let ref ab = A[(i, i - 1)].abs1().fmax(A[(i - 1, i)].abs1());
-				let ref ba = A[(i, i - 1)].abs1().fmin(A[(i - 1, i)].abs1());
-				let ref aa = A[(i, i)]
+				let ab = &A[(i, i - 1)].abs1().fmax(A[(i - 1, i)].abs1());
+				let ba = &A[(i, i - 1)].abs1().fmin(A[(i - 1, i)].abs1());
+				let aa = &A[(i, i)]
 					.abs1()
 					.fmax((&A[(i, i)] - &A[(i - 1, i - 1)]).abs1());
-				let ref bb = A[(i, i)]
+				let bb = &A[(i, i)]
 					.abs1()
 					.fmin((&A[(i, i)] - &A[(i - 1, i - 1)]).abs1());
-				let ref s = aa + ab;
+				let s = &(aa + ab);
 				if ba * (ab / s) <= (eps * (bb * (aa / s))).fmax(smlnum) {
 					A[(i, i - 1)] = zero();
 					istart = i;
@@ -109,7 +109,7 @@ fn lahqr<T: ComplexField>(
 		}
 		let (a00, a01, a10, a11);
 		k_defl += 1;
-		if k_defl % non_convergence_limit == 0 {
+		if k_defl.is_multiple_of(non_convergence_limit) {
 			let mut s = A[(istop - 1, istop - 2)].abs();
 			if istop > ilo + 2 {
 				s += A[(istop - 2, istop - 3)].abs();
@@ -187,8 +187,8 @@ fn lahqr_shiftcolumn<T: ComplexField>(
 	s2: T,
 ) {
 	let mut v = v;
-	let ref s1 = s1;
-	let ref s2 = s2;
+	let s1 = &s1;
+	let s2 = &s2;
 	let n = h.nrows();
 	if n == 2 {
 		let s = (&h[(0, 0)] - s2).abs1() + h[(1, 0)].abs1();
@@ -196,8 +196,8 @@ fn lahqr_shiftcolumn<T: ComplexField>(
 			v[0] = zero();
 			v[1] = zero();
 		} else {
-			let ref s_inv = s.recip();
-			let ref h10s = h[(1, 0)].mul_real(s_inv);
+			let s_inv = &s.recip();
+			let h10s = &h[(1, 0)].mul_real(s_inv);
 			v[0] = h10s * &h[(0, 1)]
 				+ (&h[(0, 0)] - s1) * (&h[(0, 0)] - s2).mul_real(s_inv);
 			v[1] = h10s * (&h[(0, 0)] + &h[(1, 1)] - s1 - s2);
@@ -209,9 +209,9 @@ fn lahqr_shiftcolumn<T: ComplexField>(
 			v[1] = zero();
 			v[2] = zero();
 		} else {
-			let ref s_inv = s.recip();
-			let ref h10s = h[(1, 0)].mul_real(s_inv);
-			let ref h20s = h[(2, 0)].mul_real(s_inv);
+			let s_inv = &s.recip();
+			let h10s = &h[(1, 0)].mul_real(s_inv);
+			let h20s = &h[(2, 0)].mul_real(s_inv);
 			v[0] = (&h[(0, 0)] - s1) * (&h[(0, 0)] - s2).mul_real(s_inv)
 				+ &h[(0, 1)] * h10s
 				+ &h[(0, 2)] * h20s;
@@ -222,6 +222,7 @@ fn lahqr_shiftcolumn<T: ComplexField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn aggressive_early_deflation<T: ComplexField>(
 	want_t: bool,
 	mut a: MatMut<'_, T>,
@@ -236,9 +237,9 @@ fn aggressive_early_deflation<T: ComplexField>(
 ) -> (usize, usize) {
 	let n = a.nrows();
 	let nw_max = (n - 3) / 3;
-	let ref eps = eps::<T::Real>();
-	let ref n_T = from_f64::<T::Real>(n as f64);
-	let ref small_num = min_positive::<T::Real>() / eps * n_T;
+	let eps = &eps::<T::Real>();
+	let n_T = &from_f64::<T::Real>(n as f64);
+	let small_num = &(min_positive::<T::Real>() / eps * n_T);
 	let jw = Ord::min(Ord::min(nw, ihi - ilo), nw_max);
 	let kwtop = ihi - jw;
 	let mut s_spike = if kwtop == ilo {
@@ -381,7 +382,7 @@ fn aggressive_early_deflation<T: ComplexField>(
 			let HouseholderInfo { tau, .. } =
 				make_householder_in_place(&mut head, tail);
 			vv[0] = one();
-			let ref tau = tau.recip().to_cplx::<T>();
+			let tau = &tau.recip().to_cplx::<T>();
 			{
 				let mut tw_slice = tw.rb_mut().submatrix_mut(0, 0, ns, jw);
 				let (mut tmp, _) = unsafe { temp_mat_uninit(jw, 1, stack) };
@@ -616,7 +617,7 @@ pub(crate) fn schur_swap<T: ComplexField>(
 		// Halving both inputs is exact and leaves the rotation unchanged,
 		// since it only depends on their ratio. Other inputs keep the
 		// previous arithmetic.
-		let ref half = from_f64::<T::Real>(0.5);
+		let half = &from_f64::<T::Real>(0.5);
 		t01 = t01.mul_real(half);
 		diff = t11.mul_real(half) - t00.mul_real(half);
 	}
@@ -639,6 +640,7 @@ pub(crate) fn schur_swap<T: ComplexField>(
 	}
 	0
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// returns err code, number of aggressive early deflations, number of qr sweeps
 pub fn multishift_qr<T: ComplexField>(
 	want_t: bool,
@@ -667,8 +669,8 @@ pub fn multishift_qr<T: ComplexField>(
 	let mut stack = stack;
 	let non_convergence_limit_window = 5;
 	let non_convergence_limit_shift = 6;
-	let ref dat1 = from_f64::<T::Real>(0.75);
-	let ref dat2 = from_f64::<T::Real>(-0.4375);
+	let dat1 = &from_f64::<T::Real>(0.75);
+	let dat2 = &from_f64::<T::Real>(-0.4375);
 	let nmin = Ord::max(15, params.blocking_threshold);
 	let nibble = params.nibble_threshold;
 	let nsr = (params.recommended_shift_count)(n, nh);
@@ -762,8 +764,7 @@ pub fn multishift_qr<T: ComplexField>(
 		if k_defl % non_convergence_limit_shift == 0 {
 			for i in (i_shifts + 1..istop).rev().step_by(2) {
 				if i >= ilo + 2 {
-					let ref ss =
-						a[(i, i - 1)].abs1() + a[(i - 1, i - 2)].abs1();
+					let ss = &(a[(i, i - 1)].abs1() + a[(i - 1, i - 2)].abs1());
 					let aa = (dat1 * ss).to_cplx::<T>() + &a[(i, i)];
 					let bb = ss.to_cplx::<T>();
 					let cc = (dat2 * ss).to_cplx::<T>();
@@ -783,7 +784,7 @@ pub fn multishift_qr<T: ComplexField>(
 				let ierr =
 					lahqr(false, temp.rb_mut(), None, shifts.rb_mut(), 0, ns)
 						as usize;
-				ns = ns - ierr;
+				ns -= ierr;
 				if ns < 2 {
 					let aa = a[(istop - 2, istop - 2)].copy();
 					let bb = a[(istop - 2, istop - 1)].copy();
@@ -845,11 +846,11 @@ fn move_bulge<T: ComplexField>(
 	s1: T,
 	s2: T,
 ) {
-	let ref v0 = v[0].real();
-	let ref v1 = v[1].copy();
-	let ref v2 = v[2].copy();
-	let ref refsum = v2.mul_real(v0) * &h[(3, 2)];
-	let ref epsilon = eps::<T::Real>();
+	let v0 = &v[0].real();
+	let v1 = &v[1].copy();
+	let v2 = &v[2].copy();
+	let refsum = &(v2.mul_real(v0) * &h[(3, 2)]);
+	let epsilon = &eps::<T::Real>();
 	h[(3, 0)] = -refsum;
 	h[(3, 1)] = -refsum * v1.conj();
 	h[(3, 2)] -= refsum * v2.conj();
@@ -875,10 +876,10 @@ fn move_bulge<T: ComplexField>(
 		let HouseholderInfo { tau, .. } =
 			make_householder_in_place(&mut beta_unused, tail);
 		vt[0] = tau.recip().to_cplx();
-		let ref vt0 = vt[0].copy();
-		let ref vt1 = vt[1].copy();
-		let ref vt2 = vt[2].copy();
-		let ref refsum = vt0.conj() * &h[(1, 0)] + vt1.conj() * &h[(2, 0)];
+		let vt0 = &vt[0].copy();
+		let vt1 = &vt[1].copy();
+		let vt2 = &vt[2].copy();
+		let refsum = &(vt0.conj() * &h[(1, 0)] + vt1.conj() * &h[(2, 0)]);
 		if (&h[(2, 0)] - refsum * vt1).abs1() + (refsum * vt2).abs1()
 			> epsilon * (h[(0, 0)].abs1() + h[(1, 1)].abs1() + h[(2, 2)].abs1())
 		{
@@ -895,6 +896,7 @@ fn move_bulge<T: ComplexField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn multishift_qr_sweep<T: ComplexField>(
 	want_t: bool,
 	a: MatMut<'_, T>,
@@ -996,6 +998,7 @@ fn multishift_qr_sweep<T: ComplexField>(
 		par,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn introduce_bulges<T: ComplexField>(
 	ilo: usize,
@@ -1015,9 +1018,9 @@ fn introduce_bulges<T: ComplexField>(
 	mut par: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T::Real>();
-	let ref n_T = from_f64::<T::Real>(n as f64);
-	let ref small_num = min_positive::<T::Real>() / eps * n_T;
+	let eps = &eps::<T::Real>();
+	let n_T = &from_f64::<T::Real>(n as f64);
+	let small_num = &(min_positive::<T::Real>() / eps * n_T);
 	let n_block = Ord::min(n_block_desired, ihi - ilo);
 	let mut istart_m = ilo;
 	let mut istop_m = ilo + n_block;
@@ -1047,20 +1050,20 @@ fn introduce_bulges<T: ComplexField>(
 				let s2 = s[s.nrows() - 1 - 2 * i_bulge - 1].copy();
 				move_bulge(h.rb_mut(), v.rb_mut(), s1, s2);
 			}
-			let ref v0 = v[0].real();
-			let ref v1 = v[1].copy();
-			let ref v2 = v[2].copy();
+			let v0 = &v[0].real();
+			let v1 = &v[1].copy();
+			let v2 = &v[2].copy();
 			for j in istart_m..i_pos + 3 {
-				let ref sum = &a[(j, i_pos)]
+				let sum = &(&a[(j, i_pos)]
 					+ v1 * &a[(j, i_pos + 1)]
-					+ v2 * &a[(j, i_pos + 2)];
+					+ v2 * &a[(j, i_pos + 2)]);
 				a[(j, i_pos)] -= sum.mul_real(v0);
 				a[(j, i_pos + 1)] -= sum.mul_real(v0) * v1.conj();
 				a[(j, i_pos + 2)] -= sum.mul_real(v0) * v2.conj();
 			}
-			let ref sum = &a[(i_pos, i_pos)]
+			let sum = &(&a[(i_pos, i_pos)]
 				+ v1.conj() * &a[(i_pos + 1, i_pos)]
-				+ v2.conj() * &a[(i_pos + 2, i_pos)];
+				+ v2.conj() * &a[(i_pos + 2, i_pos)]);
 			a[(i_pos, i_pos)] -= sum.mul_real(v0);
 			a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 			a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -1069,40 +1072,40 @@ fn introduce_bulges<T: ComplexField>(
 					a[(i_pos - 1, i_pos - 1)].abs1() + a[(i_pos, i_pos)].abs1();
 				if tst1 == zero() {
 					if i_pos > ilo + 1 {
-						tst1 = tst1 + a[(i_pos - 1, i_pos - 2)].abs1();
+						tst1 += a[(i_pos - 1, i_pos - 2)].abs1();
 					}
 					if i_pos > ilo + 2 {
-						tst1 = tst1 + a[(i_pos - 1, i_pos - 3)].abs1();
+						tst1 += a[(i_pos - 1, i_pos - 3)].abs1();
 					}
 					if i_pos > ilo + 3 {
-						tst1 = tst1 + a[(i_pos - 1, i_pos - 4)].abs1();
+						tst1 += a[(i_pos - 1, i_pos - 4)].abs1();
 					}
 					if i_pos < ihi - 1 {
-						tst1 = tst1 + a[(i_pos + 1, i_pos)].abs1();
+						tst1 += a[(i_pos + 1, i_pos)].abs1();
 					}
 					if i_pos < ihi - 2 {
-						tst1 = tst1 + a[(i_pos + 2, i_pos)].abs1();
+						tst1 += a[(i_pos + 2, i_pos)].abs1();
 					}
 					if i_pos < ihi - 3 {
-						tst1 = tst1 + a[(i_pos + 3, i_pos)].abs1();
+						tst1 += a[(i_pos + 3, i_pos)].abs1();
 					}
 				}
 				if a[(i_pos, i_pos - 1)].abs1() < small_num.fmax(eps * tst1) {
-					let ref ab = a[(i_pos, i_pos - 1)]
+					let ab = &a[(i_pos, i_pos - 1)]
 						.abs1()
 						.fmax(a[(i_pos - 1, i_pos)].abs1());
-					let ref ba = a[(i_pos, i_pos - 1)]
+					let ba = &a[(i_pos, i_pos - 1)]
 						.abs1()
 						.fmin(a[(i_pos - 1, i_pos)].abs1());
-					let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+					let aa = &a[(i_pos, i_pos)].abs1().fmax(
 						(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 							.abs1(),
 					);
-					let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+					let bb = &a[(i_pos, i_pos)].abs1().fmin(
 						(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 							.abs1(),
 					);
-					let ref s = aa + ab;
+					let s = &(aa + ab);
 					if ba * (ab / s) <= small_num.fmax(eps * (bb * (aa / s))) {
 						a[(i_pos, i_pos - 1)] = zero();
 					}
@@ -1112,13 +1115,13 @@ fn introduce_bulges<T: ComplexField>(
 		for i_bulge in 0..n_active_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].real();
-			let ref v1 = v[1].copy();
-			let ref v2 = v[2].copy();
+			let v0 = &v[0].real();
+			let v1 = &v[1].copy();
+			let v2 = &v[2].copy();
 			for j in i_pos + 1..istop_m {
-				let ref sum = &a[(i_pos, j)]
+				let sum = &(&a[(i_pos, j)]
 					+ v1.conj() * &a[(i_pos + 1, j)]
-					+ v2.conj() * &a[(i_pos + 2, j)];
+					+ v2.conj() * &a[(i_pos + 2, j)]);
 				a[(i_pos, j)] -= sum.mul_real(v0);
 				a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -1127,18 +1130,18 @@ fn introduce_bulges<T: ComplexField>(
 		for i_bulge in 0..n_active_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].real();
-			let ref v1 = v[1].copy();
-			let ref v2 = v[2].copy();
+			let v0 = &v[0].real();
+			let v1 = &v[1].copy();
+			let v2 = &v[2].copy();
 			let i1 = 0;
 			let i2 = Ord::min(
 				u2.nrows(),
 				(i_pos_last - ilo) + (i_pos_last - ilo) + 3,
 			);
 			for j in i1..i2 {
-				let ref sum = &u2[(j, i_pos - ilo)]
+				let sum = &(&u2[(j, i_pos - ilo)]
 					+ v1 * &u2[(j, i_pos - ilo + 1)]
-					+ v2 * &u2[(j, i_pos - ilo + 2)];
+					+ v2 * &u2[(j, i_pos - ilo + 2)]);
 				u2[(j, i_pos - ilo)] -= sum.mul_real(v0);
 				u2[(j, i_pos - ilo + 1)] -= sum.mul_real(v0) * v1.conj();
 				u2[(j, i_pos - ilo + 2)] -= sum.mul_real(v0) * v2.conj();
@@ -1223,6 +1226,7 @@ fn introduce_bulges<T: ComplexField>(
 	}
 	*i_pos_block = ilo + n_block - n_shifts;
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn move_bulges_down<T: ComplexField>(
 	ilo: usize,
@@ -1242,9 +1246,9 @@ fn move_bulges_down<T: ComplexField>(
 	mut par: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T::Real>();
-	let ref n_T = from_f64::<T::Real>(n as f64);
-	let ref small_num = min_positive::<T::Real>() / eps * n_T;
+	let eps = &eps::<T::Real>();
+	let n_T = &from_f64::<T::Real>(n as f64);
+	let small_num = &(min_positive::<T::Real>() / eps * n_T);
 	while *i_pos_block + n_block_desired < ihi {
 		let n_pos = Ord::min(
 			n_block_desired - n_shifts,
@@ -1267,20 +1271,20 @@ fn move_bulges_down<T: ComplexField>(
 				let s1 = s[s.nrows() - 1 - 2 * i_bulge].copy();
 				let s2 = s[s.nrows() - 1 - 2 * i_bulge - 1].copy();
 				move_bulge(h.rb_mut(), v.rb_mut(), s1, s2);
-				let ref v0 = v[0].real();
-				let ref v1 = v[1].copy();
-				let ref v2 = v[2].copy();
+				let v0 = &v[0].real();
+				let v1 = &v[1].copy();
+				let v2 = &v[2].copy();
 				for j in istart_m..i_pos + 3 {
-					let ref sum = &a[(j, i_pos)]
+					let sum = &(&a[(j, i_pos)]
 						+ v1 * &a[(j, i_pos + 1)]
-						+ v2 * &a[(j, i_pos + 2)];
+						+ v2 * &a[(j, i_pos + 2)]);
 					a[(j, i_pos)] -= sum.mul_real(v0);
 					a[(j, i_pos + 1)] -= sum.mul_real(v0) * v1.conj();
 					a[(j, i_pos + 2)] -= sum.mul_real(v0) * v2.conj();
 				}
-				let ref sum = &a[(i_pos, i_pos)]
+				let sum = &(&a[(i_pos, i_pos)]
 					+ v1.conj() * &a[(i_pos + 1, i_pos)]
-					+ v2.conj() * &a[(i_pos + 2, i_pos)];
+					+ v2.conj() * &a[(i_pos + 2, i_pos)]);
 				a[(i_pos, i_pos)] -= sum.mul_real(v0);
 				a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -1289,41 +1293,41 @@ fn move_bulges_down<T: ComplexField>(
 						+ a[(i_pos, i_pos)].abs1();
 					if tst1 == zero() {
 						if i_pos > ilo + 1 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 2)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 2)].abs1();
 						}
 						if i_pos > ilo + 2 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 3)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 3)].abs1();
 						}
 						if i_pos > ilo + 3 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 4)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 4)].abs1();
 						}
 						if i_pos < ihi - 1 {
-							tst1 = tst1 + a[(i_pos + 1, i_pos)].abs1();
+							tst1 += a[(i_pos + 1, i_pos)].abs1();
 						}
 						if i_pos < ihi - 2 {
-							tst1 = tst1 + a[(i_pos + 2, i_pos)].abs1();
+							tst1 += a[(i_pos + 2, i_pos)].abs1();
 						}
 						if i_pos < ihi - 3 {
-							tst1 = tst1 + a[(i_pos + 3, i_pos)].abs1();
+							tst1 += a[(i_pos + 3, i_pos)].abs1();
 						}
 					}
 					if a[(i_pos, i_pos - 1)].abs1() < small_num.fmax(eps * tst1)
 					{
-						let ref ab = a[(i_pos, i_pos - 1)]
+						let ab = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmax(a[(i_pos - 1, i_pos)].abs1());
-						let ref ba = a[(i_pos, i_pos - 1)]
+						let ba = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmin(a[(i_pos - 1, i_pos)].abs1());
-						let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+						let aa = &a[(i_pos, i_pos)].abs1().fmax(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+						let bb = &a[(i_pos, i_pos)].abs1().fmin(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref s = aa + ab;
+						let s = &(aa + ab);
 						if ba * (ab / s)
 							<= small_num.fmax(eps * (bb * (aa / s)))
 						{
@@ -1335,13 +1339,13 @@ fn move_bulges_down<T: ComplexField>(
 			for i_bulge in 0..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].real();
-				let ref v1 = v[1].copy();
-				let ref v2 = v[2].copy();
+				let v0 = &v[0].real();
+				let v1 = &v[1].copy();
+				let v2 = &v[2].copy();
 				for j in i_pos + 1..istop_m {
-					let ref sum = &a[(i_pos, j)]
+					let sum = &(&a[(i_pos, j)]
 						+ v1.conj() * &a[(i_pos + 1, j)]
-						+ v2.conj() * &a[(i_pos + 2, j)];
+						+ v2.conj() * &a[(i_pos + 2, j)]);
 					a[(i_pos, j)] -= sum.mul_real(v0);
 					a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 					a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -1350,9 +1354,9 @@ fn move_bulges_down<T: ComplexField>(
 			for i_bulge in 0..n_bulges {
 				let i_pos = i_pos_last - 2 * i_bulge;
 				let v = v.rb_mut().col_mut(i_bulge);
-				let ref v0 = v[0].real();
-				let ref v1 = v[1].copy();
-				let ref v2 = v[2].copy();
+				let v0 = &v[0].real();
+				let v1 = &v[1].copy();
+				let v2 = &v[2].copy();
 				let i1 = (i_pos - *i_pos_block)
 					- (i_pos_last + 2 - *i_pos_block - n_shifts);
 				let i2 = Ord::min(
@@ -1362,9 +1366,9 @@ fn move_bulges_down<T: ComplexField>(
 						+ 3,
 				);
 				for j in i1..i2 {
-					let ref sum = &u2[(j, i_pos - *i_pos_block)]
+					let sum = &(&u2[(j, i_pos - *i_pos_block)]
 						+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]
-						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)];
+						+ v2 * &u2[(j, i_pos - *i_pos_block + 2)]);
 					u2[(j, i_pos - *i_pos_block)] -= sum.mul_real(v0);
 					u2[(j, i_pos - *i_pos_block + 1)] -=
 						sum.mul_real(v0) * v1.conj();
@@ -1455,6 +1459,7 @@ fn move_bulges_down<T: ComplexField>(
 		*i_pos_block += n_pos;
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn remove_bulges<T: ComplexField>(
 	ilo: usize,
@@ -1473,9 +1478,9 @@ fn remove_bulges<T: ComplexField>(
 	mut par: Par,
 ) {
 	let n = a.nrows();
-	let ref eps = eps::<T::Real>();
-	let ref small_num =
-		min_positive::<T::Real>() / eps * from_f64::<T::Real>(n as f64);
+	let eps = &eps::<T::Real>();
+	let small_num =
+		&(min_positive::<T::Real>() / eps * from_f64::<T::Real>(n as f64));
 	let n_block = ihi - *i_pos_block;
 	let mut u2 = u.rb_mut().submatrix_mut(0, 0, n_block, n_block);
 	u2.fill(zero());
@@ -1501,23 +1506,23 @@ fn remove_bulges<T: ComplexField>(
 				v[1] = h[1].copy();
 				h[0] = beta;
 				h[1] = zero();
-				let ref t0 = v[0].conj();
-				let ref v1 = v[1].copy();
-				let ref t1 = t0 * v1;
+				let t0 = &v[0].conj();
+				let v1 = &v[1].copy();
+				let t1 = &(t0 * v1);
 				for j in istart_m..i_pos + 2 {
-					let ref sum = &a[(j, i_pos)] + (v1 * &a[(j, i_pos + 1)]);
+					let sum = &(&a[(j, i_pos)] + (v1 * &a[(j, i_pos + 1)]));
 					a[(j, i_pos)] -= sum * t0.conj();
 					a[(j, i_pos + 1)] -= sum * t1.conj();
 				}
 				for j in i_pos..istop_m {
-					let ref sum =
-						&a[(i_pos, j)] + (v1.conj() * &a[(i_pos + 1, j)]);
+					let sum =
+						&(&a[(i_pos, j)] + (v1.conj() * &a[(i_pos + 1, j)]));
 					a[(i_pos, j)] -= sum * t0;
 					a[(i_pos + 1, j)] -= sum * t1;
 				}
 				for j in 0..u2.nrows() {
-					let ref sum = &u2[(j, i_pos - *i_pos_block)]
-						+ v1 * &u2[(j, i_pos - *i_pos_block + 1)];
+					let sum = &(&u2[(j, i_pos - *i_pos_block)]
+						+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]);
 					u2[(j, i_pos - *i_pos_block)] -= sum * t0.conj();
 					u2[(j, i_pos - *i_pos_block + 1)] -= sum * t1.conj();
 				}
@@ -1529,26 +1534,26 @@ fn remove_bulges<T: ComplexField>(
 				let s2 = s[s.nrows() - 1 - 2 * i_bulge - 1].copy();
 				move_bulge(h.rb_mut(), v.rb_mut(), s1, s2);
 				{
-					let ref t0 = v[0].conj();
-					let ref v1 = v[1].copy();
-					let ref t1 = t0 * v1;
-					let ref v2 = v[2].copy();
-					let ref t2 = t0 * v2;
+					let t0 = &v[0].conj();
+					let v1 = &v[1].copy();
+					let t1 = &(t0 * v1);
+					let v2 = &v[2].copy();
+					let t2 = &(t0 * v2);
 					for j in istart_m..i_pos + 3 {
-						let ref sum = &a[(j, i_pos)]
+						let sum = &(&a[(j, i_pos)]
 							+ v1 * &a[(j, i_pos + 1)]
-							+ v2 * &a[(j, i_pos + 2)];
+							+ v2 * &a[(j, i_pos + 2)]);
 						a[(j, i_pos)] -= sum * t0.conj();
 						a[(j, i_pos + 1)] -= sum * t1.conj();
 						a[(j, i_pos + 2)] -= sum * t2.conj();
 					}
 				}
-				let ref v0 = v[0].real();
-				let ref v1 = v[1].copy();
-				let ref v2 = v[2].copy();
-				let ref sum = &a[(i_pos, i_pos)]
+				let v0 = &v[0].real();
+				let v1 = &v[1].copy();
+				let v2 = &v[2].copy();
+				let sum = &(&a[(i_pos, i_pos)]
 					+ v1.conj() * &a[(i_pos + 1, i_pos)]
-					+ v2.conj() * &a[(i_pos + 2, i_pos)];
+					+ v2.conj() * &a[(i_pos + 2, i_pos)]);
 				a[(i_pos, i_pos)] -= sum.mul_real(v0);
 				a[(i_pos + 1, i_pos)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, i_pos)] -= sum.mul_real(v0) * v2;
@@ -1557,41 +1562,41 @@ fn remove_bulges<T: ComplexField>(
 						+ a[(i_pos, i_pos)].abs1();
 					if tst1 == zero() {
 						if i_pos > ilo + 1 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 2)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 2)].abs1();
 						}
 						if i_pos > ilo + 2 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 3)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 3)].abs1();
 						}
 						if i_pos > ilo + 3 {
-							tst1 = tst1 + a[(i_pos - 1, i_pos - 4)].abs1();
+							tst1 += a[(i_pos - 1, i_pos - 4)].abs1();
 						}
 						if i_pos < ihi - 1 {
-							tst1 = tst1 + a[(i_pos + 1, i_pos)].abs1();
+							tst1 += a[(i_pos + 1, i_pos)].abs1();
 						}
 						if i_pos < ihi - 2 {
-							tst1 = tst1 + a[(i_pos + 2, i_pos)].abs1();
+							tst1 += a[(i_pos + 2, i_pos)].abs1();
 						}
 						if i_pos < ihi - 3 {
-							tst1 = tst1 + a[(i_pos + 3, i_pos)].abs1();
+							tst1 += a[(i_pos + 3, i_pos)].abs1();
 						}
 					}
 					if a[(i_pos, i_pos - 1)].abs1() < small_num.fmax(eps * tst1)
 					{
-						let ref ab = a[(i_pos, i_pos - 1)]
+						let ab = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmax(a[(i_pos - 1, i_pos)].abs1());
-						let ref ba = a[(i_pos, i_pos - 1)]
+						let ba = &a[(i_pos, i_pos - 1)]
 							.abs1()
 							.fmin(a[(i_pos - 1, i_pos)].abs1());
-						let ref aa = a[(i_pos, i_pos)].abs1().fmax(
+						let aa = &a[(i_pos, i_pos)].abs1().fmax(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref bb = a[(i_pos, i_pos)].abs1().fmin(
+						let bb = &a[(i_pos, i_pos)].abs1().fmin(
 							(&a[(i_pos, i_pos)] - &a[(i_pos - 1, i_pos - 1)])
 								.abs1(),
 						);
-						let ref s = aa + ab;
+						let s = &(aa + ab);
 						if ba * (ab / s)
 							<= small_num.fmax(eps * (bb * (aa / s)))
 						{
@@ -1609,13 +1614,13 @@ fn remove_bulges<T: ComplexField>(
 		for i_bulge in i_bulge_start..n_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].real();
-			let ref v1 = v[1].copy();
-			let ref v2 = v[2].copy();
+			let v0 = &v[0].real();
+			let v1 = &v[1].copy();
+			let v2 = &v[2].copy();
 			for j in i_pos + 1..istop_m {
-				let ref sum = &a[(i_pos, j)]
+				let sum = &(&a[(i_pos, j)]
 					+ v1.conj() * &a[(i_pos + 1, j)]
-					+ v2.conj() * &a[(i_pos + 2, j)];
+					+ v2.conj() * &a[(i_pos + 2, j)]);
 				a[(i_pos, j)] -= sum.mul_real(v0);
 				a[(i_pos + 1, j)] -= sum.mul_real(v0) * v1;
 				a[(i_pos + 2, j)] -= sum.mul_real(v0) * v2;
@@ -1624,9 +1629,9 @@ fn remove_bulges<T: ComplexField>(
 		for i_bulge in i_bulge_start..n_bulges {
 			let i_pos = i_pos_last - 2 * i_bulge;
 			let v = v.rb_mut().col_mut(i_bulge);
-			let ref v0 = v[0].real();
-			let ref v1 = v[1].copy();
-			let ref v2 = v[2].copy();
+			let v0 = &v[0].real();
+			let v1 = &v[1].copy();
+			let v2 = &v[2].copy();
 			let i1 = (i_pos - *i_pos_block)
 				- (i_pos_last + 2 - *i_pos_block - n_shifts);
 			let i2 = Ord::min(
@@ -1636,9 +1641,9 @@ fn remove_bulges<T: ComplexField>(
 					+ 3,
 			);
 			for j in i1..i2 {
-				let ref sum = &u2[(j, i_pos - *i_pos_block)]
+				let sum = &(&u2[(j, i_pos - *i_pos_block)]
 					+ v1 * &u2[(j, i_pos - *i_pos_block + 1)]
-					+ v2 * &u2[(j, i_pos - *i_pos_block + 2)];
+					+ v2 * &u2[(j, i_pos - *i_pos_block + 2)]);
 				u2[(j, i_pos - *i_pos_block)] -= sum.mul_real(v0);
 				u2[(j, i_pos - *i_pos_block + 1)] -=
 					sum.mul_real(v0) * v1.conj();

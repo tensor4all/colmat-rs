@@ -222,7 +222,7 @@ fn balance_case(
 					})
 				}),
 			);
-			let xb = Mat::from_fn(n, 3, |i, j| sample(i, j));
+			let xb = Mat::from_fn(n, 3, sample);
 			let mut expected = Mat::<Scalar>::zeros(n, 3);
 			for j in 0..3 {
 				for i in 0..n {

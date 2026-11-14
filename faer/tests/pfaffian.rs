@@ -321,7 +321,9 @@ fn runtime_selected_lane() {
 				core::any::type_name::<S>(),
 				core::mem::size_of::<<f64 as ComplexField>::SimdVec<S>>() / 8,
 				core::mem::size_of::<
-					<colmat_traits::ComplexImpl<f64> as ComplexField>::SimdVec<S>,
+					<colmat_traits::ComplexImpl<f64> as ComplexField>::SimdVec<
+						S,
+					>,
 				>() / 16,
 				S::IS_SCALAR,
 			)

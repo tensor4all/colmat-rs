@@ -58,7 +58,7 @@ pub fn partial_full_spectrum<T: ComplexField>(
 	let (mut s, stack) = stack.make_with(n, |_| zero::<T>());
 	let ok = linalg::evd::self_adjoint_evd(
 		dense.rb(),
-		DiagMut::from_slice_mut(&mut *s),
+		DiagMut::from_slice_mut(&mut s),
 		Some(u.rb_mut()),
 		par.reborrow(),
 		stack,
@@ -94,15 +94,22 @@ pub fn partial_full_spectrum<T: ComplexField>(
 mod tests {
 	use super::*;
 	use crate::matrix_free::eigen::{
-		PartialEigenParams, partial_self_adjoint_eigen, partial_self_adjoint_eigen_scratch,
+		PartialEigenParams, partial_self_adjoint_eigen,
+		partial_self_adjoint_eigen_scratch,
 	};
 	use crate::prelude::*;
 	use dyn_stack::MemBuffer;
 
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	/// runs the public driver and checks the residual and the orthonormality of
 	/// the returned pairs. the eigenvectors of a degenerate spectrum are not
 	/// unique, so only the residual and the orthogonality are asserted.
-	fn check<T: ComplexField>(A: MatRef<'_, T>, k: usize, params: PartialEigenParams) -> Vec<T> {
+	fn check<T: ComplexField>(
+		A: MatRef<'_, T>,
+		k: usize,
+		params: PartialEigenParams,
+	) -> Vec<T> {
 		let n = A.nrows();
 		let mut V = Mat::<T>::zeros(n, k);
 		let mut w = vec![zero::<T>(); k];
@@ -126,7 +133,8 @@ mod tests {
 		core::assert!(info.n_converged_eigen == k);
 		let tol = from_f64::<T::Real>(1e-12) * A.norm_l2();
 		for j in 0..k {
-			let residual = (A * V.col(j) - Scale(copy(&w[j])) * V.col(j)).norm_l2();
+			let residual =
+				(A * V.col(j) - Scale(copy(&w[j])) * V.col(j)).norm_l2();
 			core::assert!(residual < tol);
 		}
 		let one_tol = from_f64::<T::Real>(1e-12);
@@ -135,7 +143,9 @@ mod tests {
 				let g: T = V.col(i).adjoint() * V.col(j);
 				let expected: T = if i == j { one() } else { zero() };
 				let d = g - expected;
-				core::assert!(real(&d).abs() < one_tol && imag(&d).abs() < one_tol);
+				core::assert!(
+					real(&d).abs() < one_tol && imag(&d).abs() < one_tol
+				);
 			}
 		}
 		w
@@ -164,7 +174,11 @@ mod tests {
 	fn diagonal_small_n() {
 		let diag = [4.0f64, -1.0, 3.0, 2.0];
 		let n = diag.len();
-		let A = Mat::<f64>::from_fn(n, n, |i, j| if i == j { diag[i] } else { 0.0 });
+		let A = Mat::<f64>::from_fn(
+			n,
+			n,
+			|i, j| if i == j { diag[i] } else { 0.0 },
+		);
 		for k in 1..=n {
 			let w = check(A.as_ref(), k, default());
 			// descending magnitude
@@ -186,7 +200,11 @@ mod tests {
 	fn prefix_stable_in_k() {
 		let diag = [4.0f64, -1.0, 3.0, 2.0];
 		let n = diag.len();
-		let A = Mat::<f64>::from_fn(n, n, |i, j| if i == j { diag[i] } else { 0.0 });
+		let A = Mat::<f64>::from_fn(
+			n,
+			n,
+			|i, j| if i == j { diag[i] } else { 0.0 },
+		);
 		let full = check(A.as_ref(), n, default());
 		for k in 1..n {
 			let partial = check(A.as_ref(), k, default());
@@ -207,7 +225,9 @@ mod tests {
 	#[test]
 	fn explicit_full_projection() {
 		let n = 3;
-		let A = Mat::<f64>::from_fn(n, n, |i, j| if i == j { (i + 1) as f64 } else { 0.0 });
+		let A = Mat::<f64>::from_fn(n, n, |i, j| {
+			if i == j { (i + 1) as f64 } else { 0.0 }
+		});
 		let params = PartialEigenParams {
 			max_dim: 8,
 			..default()

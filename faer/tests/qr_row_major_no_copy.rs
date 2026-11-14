@@ -83,7 +83,13 @@ fn largest_allocation(
 	let k = Ord::min(m, n);
 	let mut coeff = vec![0.0f64; bs * k];
 	let req = stack_req.unwrap_or_else(|| {
-		qr::qr_in_place_scratch::<f64>(m, n, bs, par.shape(), Default::default())
+		qr::qr_in_place_scratch::<f64>(
+			m,
+			n,
+			bs,
+			par.shape(),
+			Default::default(),
+		)
 	});
 	let mut mem = MemBuffer::new(req);
 	let mut largest = 0;
@@ -132,7 +138,12 @@ fn row_major_qr_does_not_copy_the_matrix() {
 		}
 	}
 	// the control: these keep the copy, and the counter sees it
-	let keeps_copy = |m: usize, n: usize, strides: (usize, usize), stack: Option<StackReq>, par: Par<'_>, why: &str| {
+	let keeps_copy = |m: usize,
+	                  n: usize,
+	                  strides: (usize, usize),
+	                  stack: Option<StackReq>,
+	                  par: Par<'_>,
+	                  why: &str| {
 		let whole = m * n * size_of::<f64>();
 		let largest = largest_allocation(m, n, strides, stack, par);
 		assert!(
@@ -149,5 +160,7 @@ fn row_major_qr_does_not_copy_the_matrix() {
 	keeps_copy(128, 128, (128, 1), Some(small), Par::Seq, "small stack");
 	keeps_copy(128, 128, (256, 2), None, Par::Seq, "neither stride 1");
 	#[cfg(feature = "threadteam")]
-	colmat::team::with_team(4, |par| keeps_copy(128, 128, (128, 1), None, par, "team"));
+	colmat::team::with_team(4, |par| {
+		keeps_copy(128, 128, (128, 1), None, par, "team")
+	});
 }

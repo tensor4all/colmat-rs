@@ -56,6 +56,7 @@ fn swap_self_adjoint<T: ComplexField>(A: MatMut<'_, T>, i: usize, j: usize) {
 		(*x, *y) = (y.conj(), x.conj());
 	});
 }
+#[allow(clippy::extra_unused_lifetimes)] // the lifetime appears inside `Dim<'N>` argument types
 fn rank_1_update_and_argmax_fallback<'M, 'N, T: ComplexField>(
 	A: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	L: ColRef<'_, T, Dim<'N>>,
@@ -81,6 +82,7 @@ fn rank_1_update_and_argmax_fallback<'M, 'N, T: ComplexField>(
 	}
 	(*max_i, *max_j, max_offdiag)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn rank_2_update_and_argmax_fallback<'N, T: ComplexField>(
 	A: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	L0: ColRef<'_, T, Dim<'N>>,
@@ -114,6 +116,7 @@ fn rank_2_update_and_argmax_fallback<'N, T: ComplexField>(
 	}
 	(*max_i, *max_j, max_offdiag)
 }
+#[allow(clippy::extra_unused_lifetimes)] // the lifetime appears inside `Dim<'N>` argument types
 fn rank_1_update_and_argmax_seq<'M, 'N, T: ComplexField>(
 	A: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	L: ColRef<'_, T, Dim<'N>>,
@@ -123,6 +126,7 @@ fn rank_1_update_and_argmax_seq<'M, 'N, T: ComplexField>(
 ) -> (usize, usize, T::Real) {
 	rank_1_update_and_argmax_fallback(A, L, d, start, end)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn rank_2_update_and_argmax_seq<'N, T: ComplexField>(
 	A: MatMut<'_, T, Dim<'N>, Dim<'N>>,
 	L0: ColRef<'_, T, Dim<'N>>,
@@ -154,9 +158,9 @@ fn rank_1_update_and_argmax<T: ComplexField>(
 			IdxInc::ZERO,
 			N.end(),
 		),
-	#[cfg(feature = "rayon")]
+		#[cfg(feature = "rayon")]
 		_ => {
-		let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+			let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
 			use rayon::prelude::*;
 			let nthreads = nthreads.get();
 			let n = *N;
@@ -170,7 +174,8 @@ fn rank_1_update_and_argmax<T: ComplexField>(
 			// one entry per block, from the call's scratch (no allocation per step, #111); every
 			// entry is written by its block
 			let r = &mut best[..nthreads];
-			crate::utils::thread::for_each(par, 
+			crate::utils::thread::for_each(
+				par,
 				nthreads,
 				r.par_iter_mut().enumerate(),
 				|(idx, out)| {
@@ -201,6 +206,8 @@ fn rank_1_update_and_argmax<T: ComplexField>(
 		},
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
+#[allow(clippy::extra_unused_lifetimes)] // the lifetime appears inside `Dim<'N>` argument types
 fn rank_2_update_and_argmax<'N, T: ComplexField>(
 	A: MatMut<'_, T>,
 	L0: ColRef<'_, T>,
@@ -227,9 +234,9 @@ fn rank_2_update_and_argmax<'N, T: ComplexField>(
 			IdxInc::ZERO,
 			N.end(),
 		),
-	#[cfg(feature = "rayon")]
+		#[cfg(feature = "rayon")]
 		_ => {
-		let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
+			let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
 			use rayon::prelude::*;
 			let nthreads = nthreads.get();
 			let n = *N;
@@ -243,7 +250,8 @@ fn rank_2_update_and_argmax<'N, T: ComplexField>(
 			// one entry per block, from the call's scratch (no allocation per step, #111); every
 			// entry is written by its block
 			let r = &mut best[..nthreads];
-			crate::utils::thread::for_each(par, 
+			crate::utils::thread::for_each(
+				par,
 				nthreads,
 				r.par_iter_mut().enumerate(),
 				|(idx, out)| {
@@ -348,7 +356,12 @@ fn lblt_full_piv<T: ComplexField>(
 		// One section per step (the rank-1 or rank-2 update fused with the pivot search);
 		// the unit is an element of the trailing block.
 		// The step runs at the widest width that pays.
-		let width = params.par_threshold.region_width::<T>(&par, rem * rem, rate::bunch_kaufman(), 1);
+		let width = params.par_threshold.region_width::<T>(
+			&par,
+			rem * rem,
+			rate::bunch_kaufman(),
+			1,
+		);
 		if i0 != 0 {
 			swap_self_adjoint(A.rb_mut(), 0, i0);
 			perm::swap_rows_idx(Aprev.rb_mut(), 0, i0);
@@ -369,9 +382,16 @@ fn lblt_full_piv<T: ComplexField>(
 				A[(i, i)] = (A[(i, i)].real() - &diag * L[i].abs2()).to_cplx();
 			}
 			if n != 0 {
-				(max_i, max_j, max_offdiag) = with_width(par.reborrow(), width, |par| {
-					rank_1_update_and_argmax(A.rb_mut(), L.rb(), diag, best, par)
-				});
+				(max_i, max_j, max_offdiag) =
+					with_width(par.reborrow(), width, |par| {
+						rank_1_update_and_argmax(
+							A.rb_mut(),
+							L.rb(),
+							diag,
+							best,
+							par,
+						)
+					});
 			}
 		} else {
 			let a00 = A[(0, 0)].real();
@@ -391,19 +411,20 @@ fn lblt_full_piv<T: ComplexField>(
 			let (mut L0, mut L1) = L.two_cols_mut(0, 1);
 			let n = A.nrows();
 			if n != 0 {
-				(max_i, max_j, max_offdiag) = with_width(par.reborrow(), width, |par| {
-					rank_2_update_and_argmax(
-						A.rb_mut(),
-						L0.rb(),
-						L1.rb(),
-						d.copy(),
-						d00.copy(),
-						d11.copy(),
-						d10.copy(),
-						best,
-						par,
-					)
-				});
+				(max_i, max_j, max_offdiag) =
+					with_width(par.reborrow(), width, |par| {
+						rank_2_update_and_argmax(
+							A.rb_mut(),
+							L0.rb(),
+							L1.rb(),
+							d.copy(),
+							d00.copy(),
+							d11.copy(),
+							d10.copy(),
+							best,
+							par,
+						)
+					});
 			}
 			for j in 0..n {
 				let x0 = &L0[j].copy();
@@ -476,7 +497,9 @@ fn offdiag_argmax<T: ComplexField>(
 	idx: usize,
 ) -> (Option<usize>, T::Real) {
 	let (mut col_argmax, col_max) = l1_argmax(A.rb().get(idx + 1.., idx));
-	col_argmax.as_mut().map(|col_argmax| *col_argmax += idx + 1);
+	if let Some(col_argmax) = col_argmax.as_mut() {
+		*col_argmax += idx + 1;
+	}
 	let (row_argmax, row_max) = l1_argmax(A.rb().get(idx, ..idx).transpose());
 	if col_max > row_max {
 		(col_argmax, col_max)
@@ -513,6 +536,7 @@ fn update_and_offdiag_argmax<T: ComplexField>(
 	dst[i0] = Ar[(i0, i0)].as_real();
 	if n == 1 { (None, zero()) } else { ret }
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn lblt_blocked_step<T: ComplexField>(
 	alpha: T::Real,
@@ -724,6 +748,7 @@ fn lblt_blocked_step<T: ComplexField>(
 	}
 	k
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn lblt_blocked<T: ComplexField>(
 	A: MatMut<'_, T>,
 	subdiag: DiagMut<'_, T>,
@@ -734,8 +759,8 @@ fn lblt_blocked<T: ComplexField>(
 	mut par: Par,
 	stack: &mut MemStack,
 ) {
-	let ref alpha = (one::<T::Real>() + from_f64::<T::Real>(17.0).sqrt())
-		* from_f64::<T::Real>(0.125);
+	let alpha = &((one::<T::Real>() + from_f64::<T::Real>(17.0).sqrt())
+		* from_f64::<T::Real>(0.125));
 	let mut A = A;
 	let mut subdiag = subdiag.column_vector_mut();
 	let n = A.nrows();
@@ -745,8 +770,8 @@ fn lblt_blocked<T: ComplexField>(
 		let (mut W, _) =
 			unsafe { temp_mat_uninit::<T, _, _>(n - k, block_size, stack) };
 		let W = W.as_mat_mut();
-		let next;
-		if block_size < 2 || n - k <= block_size {
+
+		let next = if block_size < 2 || n - k <= block_size {
 			lblt_unblocked(
 				alpha.copy(),
 				A_left.rb_mut(),
@@ -757,7 +782,7 @@ fn lblt_blocked<T: ComplexField>(
 				diagonal,
 				par.reborrow(),
 			);
-			next = n;
+			n
 		} else {
 			let block_size = lblt_blocked_step(
 				alpha.copy(),
@@ -770,8 +795,8 @@ fn lblt_blocked<T: ComplexField>(
 				diagonal,
 				par.reborrow(),
 			);
-			next = k + block_size;
-		}
+			k + block_size
+		};
 		let pivots = &pivots[k..next];
 		let A_left = A.rb_mut().get_mut(.., ..k);
 		if A_left.ncols() > 0 {
@@ -783,41 +808,42 @@ fn lblt_blocked<T: ComplexField>(
 				rate::lu_swap(),
 				1,
 			);
-			with_width(par.reborrow(), width, |par| {
-				match par {
-					Par::Seq => {
-						for mut col in A_left.col_iter_mut() {
+			with_width(par.reborrow(), width, |par| match par {
+				Par::Seq => {
+					for mut col in A_left.col_iter_mut() {
+						for (i, &j) in core::iter::zip(k..next, pivots) {
+							let j = j & !TOP_BIT;
+							linalg::lu::partial_pivoting::factor::swap_elems(
+								col.rb_mut(),
+								i,
+								j,
+							);
+						}
+					}
+				},
+				#[cfg(feature = "rayon")]
+				_ => {
+					let nthreads =
+						core::num::NonZeroUsize::new(par.degree()).unwrap();
+					let nthreads = nthreads.get();
+					crate::utils::thread::for_each(
+						par,
+						nthreads,
+						A_left.par_col_iter_mut(),
+						|mut col| {
 							for (i, &j) in core::iter::zip(k..next, pivots) {
 								let j = j & !TOP_BIT;
-								linalg::lu::partial_pivoting::factor::swap_elems(
-									col.rb_mut(),
-									i,
-									j,
-								);
+								linalg::lu::partial_pivoting::factor::swap_elems(col.rb_mut(), i, j);
 							}
-						}
-					},
-		#[cfg(feature = "rayon")]
-					_ => {
-					let nthreads = core::num::NonZeroUsize::new(par.degree()).unwrap();
-						let nthreads = nthreads.get();
-						crate::utils::thread::for_each(par, 
-							nthreads,
-							A_left.par_col_iter_mut(),
-							|mut col| {
-								for (i, &j) in core::iter::zip(k..next, pivots) {
-									let j = j & !TOP_BIT;
-									linalg::lu::partial_pivoting::factor::swap_elems(col.rb_mut(), i, j);
-								}
-							},
-						);
-					},
-				}
+						},
+					);
+				},
 			});
 		}
 		k = next;
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[inline(never)]
 fn lblt_unblocked<T: ComplexField>(
 	alpha: T::Real,
@@ -1177,8 +1203,11 @@ pub fn cholesky_in_place_scratch<I: Index, T: ComplexField>(
 	// the pivots, then the blocked variant's workspace or the full-pivoting variant's pivot
 	// candidates, one per block of a parallel step
 	StackReq::new::<usize>(dim).and(
-		temp_mat_scratch::<T>(dim, bs)
-			.or(StackReq::new::<(usize, usize, T::Real)>(par.degree())),
+		temp_mat_scratch::<T>(dim, bs).or(StackReq::new::<(
+			usize,
+			usize,
+			T::Real,
+		)>(par.degree())),
 	)
 }
 /// info about the result of the $LBL^\top$ factorization
@@ -1187,6 +1216,8 @@ pub struct LbltInfo {
 	/// number of pivoting transpositions
 	pub transposition_count: usize,
 }
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 /// computes the $LBL^\top$ factorization of $A$ and stores the factorization in
 /// `matrix` and `subdiag`
 ///
@@ -1250,7 +1281,8 @@ pub fn cholesky_in_place<'out, I: Index, T: ComplexField>(
 		_ => (false, false),
 	};
 	if params.pivoting == PivotingStrategy::Full {
-		let (mut best, _) = stack.make_with(par.degree(), |_| (0usize, 0usize, zero::<T::Real>()));
+		let (mut best, _) = stack
+			.make_with(par.degree(), |_| (0usize, 0usize, zero::<T::Real>()));
 		lblt_full_piv(A, subdiag, pivots, best.as_mut(), par, params);
 	} else {
 		lblt_blocked(A, subdiag, pivots, bs, rook, diagonal, par, stack);

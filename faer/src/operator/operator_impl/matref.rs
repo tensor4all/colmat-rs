@@ -56,7 +56,11 @@ impl<T: ComplexField, ViewT: Conjugate<Canonical = T>> BiLinOp<T>
 	for MatRef<'_, ViewT>
 {
 	#[inline]
-	fn transpose_apply_scratch(&self, rhs_ncols: usize, par: ParShape) -> StackReq {
+	fn transpose_apply_scratch(
+		&self,
+		rhs_ncols: usize,
+		par: ParShape,
+	) -> StackReq {
 		_ = (rhs_ncols, par);
 		StackReq::EMPTY
 	}

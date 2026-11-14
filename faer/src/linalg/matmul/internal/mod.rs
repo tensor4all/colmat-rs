@@ -9,12 +9,10 @@ pub fn has_spicy_matmul<T: ComplexField>() -> bool {
 			|| T::IS_NATIVE_F32
 			|| T::IS_NATIVE_C64
 			|| T::IS_NATIVE_C32
-	} {
-		if std::is_x86_feature_detected!("avx2")
-			&& std::is_x86_feature_detected!("fma")
-		{
-			return true;
-		}
+	} && std::is_x86_feature_detected!("avx2")
+		&& std::is_x86_feature_detected!("fma")
+	{
+		return true;
 	}
 	false
 }
@@ -31,12 +29,10 @@ pub fn spicy_matmul_scratch<T: ComplexField>(
 			|| T::IS_NATIVE_F32
 			|| T::IS_NATIVE_C64
 			|| T::IS_NATIVE_C32
-	} {
-		if std::is_x86_feature_detected!("avx2")
-			&& std::is_x86_feature_detected!("fma")
-		{
-			return StackReq::EMPTY;
-		}
+	} && std::is_x86_feature_detected!("avx2")
+		&& std::is_x86_feature_detected!("fma")
+	{
+		return StackReq::EMPTY;
 	}
 	spicy_matmul_generic_scratch::<T>(nrows, ncols, depth, gather, diag)
 }
@@ -52,6 +48,7 @@ fn spicy_matmul_generic_scratch<T: ComplexField>(
 	let gather = temp_mat_scratch::<T>(nrows, if gather { ncols } else { 0 });
 	diag.and(gather)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub fn spicy_matmul<I: Index, T: ComplexField>(
 	C: MatMut<'_, T>,
 	C_block: BlockStructure,
@@ -296,16 +293,19 @@ pub fn spicy_matmul<I: Index, T: ComplexField>(
 		if width < par.degree() {
 			return crate::utils::thread::with_width(par, width, |par| {
 				spicy_matmul(
-					C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B, D, alpha, par, stack,
+					C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B,
+					D, alpha, par, stack,
 				)
 			});
 		}
 	}
 	spicy_matmul_generic(
-		C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B, D, alpha, par, stack,
+		C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B, D, alpha,
+		par, stack,
 	);
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// The product without a native kernel: every target other than x86_64 with AVX2 and FMA, and
 /// every non-native scalar type. It needs the scratch of [`spicy_matmul_scratch`] for the gather
 /// output and the scaled `A`. Separate from [`spicy_matmul`] so that its tests run on every host.
@@ -350,7 +350,7 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 	let _ = stack;
 	let A = if let Some(D) = D {
 		for k in 0..depth {
-			let ref d = D[k].real();
+			let d = &D[k].real();
 			zip!(scaled.rb_mut().col_mut(k), A.col(k))
 				.for_each(|unzip!(x, y)| *x = y.mul_real(d));
 		}
@@ -446,7 +446,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Replace => {
 				for (j, &jj) in col_idx.iter().enumerate() {
 					for (i, &ii) in row_idx.iter().enumerate() {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(ii.zx(), jj.zx())] = out[(i, j)].copy();
 						}
 					}
@@ -455,7 +458,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Add => {
 				for (j, &jj) in col_idx.iter().enumerate() {
 					for (i, &ii) in row_idx.iter().enumerate() {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(ii.zx(), jj.zx())] += &out[(i, j)];
 						}
 					}
@@ -466,7 +472,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Replace => {
 				for j in 0..ncols {
 					for (i, &ii) in row_idx.iter().enumerate() {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(ii.zx(), j)] = out[(i, j)].copy();
 						}
 					}
@@ -475,7 +484,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Add => {
 				for j in 0..ncols {
 					for (i, &ii) in row_idx.iter().enumerate() {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(ii.zx(), j)] += &out[(i, j)];
 						}
 					}
@@ -486,7 +498,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Replace => {
 				for (j, &jj) in col_idx.iter().enumerate() {
 					for i in 0..nrows {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(i, jj.zx())] = out[(i, j)].copy();
 						}
 					}
@@ -495,7 +510,10 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 			Accum::Add => {
 				for (j, &jj) in col_idx.iter().enumerate() {
 					for i in 0..nrows {
-						if dense || (lower && j < i + diag) || (upper && i < j + diag) {
+						if dense
+							|| (lower && j < i + diag)
+							|| (upper && i < j + diag)
+						{
 							C[(i, jj.zx())] += &out[(i, j)];
 						}
 					}
@@ -510,6 +528,7 @@ fn spicy_matmul_generic<I: Index, T: ComplexField>(
 mod tests {
 	use super::*;
 
+	#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 	/// The product through [`spicy_matmul`], or directly through the generic path, which
 	/// x86_64 with AVX2 and FMA otherwise never reaches for a native type. The scratch is the
 	/// route's own request; the generic path takes its temporaries from it.
@@ -538,12 +557,34 @@ mod tests {
 		let stack = MemStack::new(&mut mem);
 		if generic {
 			spicy_matmul_generic(
-				C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B, D, alpha, Par::Seq,
+				C,
+				C_block,
+				row_idx,
+				col_idx,
+				beta,
+				A,
+				conj_A,
+				B,
+				conj_B,
+				D,
+				alpha,
+				Par::Seq,
 				stack,
 			);
 		} else {
 			spicy_matmul(
-				C, C_block, row_idx, col_idx, beta, A, conj_A, B, conj_B, D, alpha, Par::Seq,
+				C,
+				C_block,
+				row_idx,
+				col_idx,
+				beta,
+				A,
+				conj_A,
+				B,
+				conj_B,
+				D,
+				alpha,
+				Par::Seq,
 				stack,
 			);
 		}
@@ -745,7 +786,11 @@ mod tests {
 			// the strict upper part of the 3 x 3 block stays as it was
 			for j in 0..3 {
 				for i in 0..j + 1 {
-					std::assert_eq!(c[(i, j)], 7.0, "generic={generic} ({i}, {j})");
+					std::assert_eq!(
+						c[(i, j)],
+						7.0,
+						"generic={generic} ({i}, {j})"
+					);
 				}
 			}
 		}
@@ -762,13 +807,18 @@ mod reversed_depth_tests {
 	#[test]
 	fn a_diagonal_product_reads_the_depth_in_any_direction() {
 		let (m, k) = (61usize, 5usize);
-		let a = Mat::<f64>::from_fn(m, k, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
-		let b = Mat::<f64>::from_fn(k, m, |i, j| ((i * 5 + j * 2) % 13) as f64 - 6.0);
+		let a = Mat::<f64>::from_fn(m, k, |i, j| {
+			((i * 7 + j * 3) % 11) as f64 - 5.0
+		});
+		let b = Mat::<f64>::from_fn(k, m, |i, j| {
+			((i * 5 + j * 2) % 13) as f64 - 6.0
+		});
 		let d = Col::<f64>::from_fn(k, |i| 1.0 + i as f64);
 		let mut want = Mat::<f64>::zeros(m, m);
 		for i in 0..m {
 			for j in 0..m {
-				want[(i, j)] = (0..k).map(|t| a[(i, t)] * d[t] * b[(t, j)]).sum::<f64>();
+				want[(i, j)] =
+					(0..k).map(|t| a[(i, t)] * d[t] * b[(t, j)]).sum::<f64>();
 			}
 		}
 		// the operands stored with their depth reversed: `view` turns them back, so the logical
@@ -778,10 +828,22 @@ mod reversed_depth_tests {
 		for a_reversed in [false, true] {
 			for b_reversed in [false, true] {
 				for row_major in [false, true] {
-					let av = if a_reversed { a_rev.as_ref().reverse_cols() } else { a.as_ref() };
-					let bv = if b_reversed { b_rev.as_ref().reverse_rows() } else { b.as_ref() };
+					let av = if a_reversed {
+						a_rev.as_ref().reverse_cols()
+					} else {
+						a.as_ref()
+					};
+					let bv = if b_reversed {
+						b_rev.as_ref().reverse_rows()
+					} else {
+						b.as_ref()
+					};
 					let mut buf = Mat::<f64>::zeros(m, m);
-					let c = if row_major { buf.as_mut().transpose_mut() } else { buf.as_mut() };
+					let c = if row_major {
+						buf.as_mut().transpose_mut()
+					} else {
+						buf.as_mut()
+					};
 					spicy_matmul::<usize, f64>(
 						c,
 						BlockStructure::Rectangular,
@@ -795,9 +857,15 @@ mod reversed_depth_tests {
 						Some(d.as_ref().as_diagonal()),
 						1.0,
 						Par::Seq,
-						MemStack::new(&mut dyn_stack::MemBuffer::new(spicy_matmul_scratch::<f64>(m, m, k, false, true))),
+						MemStack::new(&mut dyn_stack::MemBuffer::new(
+							spicy_matmul_scratch::<f64>(m, m, k, false, true),
+						)),
 					);
-					let got = if row_major { buf.transpose().to_owned() } else { buf };
+					let got = if row_major {
+						buf.transpose().to_owned()
+					} else {
+						buf
+					};
 					// integer-valued operands: exact, and a NaN fails the comparison
 					for i in 0..m {
 						for j in 0..m {

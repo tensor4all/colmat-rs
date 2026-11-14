@@ -12,6 +12,7 @@ use crate::linalg::{
 	householder as hh,
 	qr::{col_pivoting as cp, no_pivoting as np},
 };
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn qr_case(
 	run: &mut Run,
 	m: usize,
@@ -158,7 +159,7 @@ fn qr_case(
 				for side in [false, true] {
 					let (mr, nr) = if side { (3, m) } else { (m, 3) };
 					let mut xp = guarded(mr, nr, layout);
-					let original = Mat::from_fn(mr, nr, |i, j| sample(i, j));
+					let original = Mat::from_fn(mr, nr, sample);
 					for adj in [false, true] {
 						let oq =
 							if adj { adjoint(q.as_ref()) } else { q.clone() };

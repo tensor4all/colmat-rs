@@ -232,6 +232,7 @@ pub(super) fn real_spectrum(
 	s.iter().map(real).collect()
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub(super) fn check_driver_output(
 	failures: &mut Vec<String>,
 	context: &str,

@@ -3,6 +3,7 @@ use super::gen_hessenberg::{make_givens, rot, trot};
 use crate::internal_prelude::*;
 use equator::assert;
 use linalg::matmul::matmul;
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_to_qz_unblocked<T: ComplexField>(
 	ilo: usize,
 	ihi: usize,
@@ -94,13 +95,12 @@ fn hessenberg_to_qz_unblocked<T: ComplexField>(
 							if T[(j, j)].abs1() < btol {
 								T[(j, j)] = zero();
 								let mut ilazr2 = false;
-								if !ilazro {
-									if H[(j, j - 1)].abs1()
+								if !ilazro
+									&& H[(j, j - 1)].abs1()
 										* (&ascale * H[(j + 1, j)].abs1())
 										< H[(j, j)].abs1() * (&ascale * &atol)
-									{
-										ilazr2 = true;
-									}
+								{
+									ilazr2 = true;
 								}
 								if ilazro || ilazr2 {
 									for jch in j..ilast {
@@ -303,7 +303,7 @@ fn hessenberg_to_qz_unblocked<T: ComplexField>(
 				ifrstm = ifirst;
 			}
 			let shift;
-			if iiter % 10 != 0 {
+			if !iiter.is_multiple_of(10) {
 				let u12 = T[(ilast - 1, ilast)].mul_real(&bscale)
 					* T[(ilast, ilast)].mul_real(&bscale).recip();
 				let ad11 = H[(ilast - 1, ilast - 1)].mul_real(&ascale)
@@ -340,10 +340,10 @@ fn hessenberg_to_qz_unblocked<T: ComplexField>(
 						- (&shift * T[(j, j)].mul_real(&bscale));
 					let mut temp = ctemp.abs1();
 					let mut temp2 = &ascale * H[(j + 1, j)].abs1();
-					let ref tempr = temp.fmax(&temp2);
+					let tempr = &temp.fmax(&temp2);
 					if *tempr < one() && *tempr != zero() {
-						temp = temp / tempr;
-						temp2 = temp2 / tempr;
+						temp /= tempr;
+						temp2 /= tempr;
 					}
 					if H[(j, j - 1)].abs1() * &temp2 <= &temp * &atol {
 						break 'goto90;
@@ -436,6 +436,7 @@ fn hessenberg_to_qz_unblocked<T: ComplexField>(
 		beta[j] = T[(j, j)].copy();
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn chase_bulge_1x1<T: ComplexField>(
 	k: usize,
 	istartm: usize,
@@ -464,7 +465,7 @@ fn chase_bulge_1x1<T: ComplexField>(
 			.two_cols_mut(ihi, ihi - 1);
 		rot(c.copy(), s.copy(), x.transpose_mut(), y.transpose_mut());
 		if let Some(Z) = Z.rb_mut() {
-			let (x, y) = Z.two_cols_mut(&ihi - &zstart, ihi - 1 - zstart);
+			let (x, y) = Z.two_cols_mut(ihi - zstart, ihi - 1 - zstart);
 			rot(c.copy(), s.copy(), x.transpose_mut(), y.transpose_mut());
 		}
 	} else {
@@ -483,7 +484,7 @@ fn chase_bulge_1x1<T: ComplexField>(
 			.two_cols_mut(k + 1, k);
 		rot(c.copy(), s.copy(), x.transpose_mut(), y.transpose_mut());
 		if let Some(Z) = Z.rb_mut() {
-			let (x, y) = Z.two_cols_mut(k + 1 - zstart, &k - &zstart);
+			let (x, y) = Z.two_cols_mut(k + 1 - zstart, k - zstart);
 			rot(c.copy(), s.copy(), x.transpose_mut(), y.transpose_mut());
 		}
 		let (c, s, r) = make_givens(A[(k + 1, k)].copy(), A[(k + 2, k)].copy());
@@ -505,6 +506,7 @@ fn chase_bulge_1x1<T: ComplexField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn multishift_sweep<T: ComplexField>(
 	eigvals_only: bool,
 	ilo: usize,
@@ -535,7 +537,7 @@ fn multishift_sweep<T: ComplexField>(
 	}
 	let nshifts = alpha.nrows();
 	let ns = nshifts;
-	let npos = Ord::max(&nblock_desired - &ns, 1);
+	let npos = Ord::max(nblock_desired - ns, 1);
 	let mut qc = QC.rb_mut().get_mut(..ns + 1, ..ns + 1);
 	let mut zc = ZC.rb_mut().get_mut(..ns, ..ns);
 	for mut m in [qc.rb_mut(), zc.rb_mut()] {
@@ -561,22 +563,22 @@ fn multishift_sweep<T: ComplexField>(
 		let (c, s, _) = make_givens(temp2, temp3);
 		let (x, y) = A
 			.rb_mut()
-			.get_mut(.., ilo..&ilo + &ns)
+			.get_mut(.., ilo..ilo + ns)
 			.two_rows_mut(ilo, ilo + 1);
 		rot(c.copy(), s.copy(), x, y);
 		let (x, y) = B
 			.rb_mut()
-			.get_mut(.., ilo..&ilo + &ns)
+			.get_mut(.., ilo..ilo + ns)
 			.two_rows_mut(ilo, ilo + 1);
 		rot(c.copy(), s.copy(), x, y);
 		let (x, y) = qc.rb_mut().get_mut(.., ..ns + 1).two_cols_mut(0, 1);
 		rot(c.copy(), s.conj(), x.transpose_mut(), y.transpose_mut());
-		for j in 0..&ns - &i - 1 {
+		for j in 0..ns - i - 1 {
 			chase_bulge_1x1(
 				j,
 				0,
 				ns - 1,
-				&ihi - &ilo,
+				ihi - ilo,
 				A.rb_mut().get_mut(ilo.., ilo..),
 				B.rb_mut().get_mut(ilo.., ilo..),
 				Some(qc.rb_mut()),
@@ -587,7 +589,7 @@ fn multishift_sweep<T: ComplexField>(
 		}
 	}
 	let sheight = ns + 1;
-	let swidth = (istopm + 1).saturating_sub(&ilo + &ns);
+	let swidth = (istopm + 1).saturating_sub(ilo + ns);
 	if swidth > 0 {
 		{
 			let (mut work, _) = unsafe {
@@ -595,7 +597,7 @@ fn multishift_sweep<T: ComplexField>(
 			};
 			let mut work = work.as_mat_mut();
 			for M in [A.rb_mut(), B.rb_mut()] {
-				let mut M = M.submatrix_mut(ilo, &ilo + &ns, sheight, swidth);
+				let mut M = M.submatrix_mut(ilo, ilo + ns, sheight, swidth);
 				matmul(
 					work.rb_mut(),
 					Accum::Replace,
@@ -612,8 +614,15 @@ fn multishift_sweep<T: ComplexField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, sheight, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Q.rb_mut().get_mut(.., ilo..&ilo + &sheight);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		let mut M = Q.rb_mut().get_mut(.., ilo..ilo + sheight);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
 	let sheight = ilo.saturating_sub(istartm);
@@ -625,7 +634,14 @@ fn multishift_sweep<T: ComplexField>(
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let mut M = M.submatrix_mut(istartm, ilo, sheight, swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -633,16 +649,23 @@ fn multishift_sweep<T: ComplexField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Z.rb_mut().get_mut(.., ilo..&ilo + &swidth);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+		let mut M = Z.rb_mut().get_mut(.., ilo..ilo + swidth);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			zc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
 	let mut k = ilo;
-	while k < &ihi - &ns {
-		let np = Ord::min(&ihi - &ns - &k, npos);
-		let nblock = &ns + &np;
+	while k < ihi - ns {
+		let np = Ord::min(ihi - ns - k, npos);
+		let nblock = ns + np;
 		let istartb = k + 1;
-		let istopb = &k + &nblock - 1;
+		let istopb = k + nblock - 1;
 		let mut qc = QC.rb_mut().get_mut(..nblock, ..nblock);
 		let mut zc = ZC.rb_mut().get_mut(..nblock, ..nblock);
 		qc.fill(zero());
@@ -652,7 +675,7 @@ fn multishift_sweep<T: ComplexField>(
 		for i in (0..ns).rev() {
 			for j in 0..np {
 				chase_bulge_1x1(
-					&k + &i + &j,
+					k + i + j,
 					istartb,
 					istopb,
 					ihi,
@@ -665,8 +688,8 @@ fn multishift_sweep<T: ComplexField>(
 				);
 			}
 		}
-		let sheight = &ns + &np;
-		let swidth = (istopm + 1).saturating_sub(&k + &ns + &np);
+		let sheight = ns + np;
+		let swidth = (istopm + 1).saturating_sub(k + ns + np);
 		if swidth > 0 {
 			let (mut work, _) = unsafe {
 				linalg::temp_mat_uninit::<T, _, _>(sheight, swidth, stack)
@@ -675,7 +698,7 @@ fn multishift_sweep<T: ComplexField>(
 			for M in [A.rb_mut(), B.rb_mut()] {
 				let mut M = M.get_mut(
 					k + 1..k + 1 + sheight,
-					&k + &ns + &np..&k + &ns + &np + &swidth,
+					k + ns + np..k + ns + np + swidth,
 				);
 				matmul(
 					work.rb_mut(),
@@ -694,7 +717,14 @@ fn multishift_sweep<T: ComplexField>(
 			};
 			let mut work = work.as_mat_mut();
 			let mut M = Q.rb_mut().get_mut(.., k + 1..k + 1 + sheight);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				qc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 		let sheight = (k + 1).saturating_sub(istartm);
@@ -706,7 +736,7 @@ fn multishift_sweep<T: ComplexField>(
 			let mut work = work.as_mat_mut();
 			for M in [A.rb_mut(), B.rb_mut()] {
 				let mut M =
-					M.get_mut(istartm..&istartm + &sheight, k..&k + &swidth);
+					M.get_mut(istartm..istartm + sheight, k..k + swidth);
 				matmul(
 					work.rb_mut(),
 					Accum::Replace,
@@ -722,8 +752,15 @@ fn multishift_sweep<T: ComplexField>(
 			let (mut work, _) =
 				unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 			let mut work = work.as_mat_mut();
-			let mut M = Z.rb_mut().get_mut(.., k..&k + &swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = Z.rb_mut().get_mut(.., k..k + swidth);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 		k += np;
@@ -734,11 +771,11 @@ fn multishift_sweep<T: ComplexField>(
 	qc.rb_mut().diagonal_mut().column_vector_mut().fill(one());
 	zc.fill(zero());
 	zc.rb_mut().diagonal_mut().column_vector_mut().fill(one());
-	let istartb = &ihi - &ns + 1;
+	let istartb = ihi - ns + 1;
 	let istopb = ihi;
 	for i in 0..ns {
 		let i = i + 1;
-		for ishift in &ihi - &i..ihi {
+		for ishift in ihi - i..ihi {
 			chase_bulge_1x1(
 				ishift,
 				istartb,
@@ -748,8 +785,8 @@ fn multishift_sweep<T: ComplexField>(
 				B.rb_mut(),
 				Some(qc.rb_mut()),
 				Some(zc.rb_mut()),
-				&ihi - &ns + 1,
-				&ihi - &ns,
+				ihi - ns + 1,
+				ihi - ns,
 			);
 		}
 	}
@@ -777,11 +814,18 @@ fn multishift_sweep<T: ComplexField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, sheight, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Q.rb_mut().get_mut(.., &ihi - &ns + 1..ihi + 1);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		let mut M = Q.rb_mut().get_mut(.., ihi - ns + 1..ihi + 1);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
-	let sheight = (ihi + 1).saturating_sub(&ns + &istartm);
+	let sheight = (ihi + 1).saturating_sub(ns + istartm);
 	let swidth = ns + 1;
 	if sheight > 0 {
 		let (mut work, _) = unsafe {
@@ -789,8 +833,15 @@ fn multishift_sweep<T: ComplexField>(
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
-			let mut M = M.submatrix_mut(istartm, &ihi - &ns, sheight, swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = M.submatrix_mut(istartm, ihi - ns, sheight, swidth);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -798,7 +849,7 @@ fn multishift_sweep<T: ComplexField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Z.rb_mut().get_mut(.., &ihi - &ns..ihi + 1);
+		let mut M = Z.rb_mut().get_mut(.., ihi - ns..ihi + 1);
 		matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par);
 		M.copy_from(&work);
 	}
@@ -876,6 +927,7 @@ fn reorder_qz<T: ComplexField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn aggressive_early_deflation<T: ComplexField>(
 	eigvals_only: bool,
 	ilo: usize,
@@ -899,21 +951,20 @@ fn aggressive_early_deflation<T: ComplexField>(
 	let smlnum = &safmin * (from_f64::<T::Real>(n as f64) / &ulp);
 	let jw = Ord::min(nw, ihi + 1 - ilo);
 	let kwtop = ihi + 1 - jw;
-	let s;
-	if kwtop == ilo {
-		s = zero();
+
+	let s = if kwtop == ilo {
+		zero()
 	} else {
-		s = A[(kwtop, kwtop - 1)].copy();
+		A[(kwtop, kwtop - 1)].copy()
 	};
 	let mut ifst;
 	let mut ilst;
 	if ihi == kwtop {
 		alpha[kwtop] = A[(kwtop, kwtop)].copy();
 		beta[kwtop] = B[(kwtop, kwtop)].copy();
-		if s.abs() <= smlnum.fmax(A[(kwtop, kwtop)].abs() * &ulp) {
-			if kwtop > ilo {
-				A[(kwtop, kwtop - 1)] = zero();
-			}
+		if s.abs() <= smlnum.fmax(A[(kwtop, kwtop)].abs() * &ulp) && kwtop > ilo
+		{
+			A[(kwtop, kwtop - 1)] = zero();
 		}
 	}
 	let mut qc = QC.rb_mut().get_mut(..jw, ..jw);
@@ -952,7 +1003,7 @@ fn aggressive_early_deflation<T: ComplexField>(
 			{
 				kwbot -= 1;
 			} else {
-				ifst = &kwbot - &kwtop;
+				ifst = kwbot - kwtop;
 				ilst = k2;
 				reorder_qz(
 					A.rb_mut().submatrix_mut(kwtop, kwtop, jw, jw),
@@ -968,7 +1019,7 @@ fn aggressive_early_deflation<T: ComplexField>(
 		}
 	}
 	let nd = ihi.wrapping_sub(kwbot);
-	let ns = &jw - &nd;
+	let ns = jw - nd;
 	let mut k = kwtop;
 	while k <= ihi {
 		alpha[k] = A[(k, k)].copy();
@@ -1000,7 +1051,7 @@ fn aggressive_early_deflation<T: ComplexField>(
 				.get_mut(.., k - 1..ihi + 1)
 				.two_rows_mut(k, k + 1);
 			rot(c1.copy(), s1.copy(), x, y);
-			let (x, y) = qc.rb_mut().two_cols_mut(&k - &kwtop, k + 1 - kwtop);
+			let (x, y) = qc.rb_mut().two_cols_mut(k - kwtop, k + 1 - kwtop);
 			rot(c1.copy(), s1.conj(), x.transpose_mut(), y.transpose_mut());
 		}
 		let mut k = kwbot;
@@ -1010,7 +1061,7 @@ fn aggressive_early_deflation<T: ComplexField>(
 				chase_bulge_1x1(
 					k2,
 					kwtop,
-					&kwtop + &jw - 1,
+					kwtop + jw - 1,
 					kwbot,
 					A.rb_mut(),
 					B.rb_mut(),
@@ -1031,14 +1082,14 @@ fn aggressive_early_deflation<T: ComplexField>(
 		istartm = ilo;
 		istopm = ihi;
 	}
-	if &istopm - &ihi > 0 {
+	if istopm - ihi > 0 {
 		let (mut work, _) = unsafe {
-			linalg::temp_mat_uninit::<T, _, _>(jw, &istopm - &ihi, stack)
+			linalg::temp_mat_uninit::<T, _, _>(jw, istopm - ihi, stack)
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let M: MatMut<'_, T> = M;
-			let mut M = M.submatrix_mut(kwtop, ihi + 1, jw, &istopm - &ihi);
+			let mut M = M.submatrix_mut(kwtop, ihi + 1, jw, istopm - ihi);
 			matmul(
 				work.rb_mut(),
 				Accum::Replace,
@@ -1055,18 +1106,32 @@ fn aggressive_early_deflation<T: ComplexField>(
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, jw, stack) };
 		let mut work = work.as_mat_mut();
 		let mut M = Q.rb_mut().subcols_mut(kwtop, jw);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
-	if &kwtop - &istartm > 0 {
+	if kwtop - istartm > 0 {
 		let (mut work, _) = unsafe {
-			linalg::temp_mat_uninit::<T, _, _>(&kwtop - &istartm, jw, stack)
+			linalg::temp_mat_uninit::<T, _, _>(kwtop - istartm, jw, stack)
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let M: MatMut<'_, T> = M;
-			let mut M = M.submatrix_mut(istartm, kwtop, &kwtop - &istartm, jw);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = M.submatrix_mut(istartm, kwtop, kwtop - istartm, jw);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -1120,7 +1185,11 @@ pub fn hessenberg_to_qz_scratch<T: ComplexField>(
 /// The sweep's temporaries are at most `n x nblock`: the chase updates take `ns + np <= nblock`
 /// rows or columns of `Q`, `Z`, `S`, `T` (`np` up to `nblock - ns`), and `nblock = nsr + itemp1`
 /// exceeds `2 * nsr` when the shift count is small (colmat-rs#117 follow-up).
-fn multishift_sweep_scratch<T: ComplexField>(n: usize, ns: usize, nblock: usize) -> StackReq {
+fn multishift_sweep_scratch<T: ComplexField>(
+	n: usize,
+	ns: usize,
+	nblock: usize,
+) -> StackReq {
 	linalg::temp_mat_scratch::<T>(n, Ord::max(2 * ns, nblock))
 }
 fn aed_scratch<T: ComplexField>(
@@ -1135,6 +1204,7 @@ fn aed_scratch<T: ComplexField>(
 		linalg::temp_mat_scratch::<T>(n, nw),
 	])
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes a complex matrix pair's QZ decomposition, assuming the pair is
 /// already in generalized hessenberg form.
 /// the unitary transformations $Q$ and $Z$ resulting from the QZ decomposition
@@ -1195,6 +1265,7 @@ pub fn hessenberg_to_qz<T: ComplexField>(
 		stack,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_to_qz_blocked<T: ComplexField>(
 	ilo: usize,
 	ihi: usize,
@@ -1226,7 +1297,7 @@ fn hessenberg_to_qz_blocked<T: ComplexField>(
 	let maxit = 30 * (ihi + 1 - ilo);
 	let mut ld = 0usize;
 	let mut eshift = zero();
-	let nh = &ihi - &ilo + 1;
+	let nh = ihi - ilo + 1;
 	let nmin = Ord::max(15, params.blocking_threshold);
 	let nibble = params.nibble_threshold;
 	let nwr = (params.recommended_deflation_window)(n, nh);
@@ -1236,7 +1307,7 @@ fn hessenberg_to_qz_blocked<T: ComplexField>(
 		/ (1.0 + 2.0 * (nsr as f64) / ((rcost as f64 / 100.0) * n as f64))
 			.sqrt()) as usize;
 	let itemp1 = (itemp1.saturating_sub(1) / 4) * 4 + 4;
-	let nbr = &nsr + &itemp1;
+	let nbr = nsr + itemp1;
 	if n < nmin {
 		hessenberg_to_qz_unblocked(
 			ilo,
@@ -1451,16 +1522,16 @@ fn hessenberg_to_qz_blocked<T: ComplexField>(
 			ld = 0;
 			eshift = zero();
 		}
-		if (100 * n_deflated > &nibble * (&n_deflated + &n_undeflated))
-			|| (istop.wrapping_add(1) - &istart2 < nmin)
+		if (100 * n_deflated > nibble * (n_deflated + n_undeflated))
+			|| (istop.wrapping_add(1) - istart2 < nmin)
 		{
 			continue;
 		}
 		ld += 1;
 		let mut ns = Ord::min(nshifts, istop.wrapping_sub(istart2));
 		ns = Ord::min(ns, n_undeflated);
-		let shiftpos = istop.wrapping_add(1) - &n_undeflated;
-		if ld % 6 == 0 {
+		let shiftpos = istop.wrapping_add(1) - n_undeflated;
+		if ld.is_multiple_of(6) {
 			if from_f64::<T::Real>(maxit as f64)
 				* &safmin * A[(istop, istop - 1)].abs()
 				< B[(istop - 1, istop - 1)].abs()
@@ -1634,7 +1705,7 @@ mod tests {
 			false,
 		);
 		// LAPACK's QZ tests divide by `n * ulp` and accept ratios up to 30
-		let ref tol = from_f64::<T::Real>(10.0 * n as f64) * eps::<T::Real>();
+		let tol = &(from_f64::<T::Real>(10.0 * n as f64) * eps::<T::Real>());
 		let I = Mat::<T>::identity(n, n);
 		assert!((Q.adjoint() * &Q - &I).norm_max() < *tol);
 		assert!((Z.adjoint() * &Z - &I).norm_max() < *tol);

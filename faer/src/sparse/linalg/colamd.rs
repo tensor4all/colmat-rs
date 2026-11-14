@@ -89,6 +89,8 @@ pub fn order_scratch<I: Index>(
 		]),
 	)
 }
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
 /// computes the approximate minimum degree ordering for reducing the fill-in
 /// during the sparse qr factorization of a matrix with the sparsity pattern of
 /// $A$
@@ -121,7 +123,7 @@ pub fn order<I: Index>(
 		for j in 0..n {
 			let row_idx = A.row_idx_of_col_raw(j);
 			p[j + 1] = p[j] + I(row_idx.len());
-			new_row_idx[p[j].zx()..p[j + 1].zx()].copy_from_slice(&*row_idx);
+			new_row_idx[p[j].zx()..p[j + 1].zx()].copy_from_slice(row_idx);
 		}
 		let A = new_row_idx;
 		for c in 0..n {
@@ -655,6 +657,9 @@ fn detect_super_cols<I: Index>(
 		}
 	}
 }
+#[allow(clippy::needless_range_loop)]
+// index loop kept as written: the body indexes parallel buffers and strided views
+#[allow(clippy::explicit_counter_loop)] // counter is the reversed index the body computes from, not an enumerate position
 fn garbage_collection<I: Index>(
 	row: &mut [ColamdRow<I>],
 	col: &mut [ColamdCol<I>],

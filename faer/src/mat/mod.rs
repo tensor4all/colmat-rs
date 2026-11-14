@@ -1,7 +1,7 @@
 use crate::{Shape, Stride, Unbind};
+use colmat_traits::{ComplexField, Conjugate};
 use core::marker::PhantomData;
 use core::ptr::NonNull;
-use colmat_traits::{ComplexField, Conjugate};
 use reborrow::*;
 
 pub(crate) struct MatView<T: ?Sized, Rows, Cols, RStride, CStride> {
@@ -18,6 +18,9 @@ pub trait MatIndex<RowRange, ColRange> {
 	type Target;
 	/// slice `this` using `row` and `col`
 	fn get(this: Self, row: RowRange, col: ColRange) -> Self::Target;
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	/// slice `this` using `row` and `col` without bound checks
 	unsafe fn get_unchecked(
 		this: Self,

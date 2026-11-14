@@ -1,7 +1,7 @@
 use crate::assert;
 use crate::internal_prelude::*;
-use crate::utils::thread::with_width;
 use crate::utils::cost::{ParThreshold, rate};
+use crate::utils::thread::with_width;
 use linalg::householder::{self, HouseholderInfo};
 use linalg::matmul::triangular::BlockStructure;
 use linalg::matmul::{self, dot, matmul};
@@ -57,6 +57,7 @@ pub fn hessenberg_in_place_scratch<T: ComplexField>(
 		])
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_fused_op_simd<T: ComplexField>(
 	A: MatMut<'_, T, usize, usize, ContiguousFwd>,
 	l_out: RowMut<'_, T, usize>,
@@ -150,6 +151,7 @@ fn hessenberg_fused_op_simd<T: ComplexField>(
 		T
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_fused_op_fallback<T: ComplexField>(
 	A: MatMut<'_, T>,
 	l_out: RowMut<'_, T>,
@@ -195,6 +197,7 @@ fn hessenberg_fused_op_fallback<T: ComplexField>(
 		Par::Seq,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_fused_op<T: ComplexField>(
 	A: MatMut<'_, T>,
 	l_out: RowMut<'_, T>,
@@ -300,7 +303,12 @@ fn hessenberg_rearranged_unblocked<T: ComplexField>(
 			// next step decides again (`A02` grows while the trailing block shrinks).
 			let width = {
 				let n = n - k - 1;
-				params.par_threshold.region_width::<T>(&par, n * n, rate::hessenberg(), 2)
+				params.par_threshold.region_width::<T>(
+					&par,
+					n * n,
+					rate::hessenberg(),
+					2,
+				)
 			};
 			if k + 1 == n {
 				break;
@@ -358,7 +366,7 @@ fn hessenberg_rearranged_unblocked<T: ComplexField>(
 				});
 			}
 			let u2 = x2;
-			let ref b = dot::inner_prod(
+			let b = &dot::inner_prod(
 				u2.rb().transpose(),
 				Conj::Yes,
 				z2.rb(),
@@ -374,9 +382,8 @@ fn hessenberg_rearranged_unblocked<T: ComplexField>(
 			z!(&mut z2, u2).for_each(|uz!(z, u): Zip!(&mut T, &T)| {
 				*z = (&*z - b * u).mul_real(&tau_inv);
 			});
-			let ref dot =
-				dot::inner_prod(A12.rb(), Conj::No, u2.rb(), Conj::No)
-					.mul_real(&tau_inv);
+			let dot = &dot::inner_prod(A12.rb(), Conj::No, u2.rb(), Conj::No)
+				.mul_real(&tau_inv);
 			z!(&mut A12, u2.transpose())
 				.for_each(|uz!(a, u): Zip!(&mut T, &T)| *a -= dot * u.conj());
 			with_width(par.reborrow(), width, |par| {
@@ -640,7 +647,14 @@ fn hessenberg_gqvdg_blocked<T: ComplexField>(
 				one(),
 				par.reborrow(),
 			);
-			matmul::matmul(X0.rb_mut(), Accum::Add, A02.rb(), U2, one(), par.reborrow());
+			matmul::matmul(
+				X0.rb_mut(),
+				Accum::Add,
+				A02.rb(),
+				U2,
+				one(),
+				par.reborrow(),
+			);
 			triangular_solve::solve_lower_triangular_in_place(
 				T1.transpose(),
 				X0.rb_mut().transpose_mut(),
@@ -835,8 +849,7 @@ mod tests {
 					HessenbergParams {
 						par_threshold: ParThreshold::Fixed(1),
 						..auto!(c64)
-					}
-					.into(),
+					},
 				);
 				let mut A = A.clone();
 				let mut A = A.as_mut();
@@ -872,7 +885,7 @@ mod tests {
 				assert!(V ~ A);
 			};
 			run(Par::Seq);
-			crate::team::with_team(4, |par| run(par));
+			crate::team::with_team(4, run);
 		}
 	}
 	/// The blocked team route reassembles `A` from its own reflectors at a size where it takes
@@ -950,8 +963,14 @@ mod tests {
 					scale = scale.max(a[(i, j)].abs());
 				}
 			}
-			core::assert!(!nonfinite, "non-finite factor or difference at {n}x{n}");
-			core::assert!(err <= 1e-10 * scale.max(1.0), "{n}x{n}: {err} {scale}");
+			core::assert!(
+				!nonfinite,
+				"non-finite factor or difference at {n}x{n}"
+			);
+			core::assert!(
+				err <= 1e-10 * scale.max(1.0),
+				"{n}x{n}: {err} {scale}"
+			);
 		}
 		let rng = &mut StdRng::seed_from_u64(21);
 		for n in [16usize, 96] {
@@ -964,7 +983,10 @@ mod tests {
 		}
 		// the fixture of the cost tests: real values in the complex dtype
 		check::<c64>(Mat::from_fn(96, 96, |i, j| {
-			let k = (i * 2654435761usize).wrapping_add(j * 40503).wrapping_add(977) % 1009;
+			let k = (i * 2654435761usize)
+				.wrapping_add(j * 40503)
+				.wrapping_add(977)
+				% 1009;
 			c64::new(k as f64 / 504.0 - 1.0, 0.0)
 		}));
 	}
@@ -994,8 +1016,7 @@ mod tests {
 					HessenbergParams {
 						par_threshold: ParThreshold::Fixed(1),
 						..auto!(c64)
-					}
-					.into(),
+					},
 				);
 				let mut A = A.clone();
 				let mut A = A.as_mut();
@@ -1031,7 +1052,7 @@ mod tests {
 				assert!(V ~ A);
 			};
 			run(Par::Seq);
-			crate::team::with_team(4, |par| run(par));
+			crate::team::with_team(4, run);
 		}
 	}
 }

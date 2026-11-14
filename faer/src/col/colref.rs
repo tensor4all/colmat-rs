@@ -1,10 +1,10 @@
 use super::*;
 use crate::utils::bound::{Array, Dim, Partition};
 use crate::{ContiguousFwd, Idx, IdxInc};
+use colmat_traits::Real;
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 use equator::assert;
-use colmat_traits::Real;
 use generativity::Guard;
 /// see [`super::ColRef`]
 pub struct Ref<'a, T, Rows = usize, RStride = isize> {
@@ -73,7 +73,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColRef<'a, T, Rows, RStride> {
 	/// creates a `ColRef` from pointers to the column vector data, number of
 	/// rows, and row stride
 	///
-	/// # safety
+	/// # Safety
 	/// this function has the same safety requirements as
 	/// [`MatRef::from_raw_parts(ptr, nrows, 1, row_stride, 0)`]
 	#[inline(always)]
@@ -83,16 +83,14 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColRef<'a, T, Rows, RStride> {
 		nrows: Rows,
 		row_stride: RStride,
 	) -> Self {
-		Self {
-			0: Ref {
-				imp: ColView {
-					ptr: NonNull::new_unchecked(ptr as *mut T),
-					nrows,
-					row_stride,
-				},
-				__marker: PhantomData,
+		Self(Ref {
+			imp: ColView {
+				ptr: NonNull::new_unchecked(ptr as *mut T),
+				nrows,
+				row_stride,
 			},
-		}
+			__marker: PhantomData,
+		})
 	}
 
 	/// returns a pointer to the column data
@@ -154,7 +152,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColRef<'a, T, Rows, RStride> {
 	/// returns a raw pointer to the element at the given index, assuming the
 	/// provided index is within the column bounds
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row < self.nrows()`
@@ -276,7 +274,7 @@ impl<'a, T, Rows: Shape, RStride: Stride> ColRef<'a, T, Rows, RStride> {
 	/// returns a reference to the element at the given index, or a subcolumn if
 	/// `row` is a range, without bound checks
 	///
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined if any of the following conditions are
 	/// violated:
 	/// * `row` must be contained in `[0, self.nrows())`

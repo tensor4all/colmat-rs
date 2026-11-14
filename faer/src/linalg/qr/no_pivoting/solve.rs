@@ -231,7 +231,11 @@ mod tests {
 			MemStack::new(&mut MemBuffer::new(factor::qr_in_place_scratch::<
 				c64,
 			>(
-				m, n, 4, ParShape::Seq, default()
+				m,
+				n,
+				4,
+				ParShape::Seq,
+				default(),
 			))),
 			default(),
 		);
@@ -255,7 +259,7 @@ mod tests {
 				)),
 			);
 			let X = X.get(..n, ..);
-			assert!(A.adjoint() * & A * & X ~ A.adjoint() * & B);
+			assert!(A.adjoint() * & A * X ~ A.adjoint() * & B);
 		}
 		{
 			let mut X = B.to_owned();
@@ -276,7 +280,7 @@ mod tests {
 				)),
 			);
 			let X = X.get(..n, ..);
-			assert!(A.transpose() * A.conjugate() * & X ~ A.transpose() * & B);
+			assert!(A.transpose() * A.conjugate() * X ~ A.transpose() * & B);
 		}
 	}
 	#[test]
@@ -305,7 +309,11 @@ mod tests {
 			MemStack::new(&mut MemBuffer::new(factor::qr_in_place_scratch::<
 				c64,
 			>(
-				n, n, 4, ParShape::Seq, default()
+				n,
+				n,
+				4,
+				ParShape::Seq,
+				default(),
 			))),
 			default(),
 		);
@@ -319,7 +327,12 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<c64>(n, 4, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<c64>(
+						n,
+						4,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(& A * & X ~ B);
@@ -333,7 +346,12 @@ mod tests {
 				X.as_mut(),
 				Par::Seq,
 				MemStack::new(&mut MemBuffer::new(
-					solve::solve_in_place_scratch::<c64>(n, 4, k, ParShape::Seq),
+					solve::solve_in_place_scratch::<c64>(
+						n,
+						4,
+						k,
+						ParShape::Seq,
+					),
 				)),
 			);
 			assert!(A.conjugate() * & X ~ B);

@@ -36,7 +36,6 @@ fn solve_sylvester_single_block<T: RealField>(
 	let (row_perm_inv, stack) = unsafe { stack.make_raw::<usize>(nz) };
 	let (col_perm_fwd, stack) = unsafe { stack.make_raw::<usize>(nz) };
 	let (col_perm_inv, stack) = unsafe { stack.make_raw::<usize>(nz) };
-	let stack = stack;
 	let mut rhs = rhs.col_mut(0);
 	{
 		if n1 == 1 && n2 == 1 {
@@ -176,10 +175,10 @@ fn solve_sylvester_single_block<T: RealField>(
 	}
 }
 fn svd_triu_2x2<T: RealField>(f: T, g: T, h: T) -> (T, T, T, T, T, T) {
-	let ref half = from_f64::<T>(0.5);
-	let ref two = from_f64::<T>(2.0);
-	let ref four = from_f64::<T>(4.0);
-	let ref eps = eps::<T>();
+	let half = &from_f64::<T>(0.5);
+	let two = &from_f64::<T>(2.0);
+	let four = &from_f64::<T>(4.0);
+	let eps = &eps::<T>();
 	let mut ft = f.copy();
 	let mut fa = ft.abs();
 	let mut ht = h.copy();
@@ -188,19 +187,15 @@ fn svd_triu_2x2<T: RealField>(f: T, g: T, h: T) -> (T, T, T, T, T, T) {
 	let swap = ha > fa;
 	if swap {
 		pmax = 3;
-		let temp = ft;
-		ft = ht;
-		ht = temp;
-		let temp = fa;
-		fa = ha;
-		ha = temp;
+		core::mem::swap(&mut ft, &mut ht);
+		core::mem::swap(&mut fa, &mut ha);
 	}
-	let ref fa = fa;
-	let ref ha = ha;
-	let ref ft = ft;
-	let ref ht = ht;
-	let ref gt = g.copy();
-	let ref ga = gt.abs();
+	let fa = &fa;
+	let ha = &ha;
+	let ft = &ft;
+	let ht = &ht;
+	let gt = &g.copy();
+	let ga = &gt.abs();
 	let mut ssmin = zero::<T>();
 	let mut ssmax = zero::<T>();
 	let mut clt = zero::<T>();
@@ -233,27 +228,23 @@ fn svd_triu_2x2<T: RealField>(f: T, g: T, h: T) -> (T, T, T, T, T, T) {
 			}
 		}
 		if gasmal {
-			let ref d = fa - ha;
-			let l;
-			if d == fa {
-				l = one();
-			} else {
-				l = d / fa;
-			}
-			let ref m = gt / ft;
+			let d = &(fa - ha);
+
+			let l = if d == fa { one() } else { d / fa };
+			let m = &(gt / ft);
 			let mut t = two - &l;
-			let ref mm = m * m;
-			let ref tt = &t * &t;
-			let ref s = (tt + mm).sqrt();
-			let ref l = l;
-			let r;
-			if *l == zero() {
-				r = m.abs();
+			let mm = &(m * m);
+			let tt = &(&t * &t);
+			let s = &(tt + mm).sqrt();
+			let l = &l;
+
+			let r = if *l == zero() {
+				m.abs()
 			} else {
-				r = (l * l + mm).sqrt();
-			}
-			let ref r = r;
-			let ref a = half * (s + r);
+				(l * l + mm).sqrt()
+			};
+			let r = &r;
+			let a = &(half * (s + r));
 			ssmin = ha / a;
 			ssmax = fa * a;
 			if *mm == zero() {
@@ -266,8 +257,8 @@ fn svd_triu_2x2<T: RealField>(f: T, g: T, h: T) -> (T, T, T, T, T, T) {
 			} else {
 				t = (m / (s + t) + m / (r + l)) * (one::<T>() + a);
 			}
-			let ref t = t;
-			let ref l = (t * t + four).sqrt();
+			let t = &t;
+			let l = &(t * t + four).sqrt();
 			crt = two / l;
 			srt = t / l;
 			clt = (&crt + &srt * m) / a;
@@ -314,28 +305,26 @@ pub(super) fn generalized_eigval_2x2<T: RealField>(
 	(ref a11, ref a12, ref a21, ref a22): (T, T, T, T),
 	(b11, ref b12, ref b21, b22): (T, T, T, T),
 ) -> (T, T, T, T, T) {
-	let ref safety = from_f64::<T>(128.0);
-	let ref safmin = min_positive::<T>() * safety;
-	let ref safmax = safmin.recip();
-	let ref rtmin = safmin.sqrt();
-	let ref rtmax = rtmin.recip();
-	let ref half = from_f64::<T>(0.5);
+	let safety = &from_f64::<T>(128.0);
+	let safmin = &(min_positive::<T>() * safety);
+	let safmax = &safmin.recip();
+	let rtmin = &safmin.sqrt();
+	let rtmax = &rtmin.recip();
+	let half = &from_f64::<T>(0.5);
 	let zero = zero::<T>;
 	let one = one::<T>;
-	let ref anorm = safmin
+	let anorm = &safmin
 		.fmax(a11.abs() + a21.abs())
 		.fmax(a12.abs() + a22.abs());
-	let ref ascale = one() / anorm;
-	let ref a11 = a11 * ascale;
-	let ref a12 = a12 * ascale;
-	let ref a21 = a21 * ascale;
-	let ref a22 = a22 * ascale;
+	let ascale = &(one() / anorm);
+	let a11 = &(a11 * ascale);
+	let a12 = &(a12 * ascale);
+	let a21 = &(a21 * ascale);
+	let a22 = &(a22 * ascale);
 	let mut b11 = b11;
-	let b12 = b12;
 	let _ = b21;
 	let mut b22 = b22;
-	let ref bmin =
-		rtmin * b11.abs().fmax(b12.abs()).fmax(b22.abs()).fmax(rtmin);
+	let bmin = &(rtmin * b11.abs().fmax(b12.abs()).fmax(b22.abs()).fmax(rtmin));
 	if b11.abs() < *bmin {
 		b11 = copy_sign(bmin.copy(), b11);
 	}
@@ -343,15 +332,15 @@ pub(super) fn generalized_eigval_2x2<T: RealField>(
 		b22 = copy_sign(bmin.copy(), b22);
 	}
 	let bnorm = safmin.fmax(b11.abs()).fmax(b12.abs() + b22.abs());
-	let ref bsize = b11.abs().fmax(b22.abs());
-	let ref bscale = one() / bsize;
-	let ref b11 = b11 * bscale;
-	let ref b12 = b12 * bscale;
-	let ref b22 = b22 * bscale;
-	let ref binv11 = one() / b11;
-	let ref binv22 = one() / b22;
-	let ref s1 = a11 * binv11;
-	let ref s2 = a22 * binv22;
+	let bsize = &b11.abs().fmax(b22.abs());
+	let bscale = &(one() / bsize);
+	let b11 = &(b11 * bscale);
+	let b12 = &(b12 * bscale);
+	let b22 = &(b22 * bscale);
+	let binv11 = &(one() / b11);
+	let binv22 = &(one() / b22);
+	let s1 = &(a11 * binv11);
+	let s2 = &(a22 * binv22);
 	let as11;
 	let as12;
 	let as22;
@@ -377,8 +366,8 @@ pub(super) fn generalized_eigval_2x2<T: RealField>(
 	let qq = &ss * as12;
 	let discr;
 	let r;
-	let ref pp = pp;
-	let ref abi22 = abi22;
+	let pp = &pp;
+	let abi22 = &abi22;
 	if (pp * rtmin).abs() >= one() {
 		discr = (pp * rtmin).abs2() + qq * safmin;
 		r = discr.abs().sqrt() * rtmax;
@@ -414,38 +403,37 @@ pub(super) fn generalized_eigval_2x2<T: RealField>(
 		wr2 = wr1.copy();
 		wi = r;
 	}
-	let ref c1 = bsize * (safmin * ascale.fmax(one()));
-	let ref c2 = safmin * bnorm.fmax(one());
-	let ref c3 = bsize * safmin;
-	let c4;
-	let c5;
-	if *ascale <= one() && *bsize <= one() {
-		c4 = one().fmin((ascale / safmin) * bsize);
+	let c1 = &(bsize * (safmin * ascale.fmax(one())));
+	let c2 = &(safmin * bnorm.fmax(one()));
+	let c3 = &(bsize * safmin);
+
+	let c4 = if *ascale <= one() && *bsize <= one() {
+		one().fmin((ascale / safmin) * bsize)
 	} else {
-		c4 = one();
-	}
-	if *ascale <= one() || *bsize <= one() {
-		c5 = one().fmin(ascale * bsize);
+		one()
+	};
+	let c5 = if *ascale <= one() || *bsize <= one() {
+		one().fmin(ascale * bsize)
 	} else {
-		c5 = one();
-	}
-	let ref fuzzy1 = from_f64::<T>(1.00001);
-	let ref wabs = wr1.abs() + wi.abs();
-	let ref wsize = safmin.fmax(c1.fmax(
+		one()
+	};
+	let fuzzy1 = &from_f64::<T>(1.00001);
+	let wabs = &(wr1.abs() + wi.abs());
+	let wsize = &safmin.fmax(c1.fmax(
 		(fuzzy1 * (wabs * c2 + c3)).fmax(c4.fmin(c5.fmax(wabs).mul_pow2(half))),
 	));
 	let scale1: T;
 	let mut scale2: T = one();
 	if *wsize != one() {
-		let ref wscale = one() / wsize;
+		let wscale = &(one() / wsize);
 		if *wsize > one() {
 			scale1 = (ascale.fmax(bsize) * wscale) * ascale.fmin(bsize);
 		} else {
 			scale1 = (ascale.fmin(bsize) * wscale) * ascale.fmax(bsize);
 		}
-		wr1 = wr1 * wscale;
+		wr1 *= wscale;
 		if wi != zero() {
-			wi = wi * wscale;
+			wi *= wscale;
 			wr2 = wr1.copy();
 			scale2 = scale1.copy();
 		}
@@ -454,24 +442,25 @@ pub(super) fn generalized_eigval_2x2<T: RealField>(
 		scale2 = scale1.copy();
 	}
 	if wi == zero() {
-		let ref wsize = safmin
+		let wsize = &safmin
 			.fmax(c1)
 			.fmax(fuzzy1 * (wr2.abs() * c2 + c3))
 			.fmax(c4.fmin(wr2.abs().fmax(c5).mul_pow2(half)));
 		if *wsize != one() {
-			let ref wscale = one() / wsize;
+			let wscale = &(one() / wsize);
 			if *wsize > one() {
 				scale2 = (ascale.fmax(bsize) * wscale) * ascale.fmin(bsize);
 			} else {
 				scale2 = (ascale.fmin(bsize) * wscale) * ascale.fmax(bsize);
 			}
-			wr2 = wr2 * wscale;
+			wr2 *= wscale;
 		} else {
 			scale2 = ascale * bsize;
 		}
 	}
 	(scale1, scale2, wr1, wr2, wi)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_to_qz_unblocked<T: RealField>(
 	ilo: usize,
 	ihi: usize,
@@ -825,7 +814,6 @@ fn hessenberg_to_qz_unblocked<T: RealField>(
 							T[(ilast, ilast)].copy(),
 						),
 					);
-					(s1.copy(), s2.copy(), wr.copy(), wr2.copy(), wi.copy());
 					if ((&wr / &s1) * &T[(ilast, ilast)] - &H[(ilast, ilast)])
 						.abs() > ((&wr2 / &s2) * &T[(ilast, ilast)]
 						- &H[(ilast, ilast)])
@@ -910,14 +898,14 @@ fn hessenberg_to_qz_unblocked<T: RealField>(
 				if ilast < ilastm {
 					let (x, y) = T
 						.rb_mut()
-						.subcols_mut(ilast + 1, &ilastm - &ilast)
+						.subcols_mut(ilast + 1, ilastm - ilast)
 						.two_rows_mut(ilast - 1, ilast);
 					rot(cl.copy(), sl.copy(), x, y);
 				}
 				if ifrstm + 1 < ilast {
 					let (x, y) = T
 						.rb_mut()
-						.subrows_mut(ifrstm, &ifirst - &ifrstm)
+						.subrows_mut(ifrstm, ifirst - ifrstm)
 						.two_cols_mut(ilast - 1, ilast);
 					rot(
 						cr.copy(),
@@ -1126,6 +1114,7 @@ fn hessenberg_to_qz_unblocked<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn double_shift_sweep<T: RealField>(
 	ascale: T,
 	ilast: usize,
@@ -1287,9 +1276,7 @@ fn double_shift_sweep<T: RealField>(
 			u1 = (&scale * &u1 - &w12 * &u2) / &w11;
 		}
 		if ilpivt {
-			let temp = u2;
-			u2 = u1;
-			u1 = temp;
+			core::mem::swap(&mut u2, &mut u1);
 		}
 		let t1 = (&scale * &scale + &u1 * &u1 + &u2 * &u2).sqrt();
 		tau = one() + &scale / &t1;
@@ -1369,6 +1356,7 @@ fn double_shift_sweep<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn single_shift_sweep<T: RealField>(
 	s1: T,
 	istart: usize,
@@ -1460,7 +1448,7 @@ fn hessenberg_to_qz_blocked_scratch<T: RealField>(
 		/ (1.0 + 2.0 * (nsr as f64) / (rcost as f64 / 100.0 * n as f64)).sqrt())
 		as usize;
 	let itemp1 = (itemp1.saturating_sub(1) / 4) * 4 + 4;
-	let nbr = &nsr + &itemp1;
+	let nbr = nsr + itemp1;
 	let qc_aed = linalg::temp_mat_scratch::<T>(nw, nw);
 	let qc_sweep = linalg::temp_mat_scratch::<T>(nbr, nbr);
 	StackReq::any_of(&[
@@ -1479,7 +1467,11 @@ fn hessenberg_to_qz_blocked_scratch<T: RealField>(
 /// The sweep's temporaries are at most `n x nblock`: the chase updates take `ns + np <= nblock`
 /// rows or columns of `Q`, `Z`, `S`, `T` (`np` up to `nblock - ns`), and `nblock = nsr + itemp1`
 /// exceeds `2 * nsr` when the shift count is small (colmat-rs#117 follow-up).
-fn multishift_sweep_scratch<T: RealField>(n: usize, ns: usize, nblock: usize) -> StackReq {
+fn multishift_sweep_scratch<T: RealField>(
+	n: usize,
+	ns: usize,
+	nblock: usize,
+) -> StackReq {
 	linalg::temp_mat_scratch::<T>(n, Ord::max(2 * ns, nblock))
 }
 fn aed_scratch<T: RealField>(
@@ -1511,6 +1503,7 @@ fn aed_scratch<T: RealField>(
 		linalg::temp_mat_scratch::<T>(n, nw),
 	])
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes a real matrix pair's QZ decomposition, assuming the pair is already
 /// in generalized hessenberg form.
 /// the unitary transformations $Q$ and $Z$ resulting from the QZ decomposition
@@ -1577,6 +1570,7 @@ pub fn hessenberg_to_qz<T: RealField>(
 		stack,
 	)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn hessenberg_to_qz_blocked<T: RealField>(
 	ilo: usize,
 	ihi: usize,
@@ -1605,7 +1599,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 	let maxit = 30 * (ihi + 1 - ilo);
 	let mut ld = 0usize;
 	let mut eshift = zero();
-	let nh = &ihi - &ilo + 1;
+	let nh = ihi - ilo + 1;
 	let nmin = Ord::max(15, params.blocking_threshold);
 	let nibble = params.nibble_threshold;
 	let nwr = (params.recommended_deflation_window)(n, nh);
@@ -1615,7 +1609,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 		/ (1.0 + 2.0 * (nsr as f64) / (rcost as f64 / 100.0 * n as f64)).sqrt())
 		as usize;
 	let itemp1 = (itemp1.saturating_sub(1) / 4) * 4 + 4;
-	let nbr = &nsr + &itemp1;
+	let nbr = nsr + itemp1;
 	if n < nmin {
 		hessenberg_to_qz_unblocked(
 			ilo,
@@ -1662,7 +1656,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 					+ A[(istart + 2, istart + 2)].abs()),
 			) {
 			A[(istart + 2, istart + 1)] = zero();
-			istart = istart + 2;
+			istart += 2;
 			ld = 0;
 			eshift = zero();
 		} else if A[(istart + 1, istart)].abs()
@@ -1671,7 +1665,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 					+ A[(istart + 1, istart + 1)].abs()),
 			) {
 			A[(istart + 1, istart)] = zero();
-			istart = istart + 1;
+			istart += 1;
 			ld = 0;
 			eshift = zero();
 		}
@@ -1851,15 +1845,15 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 			ld = 0;
 			eshift = zero();
 		}
-		if (100 * n_deflated > &nibble * (&n_deflated + &n_undeflated))
-			|| (istop.wrapping_add(1) - &istart2 < nmin)
+		if (100 * n_deflated > nibble * (n_deflated + n_undeflated))
+			|| (istop.wrapping_add(1) - istart2 < nmin)
 		{
 			continue;
 		}
 		ld += 1;
 		let mut ns = Ord::min(nshifts, istop.wrapping_sub(istart2));
 		ns = Ord::min(ns, n_undeflated);
-		let shiftpos = &istop - &n_undeflated + 1;
+		let shiftpos = istop - n_undeflated + 1;
 		for i in (shiftpos..istop - 1).step_by(2) {
 			if alphai[i] != -&alphai[i + 1] {
 				for mut v in [alphar.rb_mut(), alphai.rb_mut(), beta.rb_mut()] {
@@ -1870,7 +1864,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 				}
 			}
 		}
-		if ld % 6 == 0 {
+		if ld.is_multiple_of(6) {
 			if from_f64::<T>(maxit as f64)
 				* &safmin * A[(istop, istop - 1)].abs()
 				< B[(istop - 1, istop - 1)].abs()
@@ -1926,6 +1920,7 @@ fn hessenberg_to_qz_blocked<T: RealField>(
 		eigvals_only,
 	);
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn laqz1<T: RealField>(
 	A: MatRef<'_, T>,
 	B: MatRef<'_, T>,
@@ -1973,6 +1968,7 @@ fn laqz1<T: RealField>(
 		v[2] = zero();
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn chase_bulge_2x2<T: RealField>(
 	k: usize,
 	istartm: usize,
@@ -2020,7 +2016,7 @@ fn chase_bulge_2x2<T: RealField>(
 				c1.copy(),
 				s1.copy(),
 				Z.rb_mut(),
-				&ihi - &zstart,
+				ihi - zstart,
 				ihi - 1 - zstart,
 			);
 			rot_cols(
@@ -2050,7 +2046,7 @@ fn chase_bulge_2x2<T: RealField>(
 				s1.copy(),
 				Q.rb_mut(),
 				ihi - 1 - qstart,
-				&ihi - &qstart,
+				ihi - qstart,
 			);
 		}
 		let (c1, s1, temp) =
@@ -2060,7 +2056,7 @@ fn chase_bulge_2x2<T: RealField>(
 		rot_cols(
 			c1.copy(),
 			s1.copy(),
-			B.rb_mut().subrows_mut(istartm, &ihi - &istartm),
+			B.rb_mut().subrows_mut(istartm, ihi - istartm),
 			ihi,
 			ihi - 1,
 		);
@@ -2076,8 +2072,8 @@ fn chase_bulge_2x2<T: RealField>(
 				c1.copy(),
 				s1.copy(),
 				Z.rb_mut(),
-				&ihi - &zstart,
-				&ihi - &zstart - 1,
+				ihi - zstart,
+				ihi - zstart - 1,
 			);
 		}
 	} else {
@@ -2130,7 +2126,7 @@ fn chase_bulge_2x2<T: RealField>(
 				s2.copy(),
 				Z.rb_mut(),
 				k + 1 - zstart,
-				&k - &zstart,
+				k - zstart,
 			);
 		}
 		B[(k + 1, k)] = zero();
@@ -2147,14 +2143,14 @@ fn chase_bulge_2x2<T: RealField>(
 			rot_rows(
 				c1.copy(),
 				s1.copy(),
-				M.rb_mut().subcols_mut(k + 1, &istopm - &k),
+				M.rb_mut().subcols_mut(k + 1, istopm - k),
 				k + 2,
 				k + 3,
 			);
 			rot_rows(
 				c2.copy(),
 				s2.copy(),
-				M.rb_mut().subcols_mut(k + 1, &istopm - &k),
+				M.rb_mut().subcols_mut(k + 1, istopm - k),
 				k + 1,
 				k + 2,
 			);
@@ -2177,6 +2173,7 @@ fn chase_bulge_2x2<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn aggressive_early_deflation<T: RealField>(
 	eigvals_only: bool,
 	ilo: usize,
@@ -2203,11 +2200,11 @@ fn aggressive_early_deflation<T: RealField>(
 	let smlnum = &safmin * (from_f64::<T>(n as f64) / &ulp);
 	let jw = Ord::min(nw, ihi + 1 - ilo);
 	let kwtop = ihi + 1 - jw;
-	let s;
-	if kwtop == ilo {
-		s = zero();
+
+	let s = if kwtop == ilo {
+		zero()
 	} else {
-		s = A[(kwtop, kwtop - 1)].copy();
+		A[(kwtop, kwtop - 1)].copy()
 	};
 	let mut ifst: usize;
 	let mut ilst: usize;
@@ -2215,10 +2212,9 @@ fn aggressive_early_deflation<T: RealField>(
 		alphar[kwtop] = A[(kwtop, kwtop)].copy();
 		alphai[kwtop] = A[(kwtop, kwtop)].copy();
 		beta[kwtop] = B[(kwtop, kwtop)].copy();
-		if s.abs() <= smlnum.fmax(A[(kwtop, kwtop)].abs() * &ulp) {
-			if kwtop > ilo {
-				A[(kwtop, kwtop - 1)] = zero();
-			}
+		if s.abs() <= smlnum.fmax(A[(kwtop, kwtop)].abs() * &ulp) && kwtop > ilo
+		{
+			A[(kwtop, kwtop - 1)] = zero();
 		}
 	}
 	let mut qc = QC.rb_mut().get_mut(..jw, ..jw);
@@ -2268,7 +2264,7 @@ fn aggressive_early_deflation<T: RealField>(
 				{
 					kwbot -= 2;
 				} else {
-					ifst = &kwbot - &kwtop;
+					ifst = kwbot - kwtop;
 					ilst = k2;
 					reorder_qz(
 						A.rb_mut().submatrix_mut(kwtop, kwtop, jw, jw),
@@ -2292,7 +2288,7 @@ fn aggressive_early_deflation<T: RealField>(
 				{
 					kwbot -= 1;
 				} else {
-					ifst = &kwbot - &kwtop;
+					ifst = kwbot - kwtop;
 					ilst = k2;
 					reorder_qz(
 						A.rb_mut().submatrix_mut(kwtop, kwtop, jw, jw),
@@ -2310,15 +2306,17 @@ fn aggressive_early_deflation<T: RealField>(
 		}
 	}
 	// Fully deflated: kwbot is the kwtop-1 sentinel (usize::MAX at row zero) -- see #254
-	let nd = if kwbot == kwtop.wrapping_sub(1) { jw } else { &ihi - &kwbot };
-	let ns = &jw - &nd;
+	let nd = if kwbot == kwtop.wrapping_sub(1) {
+		jw
+	} else {
+		ihi - kwbot
+	};
+	let ns = jw - nd;
 	let mut k = kwtop;
 	while k <= ihi {
 		let mut bulge = false;
-		if k < ihi {
-			if A[(k + 1, k)] != zero() {
-				bulge = true;
-			}
+		if k < ihi && A[(k + 1, k)] != zero() {
+			bulge = true;
 		}
 		if bulge {
 			let (scale1, scale2, wr1, wr2, wi) = generalized_eigval_2x2(
@@ -2382,7 +2380,7 @@ fn aggressive_early_deflation<T: RealField>(
 				c1.copy(),
 				s1.copy(),
 				qc.rb_mut(),
-				&k - &kwtop,
+				k - kwtop,
 				k + 1 - kwtop,
 			);
 		}
@@ -2391,12 +2389,12 @@ fn aggressive_early_deflation<T: RealField>(
 		let mut k = kwbot;
 		while k > kwtop {
 			k -= 1;
-			if k >= kwtop + 1 && A[(k + 1, k - 1)] != zero() {
+			if k > kwtop && A[(k + 1, k - 1)] != zero() {
 				for k2 in k - 1..kwbot - 1 {
 					chase_bulge_2x2(
 						k2,
 						kwtop,
-						&kwtop + &jw - 1,
+						kwtop + jw - 1,
 						kwbot,
 						A.rb_mut(),
 						B.rb_mut(),
@@ -2434,7 +2432,7 @@ fn aggressive_early_deflation<T: RealField>(
 						s1.copy(),
 						zc.rb_mut(),
 						k2 + 1 - kwtop,
-						&k2 - &kwtop,
+						k2 - kwtop,
 					);
 					let (c1, s1, temp) = make_givens(
 						A[(k2 + 1, k2)].copy(),
@@ -2445,14 +2443,14 @@ fn aggressive_early_deflation<T: RealField>(
 					rot_rows(
 						c1.copy(),
 						s1.copy(),
-						A.rb_mut().subcols_mut(k2 + 1, &istopm - &k2),
+						A.rb_mut().subcols_mut(k2 + 1, istopm - k2),
 						k2 + 1,
 						k2 + 2,
 					);
 					rot_rows(
 						c1.copy(),
 						s1.copy(),
-						B.rb_mut().subcols_mut(k2 + 1, &istopm - &k2),
+						B.rb_mut().subcols_mut(k2 + 1, istopm - k2),
 						k2 + 1,
 						k2 + 2,
 					);
@@ -2473,7 +2471,7 @@ fn aggressive_early_deflation<T: RealField>(
 				rot_cols(
 					c1.copy(),
 					s1.copy(),
-					B.rb_mut().subrows_mut(istartm, &kwbot - &istartm),
+					B.rb_mut().subrows_mut(istartm, kwbot - istartm),
 					kwbot,
 					kwbot - 1,
 				);
@@ -2488,7 +2486,7 @@ fn aggressive_early_deflation<T: RealField>(
 					c1.copy(),
 					s1.copy(),
 					zc.rb_mut(),
-					&kwbot - &kwtop,
+					kwbot - kwtop,
 					kwbot - 1 - kwtop,
 				);
 			}
@@ -2503,14 +2501,14 @@ fn aggressive_early_deflation<T: RealField>(
 		istartm = ilo;
 		istopm = ihi;
 	}
-	if &istopm - &ihi > 0 {
+	if istopm - ihi > 0 {
 		let (mut work, _) = unsafe {
-			linalg::temp_mat_uninit::<T, _, _>(jw, &istopm - &ihi, stack)
+			linalg::temp_mat_uninit::<T, _, _>(jw, istopm - ihi, stack)
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let M: MatMut<'_, T> = M;
-			let mut M = M.submatrix_mut(kwtop, ihi + 1, jw, &istopm - &ihi);
+			let mut M = M.submatrix_mut(kwtop, ihi + 1, jw, istopm - ihi);
 			matmul(
 				work.rb_mut(),
 				Accum::Replace,
@@ -2527,18 +2525,32 @@ fn aggressive_early_deflation<T: RealField>(
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, jw, stack) };
 		let mut work = work.as_mat_mut();
 		let mut M = Q.rb_mut().subcols_mut(kwtop, jw);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
-	if &kwtop - &istartm > 0 {
+	if kwtop - istartm > 0 {
 		let (mut work, _) = unsafe {
-			linalg::temp_mat_uninit::<T, _, _>(&kwtop - &istartm, jw, stack)
+			linalg::temp_mat_uninit::<T, _, _>(kwtop - istartm, jw, stack)
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let M: MatMut<'_, T> = M;
-			let mut M = M.submatrix_mut(istartm, kwtop, &kwtop - &istartm, jw);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = M.submatrix_mut(istartm, kwtop, kwtop - istartm, jw);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -2552,6 +2564,7 @@ fn aggressive_early_deflation<T: RealField>(
 	}
 	(ns, nd)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub(super) fn swap_qz<T: RealField>(
 	mut A: MatMut<'_, T>,
 	mut B: MatMut<'_, T>,
@@ -2563,7 +2576,7 @@ pub(super) fn swap_qz<T: RealField>(
 	stack: &mut MemStack,
 ) {
 	let n = A.nrows();
-	let m = &n1 + &n2;
+	let m = n1 + n2;
 	let zero = zero::<T>;
 	let one = one::<T>;
 	if n1 == 1 && n2 == 1 {
@@ -2600,7 +2613,7 @@ pub(super) fn swap_qz<T: RealField>(
 		rot_rows(
 			li11.copy(),
 			li21.copy(),
-			A.rb_mut().subcols_mut(start, &n - &start),
+			A.rb_mut().subcols_mut(start, n - start),
 			start,
 			start + 1,
 		);
@@ -2614,7 +2627,7 @@ pub(super) fn swap_qz<T: RealField>(
 		rot_rows(
 			li11.copy(),
 			li21.copy(),
-			B.rb_mut().subcols_mut(start, &n - &start),
+			B.rb_mut().subcols_mut(start, n - start),
 			start,
 			start + 1,
 		);
@@ -2632,10 +2645,10 @@ pub(super) fn swap_qz<T: RealField>(
 		let (S11, S12, _, S22) = S.split_at(n1, n1);
 		let (T11, T12, _, T22) = T.split_at(n1, n1);
 		let (mut L, stack) =
-			linalg::temp_mat_zeroed::<T, _, _>(&n1 + &n2, n2, stack);
+			linalg::temp_mat_zeroed::<T, _, _>(n1 + n2, n2, stack);
 		let mut L = L.as_mat_mut();
 		let (mut R, stack) =
-			linalg::temp_mat_zeroed::<T, _, _>(n1, &n1 + &n2, stack);
+			linalg::temp_mat_zeroed::<T, _, _>(n1, n1 + n2, stack);
 		let mut R = R.as_mat_mut();
 		L.rb_mut().get_mut(..n1, ..).copy_from(T12);
 		L.rb_mut()
@@ -2696,10 +2709,8 @@ pub(super) fn swap_qz<T: RealField>(
 		let L = L.rb();
 		let R = R.rb();
 		for mut M in [A.rb_mut(), B.rb_mut()] {
-			for mut m in M
-				.rb_mut()
-				.get_mut(start..&start + &m, start..)
-				.col_iter_mut()
+			for mut m in
+				M.rb_mut().get_mut(start..start + m, start..).col_iter_mut()
 			{
 				for j in 0..n2 {
 					let l = L.col(j);
@@ -2711,7 +2722,7 @@ pub(super) fn swap_qz<T: RealField>(
 			}
 			for mut m in M
 				.rb_mut()
-				.get_mut(..&start + &m, start..&start + &m)
+				.get_mut(..start + m, start..start + m)
 				.row_iter_mut()
 			{
 				for j in (0..n1).rev() {
@@ -2724,7 +2735,7 @@ pub(super) fn swap_qz<T: RealField>(
 			}
 		}
 		if let Some(Q) = Q.rb_mut() {
-			let mut Q = Q.get_mut(.., start..&start + &m);
+			let mut Q = Q.get_mut(.., start..start + m);
 			for j in 0..n2 {
 				let l = L.col(j);
 				let tau = L_householder[(0, j)].copy();
@@ -2751,7 +2762,7 @@ pub(super) fn swap_qz<T: RealField>(
 			}
 		}
 		if let Some(Z) = Z.rb_mut() {
-			let mut Z = Z.get_mut(.., start..&start + &m);
+			let mut Z = Z.get_mut(.., start..start + m);
 			for j in (0..n1).rev() {
 				let r = R.row(j).transpose();
 				let tau = R_householder[(0, j)].copy();
@@ -2800,7 +2811,7 @@ pub(super) fn swap_qz<T: RealField>(
 			}
 		}
 		A.rb_mut()
-			.get_mut(&start + &n2..&start + &n2 + &n1, start..&start + &n2)
+			.get_mut(start + n2..start + n2 + n1, start..start + n2)
 			.fill(zero());
 	}
 }
@@ -2815,27 +2826,19 @@ fn reorder_qz<T: RealField>(
 ) {
 	let zero = zero::<T>;
 	let n = A.nrows();
-	if ifst > 0 {
-		if A[(ifst, ifst - 1)] != zero() {
-			ifst -= 1;
-		}
+	if ifst > 0 && A[(ifst, ifst - 1)] != zero() {
+		ifst -= 1;
 	}
 	let mut nbf = 1;
-	if ifst < n - 1 {
-		if A[(ifst + 1, ifst)] != zero() {
-			nbf = 2;
-		}
+	if ifst < n - 1 && A[(ifst + 1, ifst)] != zero() {
+		nbf = 2;
 	}
-	if ilst > 0 {
-		if A[(ilst, ilst - 1)] != zero() {
-			ilst = ilst - 1;
-		}
+	if ilst > 0 && A[(ilst, ilst - 1)] != zero() {
+		ilst -= 1;
 	}
 	let mut nbl = 1;
-	if ilst < n - 1 {
-		if A[(ilst + 1, ilst)] != zero() {
-			nbl = 2;
-		}
+	if ilst < n - 1 && A[(ilst + 1, ilst)] != zero() {
+		nbl = 2;
 	}
 	if ifst == ilst {
 		return;
@@ -2851,10 +2854,10 @@ fn reorder_qz<T: RealField>(
 		loop {
 			if nbf == 1 || nbf == 2 {
 				let mut nbnext = 1;
-				if &here + &nbf + 1 <= n - 1 {
-					if A[(here + nbf + 1, here + nbf)] != zero() {
-						nbnext = 2;
-					}
+				if here + nbf < n - 1
+					&& A[(here + nbf + 1, here + nbf)] != zero()
+				{
+					nbnext = 2;
 				}
 				swap_qz(
 					A.rb_mut(),
@@ -2867,17 +2870,13 @@ fn reorder_qz<T: RealField>(
 					stack,
 				);
 				here += nbnext;
-				if nbf == 2 {
-					if A[(here + 1, here)] == zero() {
-						nbf = 3;
-					}
+				if nbf == 2 && A[(here + 1, here)] == zero() {
+					nbf = 3;
 				}
 			} else {
 				let mut nbnext = 1;
-				if here + 3 <= n - 1 {
-					if A[(here + 3, here + 2)] != zero() {
-						nbnext = 2;
-					}
+				if here + 3 < n && A[(here + 3, here + 2)] != zero() {
+					nbnext = 2;
 				}
 				swap_qz(
 					A.rb_mut(),
@@ -2952,40 +2951,34 @@ fn reorder_qz<T: RealField>(
 		loop {
 			if nbf == 1 || nbf == 2 {
 				let mut nbnext = 1;
-				if here >= 2 {
-					if A[(here - 1, here - 2)] != zero() {
-						nbnext = 2;
-					}
+				if here >= 2 && A[(here - 1, here - 2)] != zero() {
+					nbnext = 2;
 				}
 				swap_qz(
 					A.rb_mut(),
 					B.rb_mut(),
 					Q.rb_mut(),
 					Z.rb_mut(),
-					&here - &nbnext,
+					here - nbnext,
 					nbnext,
 					nbf,
 					stack,
 				);
 				here -= nbnext;
-				if nbf == 2 {
-					if A[(here + 1, here)] == zero() {
-						nbf = 3;
-					}
+				if nbf == 2 && A[(here + 1, here)] == zero() {
+					nbf = 3;
 				}
 			} else {
 				let mut nbnext = 1;
-				if here >= 2 {
-					if A[(here - 1, here - 2)] != zero() {
-						nbnext = 2;
-					}
+				if here >= 2 && A[(here - 1, here - 2)] != zero() {
+					nbnext = 2;
 				}
 				swap_qz(
 					A.rb_mut(),
 					B.rb_mut(),
 					Q.rb_mut(),
 					Z.rb_mut(),
-					&here - &nbnext,
+					here - nbnext,
 					nbnext,
 					1,
 					stack,
@@ -3050,6 +3043,7 @@ fn reorder_qz<T: RealField>(
 		}
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn multishift_sweep<T: RealField>(
 	ilo: usize,
 	ihi: usize,
@@ -3097,7 +3091,7 @@ fn multishift_sweep<T: RealField>(
 		}
 	}
 	let ns = nshifts / 2 * 2;
-	let npos = Ord::max(&nblock_desired - &ns, 1);
+	let npos = Ord::max(nblock_desired - ns, 1);
 	let mut qc = QC.rb_mut().get_mut(..ns + 1, ..ns + 1);
 	let mut zc = ZC.rb_mut().get_mut(..ns, ..ns);
 	let mut v_storage = [zero(), zero(), zero()];
@@ -3134,7 +3128,7 @@ fn multishift_sweep<T: RealField>(
 			c2.copy(),
 			s2.copy(),
 			A.rb_mut().subcols_mut(ilo, ns),
-			ilo + 0,
+			ilo,
 			ilo + 1,
 		);
 		rot_rows(
@@ -3148,18 +3142,18 @@ fn multishift_sweep<T: RealField>(
 			c2.copy(),
 			s2.copy(),
 			B.rb_mut().subcols_mut(ilo, ns),
-			ilo + 0,
+			ilo,
 			ilo + 1,
 		);
 		rot_cols(c1.copy(), s1.copy(), qc.rb_mut(), 1, 2);
 		rot_cols(c2.copy(), s2.copy(), qc.rb_mut(), 0, 1);
 		let i = i + 1;
-		for j in 0..&ns - &i - 1 {
+		for j in 0..ns - i - 1 {
 			chase_bulge_2x2(
 				j,
 				0,
 				ns - 1,
-				&ihi - &ilo,
+				ihi - ilo,
 				A.rb_mut().get_mut(ilo.., ilo..),
 				B.rb_mut().get_mut(ilo.., ilo..),
 				0,
@@ -3170,7 +3164,7 @@ fn multishift_sweep<T: RealField>(
 		}
 	}
 	let sheight = ns + 1;
-	let swidth = (istopm + 1).saturating_sub(&ilo + &ns);
+	let swidth = (istopm + 1).saturating_sub(ilo + ns);
 	if swidth > 0 {
 		{
 			let (mut work, _) = unsafe {
@@ -3178,7 +3172,7 @@ fn multishift_sweep<T: RealField>(
 			};
 			let mut work = work.as_mat_mut();
 			for M in [A.rb_mut(), B.rb_mut()] {
-				let mut M = M.submatrix_mut(ilo, &ilo + &ns, sheight, swidth);
+				let mut M = M.submatrix_mut(ilo, ilo + ns, sheight, swidth);
 				matmul(
 					work.rb_mut(),
 					Accum::Replace,
@@ -3195,8 +3189,15 @@ fn multishift_sweep<T: RealField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, sheight, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Q.rb_mut().get_mut(.., ilo..&ilo + &sheight);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		let mut M = Q.rb_mut().get_mut(.., ilo..ilo + sheight);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
 	let sheight = ilo.saturating_sub(istartm);
@@ -3208,7 +3209,14 @@ fn multishift_sweep<T: RealField>(
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
 			let mut M = M.submatrix_mut(istartm, ilo, sheight, swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -3216,16 +3224,23 @@ fn multishift_sweep<T: RealField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Z.rb_mut().get_mut(.., ilo..&ilo + &swidth);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+		let mut M = Z.rb_mut().get_mut(.., ilo..ilo + swidth);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			zc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
 	let mut k = ilo;
-	while k < &ihi - &ns {
-		let np = Ord::min(&ihi - &ns - &k, npos);
-		let nblock = &ns + &np;
+	while k < ihi - ns {
+		let np = Ord::min(ihi - ns - k, npos);
+		let nblock = ns + np;
 		let istartb = k + 1;
-		let istopb = &k + &nblock - 1;
+		let istopb = k + nblock - 1;
 		let mut qc = QC.rb_mut().get_mut(..nblock, ..nblock);
 		let mut zc = ZC.rb_mut().get_mut(..nblock, ..nblock);
 		for mut m in [qc.rb_mut(), zc.rb_mut()] {
@@ -3235,7 +3250,7 @@ fn multishift_sweep<T: RealField>(
 		for i in (0..ns).rev().step_by(2) {
 			for j in 0..np {
 				chase_bulge_2x2(
-					&k + &i + &j - 1,
+					k + i + j - 1,
 					istartb,
 					istopb,
 					ihi,
@@ -3248,8 +3263,8 @@ fn multishift_sweep<T: RealField>(
 				);
 			}
 		}
-		let sheight = &ns + &np;
-		let swidth = (istopm + 1).saturating_sub(&k + &ns + &np);
+		let sheight = ns + np;
+		let swidth = (istopm + 1).saturating_sub(k + ns + np);
 		if swidth > 0 {
 			let (mut work, _) = unsafe {
 				linalg::temp_mat_uninit::<T, _, _>(sheight, swidth, stack)
@@ -3258,7 +3273,7 @@ fn multishift_sweep<T: RealField>(
 			for M in [A.rb_mut(), B.rb_mut()] {
 				let mut M = M.get_mut(
 					k + 1..k + 1 + sheight,
-					&k + &ns + &np..&k + &ns + &np + &swidth,
+					k + ns + np..k + ns + np + swidth,
 				);
 				matmul(
 					work.rb_mut(),
@@ -3277,7 +3292,14 @@ fn multishift_sweep<T: RealField>(
 			};
 			let mut work = work.as_mat_mut();
 			let mut M = Q.rb_mut().get_mut(.., k + 1..k + 1 + sheight);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				qc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 		let sheight = (k + 1).saturating_sub(istartm);
@@ -3289,7 +3311,7 @@ fn multishift_sweep<T: RealField>(
 			let mut work = work.as_mat_mut();
 			for M in [A.rb_mut(), B.rb_mut()] {
 				let mut M =
-					M.get_mut(istartm..&istartm + &sheight, k..&k + &swidth);
+					M.get_mut(istartm..istartm + sheight, k..k + swidth);
 				matmul(
 					work.rb_mut(),
 					Accum::Replace,
@@ -3305,8 +3327,15 @@ fn multishift_sweep<T: RealField>(
 			let (mut work, _) =
 				unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 			let mut work = work.as_mat_mut();
-			let mut M = Z.rb_mut().get_mut(.., k..&k + &swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = Z.rb_mut().get_mut(.., k..k + swidth);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 		k += np;
@@ -3321,7 +3350,7 @@ fn multishift_sweep<T: RealField>(
 	}
 	for i in (0..ns).step_by(2) {
 		let i = i + 1;
-		for ishift in &ihi - &i - 1..ihi - 1 {
+		for ishift in ihi - i - 1..ihi - 1 {
 			chase_bulge_2x2(
 				ishift,
 				istartb,
@@ -3331,7 +3360,7 @@ fn multishift_sweep<T: RealField>(
 				B.rb_mut(),
 				ihi + 1 - ns,
 				Some(qc.rb_mut()),
-				&ihi - &ns,
+				ihi - ns,
 				Some(zc.rb_mut()),
 			);
 		}
@@ -3360,11 +3389,18 @@ fn multishift_sweep<T: RealField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, sheight, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Q.rb_mut().get_mut(.., &ihi - &ns + 1..ihi + 1);
-		matmul(work.rb_mut(), Accum::Replace, M.rb(), qc.rb(), one(), par.reborrow());
+		let mut M = Q.rb_mut().get_mut(.., ihi - ns + 1..ihi + 1);
+		matmul(
+			work.rb_mut(),
+			Accum::Replace,
+			M.rb(),
+			qc.rb(),
+			one(),
+			par.reborrow(),
+		);
 		M.copy_from(&work);
 	}
-	let sheight = (ihi + 1).saturating_sub(&ns + &istartm);
+	let sheight = (ihi + 1).saturating_sub(ns + istartm);
 	let swidth = ns + 1;
 	if sheight > 0 {
 		let (mut work, _) = unsafe {
@@ -3372,8 +3408,15 @@ fn multishift_sweep<T: RealField>(
 		};
 		let mut work = work.as_mat_mut();
 		for M in [A.rb_mut(), B.rb_mut()] {
-			let mut M = M.submatrix_mut(istartm, &ihi - &ns, sheight, swidth);
-			matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par.reborrow());
+			let mut M = M.submatrix_mut(istartm, ihi - ns, sheight, swidth);
+			matmul(
+				work.rb_mut(),
+				Accum::Replace,
+				M.rb(),
+				zc.rb(),
+				one(),
+				par.reborrow(),
+			);
 			M.copy_from(&work);
 		}
 	}
@@ -3381,7 +3424,7 @@ fn multishift_sweep<T: RealField>(
 		let (mut work, _) =
 			unsafe { linalg::temp_mat_uninit::<T, _, _>(n, swidth, stack) };
 		let mut work = work.as_mat_mut();
-		let mut M = Z.rb_mut().get_mut(.., &ihi - &ns..ihi + 1);
+		let mut M = Z.rb_mut().get_mut(.., ihi - ns..ihi + 1);
 		matmul(work.rb_mut(), Accum::Replace, M.rb(), zc.rb(), one(), par);
 		M.copy_from(&work);
 	}
@@ -3550,8 +3593,8 @@ mod tests {
 						);
 					}
 					let approx_eq = CwiseMat(approx_eq);
-					let A_old = &Q * &A_swap * &Z.transpose();
-					let B_old = &Q * &B_swap * &Z.transpose();
+					let A_old = &Q * &A_swap * Z.transpose();
+					let B_old = &Q * &B_swap * Z.transpose();
 					assert!(all(A_old ~ A, B_old ~ B));
 				}
 			}
@@ -3634,8 +3677,8 @@ mod tests {
 						);
 					}
 					let approx_eq = CwiseMat(approx_eq);
-					let A_old = &Q * &A_swap * &Z.transpose();
-					let B_old = &Q * &B_swap * &Z.transpose();
+					let A_old = &Q * &A_swap * Z.transpose();
+					let B_old = &Q * &B_swap * Z.transpose();
 					assert!(all(A_old ~ A, B_old ~ B));
 				}
 			}

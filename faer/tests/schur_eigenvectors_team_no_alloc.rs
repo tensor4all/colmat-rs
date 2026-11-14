@@ -327,7 +327,9 @@ fn schur_eigenvectors_on_a_team_allocate_nothing() {
 )]
 fn schur_eigenvectors_with_q_on_a_team_allocate_nothing() {
 	#[cfg(target_arch = "x86_64")]
-	if !std::is_x86_feature_detected!("avx2") || !std::is_x86_feature_detected!("fma") {
+	if !std::is_x86_feature_detected!("avx2")
+		|| !std::is_x86_feature_detected!("fma")
+	{
 		// libtest has no skip result, so this prints and returns: the harness reports the
 		// test as passed without having exercised the kernel path. CI runs on x86_64 with
 		// AVX2 and does exercise it; a local run on a host without AVX2/FMA carries no

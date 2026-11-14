@@ -451,6 +451,7 @@ fn lapack_schur_reorder_cases() {
 	}
 	run.finish(combos.len() * 2 * 3 * (1 + 3 * 4 * 4) + 4 * 3 * 4 + get34);
 }
+#[allow(clippy::needless_range_loop)] // index loop kept as written: the body indexes parallel buffers and strided views
 /// The `T` matrices of LAPACK 3.12.0 `TESTING/EIG/dget34.f`, in its loop
 /// order, with the block sizes `(n1, n2)` passed to `DLAEXC` at `j1 = 1`.
 fn get34_matrices() -> Vec<(Mat<Scalar>, usize, usize)> {

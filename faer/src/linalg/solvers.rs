@@ -2,8 +2,8 @@ use crate::assert;
 use crate::internal_prelude::*;
 use alloc::vec;
 use alloc::vec::Vec;
-use dyn_stack::MemBuffer;
 use colmat_traits::ComplexConj;
+use dyn_stack::MemBuffer;
 pub use linalg::cholesky::ldlt::factor::LdltError;
 pub use linalg::cholesky::llt::factor::LltError;
 pub use linalg::evd::EvdError;
@@ -619,6 +619,7 @@ impl<
 		imp(self.rb().canonical(), par)
 	}
 }
+#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 /// factors $B = L L^H$ and returns $(L, L^{-1} A L^{-H})$
 #[track_caller]
 fn self_adjoint_gevd_reduce<C: Conjugate>(
@@ -3216,13 +3217,13 @@ mod tests {
 			let n = A.nrows();
 			let approx_eq = CwiseMat(ApproxEq::eps() * 128.0 * (n as f64));
 			let k = 3;
-			let ref R = CwiseMatDistribution {
+			let R = &CwiseMatDistribution {
 				nrows: n,
 				ncols: k,
 				dist: ComplexDistribution::new(StandardNormal, StandardNormal),
 			}
 			.rand::<Mat<c64>>(rng);
-			let ref L = CwiseMatDistribution {
+			let L = &CwiseMatDistribution {
 				nrows: k,
 				ncols: n,
 				dist: ComplexDistribution::new(StandardNormal, StandardNormal),
@@ -3243,7 +3244,7 @@ mod tests {
 	fn test_all_solvers() {
 		let rng = &mut StdRng::seed_from_u64(0);
 		let n = 50;
-		let ref A = CwiseMatDistribution {
+		let A = &CwiseMatDistribution {
 			nrows: n,
 			ncols: n,
 			dist: ComplexDistribution::new(StandardNormal, StandardNormal),
@@ -3256,16 +3257,19 @@ mod tests {
 		test_solver(A, A.col_piv_qr(Par::Seq));
 		test_solver(A, A.svd(Par::Seq).unwrap());
 		{
-			let ref A = A * A.adjoint();
+			let A = &(A * A.adjoint());
 			let A = A.rb();
 			test_solver(A, A.llt(Side::Lower, Par::Seq).unwrap());
 			test_solver(A, A.ldlt(Side::Lower, Par::Seq).unwrap());
 		}
 		{
-			let ref A = A + A.adjoint();
+			let A = &(A + A.adjoint());
 			let A = A.rb();
 			test_solver(A, A.lblt(Side::Lower, Par::Seq));
-			test_solver(A, A.self_adjoint_eigen(Side::Lower, Par::Seq).unwrap());
+			test_solver(
+				A,
+				A.self_adjoint_eigen(Side::Lower, Par::Seq).unwrap(),
+			);
 		}
 	}
 	#[test]
@@ -3317,7 +3321,10 @@ mod tests {
 			assert!(& A * evd.U() ~ & B * evd.U() * e);
 		}
 		{
-			let evd = A.conjugate().generalized_eigen(B.conjugate(), Par::Seq).unwrap();
+			let evd = A
+				.conjugate()
+				.generalized_eigen(B.conjugate(), Par::Seq)
+				.unwrap();
 			let e = zip!(evd.S_a(), evd.S_b()).map(|unzip!(a, b)| a / b);
 			assert!(A.conjugate() * evd.U() ~ B.conjugate() * evd.U() * e);
 		}
@@ -3381,7 +3388,11 @@ mod tests {
 		let approx_eq = CwiseMat(ApproxEq::eps() * 128.0 * (A.nrows() as f64));
 		let svd = A.svd(Par::Seq).unwrap();
 		let mut X = B.cloned();
-		svd.solve_lstsq_in_place_with_conj(crate::Conj::No, X.as_mat_mut(), Par::Seq);
+		svd.solve_lstsq_in_place_with_conj(
+			crate::Conj::No,
+			X.as_mat_mut(),
+			Par::Seq,
+		);
 		assert!(X.get(..X_true.nrows(),..) ~ X_true);
 	}
 

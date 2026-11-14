@@ -48,7 +48,7 @@ fn col_mean_row_major_ignore_nan<T: ComplexField>(
 			let mut out = out.as_row_shape_mut(M);
 			let mat = mat.as_shape(M, N);
 			let indices = simd.batch_indices::<4>();
-			let nan = simd.splat(&nan::<T>());
+			let nan = simd.splat(nan::<T>());
 			for i in M.indices() {
 				let row = mat.row(i).transpose();
 				let (head, mut body4, body1, tail) = indices.clone();
@@ -73,10 +73,10 @@ fn col_mean_row_major_ignore_nan<T: ComplexField>(
 						),
 					)
 				}
-				let mut sum0 = simd.splat(&zero::<T>());
-				let mut sum1 = simd.splat(&zero::<T>());
-				let mut sum2 = simd.splat(&zero::<T>());
-				let mut sum3 = simd.splat(&zero::<T>());
+				let mut sum0 = simd.splat(zero::<T>());
+				let mut sum1 = simd.splat(zero::<T>());
+				let mut sum2 = simd.splat(zero::<T>());
+				let mut sum3 = simd.splat(zero::<T>());
 				let mut non_nan_count0 = simd.isplat(T::Index::truncate(0));
 				let mut non_nan_count1 = simd.isplat(T::Index::truncate(0));
 				let mut non_nan_count2 = simd.isplat(T::Index::truncate(0));
@@ -178,7 +178,7 @@ fn col_varm_row_major_ignore_nan<T: ComplexField>(
 			let mat = mat.as_shape(M, N);
 			let col_mean = col_mean.as_row_shape(M);
 			let indices = simd.batch_indices::<4>();
-			let nan_v = simd.splat(&nan::<T>());
+			let nan_v = simd.splat(nan::<T>());
 			for i in M.indices() {
 				let row = mat.row(i).transpose();
 				let mean = simd.splat(&col_mean[i]);
@@ -210,10 +210,10 @@ fn col_varm_row_major_ignore_nan<T: ComplexField>(
 						),
 					)
 				}
-				let mut sum0 = RealReg(simd.splat(&zero::<T>()));
-				let mut sum1 = RealReg(simd.splat(&zero::<T>()));
-				let mut sum2 = RealReg(simd.splat(&zero::<T>()));
-				let mut sum3 = RealReg(simd.splat(&zero::<T>()));
+				let mut sum0 = RealReg(simd.splat(zero::<T>()));
+				let mut sum1 = RealReg(simd.splat(zero::<T>()));
+				let mut sum2 = RealReg(simd.splat(zero::<T>()));
+				let mut sum3 = RealReg(simd.splat(zero::<T>()));
 				let mut non_nan_count0 = simd.isplat(T::Index::truncate(0));
 				let mut non_nan_count1 = simd.isplat(T::Index::truncate(0));
 				let mut non_nan_count2 = simd.isplat(T::Index::truncate(0));
@@ -329,7 +329,7 @@ fn col_mean_row_major_propagate_nan<T: ComplexField>(
 			let mut out = out.as_row_shape_mut(M);
 			let mat = mat.as_shape(M, N);
 			let indices = simd.batch_indices::<4>();
-			let ref n = from_usize::<T::Real>(*N).recip();
+			let n = &from_usize::<T::Real>(*N).recip();
 			for i in M.indices() {
 				let row = mat.row(i).transpose();
 				let (head, body4, body1, tail) = indices.clone();
@@ -391,7 +391,7 @@ fn col_varm_row_major_propagate_nan<T: ComplexField>(
 			} else if n == 1 {
 				out.fill(zero());
 			} else {
-				let ref n = from_usize::<T::Real>(n - 1).recip();
+				let n = &from_usize::<T::Real>(n - 1).recip();
 				for i in M.indices() {
 					let row = mat.row(i).transpose();
 					let mean = simd.splat(&col_mean[i]);
@@ -545,7 +545,7 @@ fn col_mean_propagate_nan_fallback<T: ComplexField>(
 			out[i] += &mat[(i, j)];
 		}
 	}
-	let ref n = from_usize::<T::Real>(*N).recip();
+	let n = &from_usize::<T::Real>(*N).recip();
 	for i in M.indices() {
 		out[i] = out[i].mul_real(n);
 	}
@@ -573,7 +573,7 @@ fn col_varm_propagate_nan_fallback<T: ComplexField>(
 	} else if n == 1 {
 		out.fill(zero());
 	} else {
-		let ref n = from_usize::<T::Real>(*N - 1).recip();
+		let n = &from_usize::<T::Real>(*N - 1).recip();
 		for i in M.indices() {
 			out[i] = out[i].mul_real(n);
 		}

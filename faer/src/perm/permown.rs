@@ -52,15 +52,13 @@ impl<I: Index, N: Shape> Perm<I, N> {
 		dim: N,
 	) -> Self {
 		PermRef::<'_, I, N>::new_checked(&forward, &inverse, dim);
-		Self {
-			0: Own { forward, inverse },
-		}
+		Self(Own { forward, inverse })
 	}
 
 	/// creates a new permutation reference, without checking the validity of
 	/// the inputs
 	///
-	/// # safety
+	/// # Safety
 	///
 	/// `forward` and `inverse` must have the same length which must be less
 	/// than or equal to `I::Signed::MAX`, be valid permutations, and be
@@ -76,11 +74,10 @@ impl<I: Index, N: Shape> Perm<I, N> {
 			forward.len() == inverse.len(),
 			n <= I::Signed::MAX.zx(),
 		));
-		Self {
-			0: Own { forward, inverse },
-		}
+		Self(Own { forward, inverse })
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns the permutation as an array
 	#[inline]
 	pub fn into_arrays(
@@ -92,6 +89,7 @@ impl<I: Index, N: Shape> Perm<I, N> {
 		(self.0.forward, self.0.inverse)
 	}
 
+	#[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 	/// returns the permutation as an array
 	#[inline]
 	pub fn arrays(&self) -> (&[Idx<N, I>], &[Idx<N, I>]) {
@@ -107,12 +105,10 @@ impl<I: Index, N: Shape> Perm<I, N> {
 	/// returns the inverse permutation
 	#[inline]
 	pub fn into_inverse(self) -> Self {
-		Self {
-			0: Own {
-				forward: self.0.inverse,
-				inverse: self.0.forward,
-			},
-		}
+		Self(Own {
+			forward: self.0.inverse,
+			inverse: self.0.forward,
+		})
 	}
 
 	/// returns the inverse permutation

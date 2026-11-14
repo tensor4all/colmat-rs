@@ -8,6 +8,9 @@ pub trait RowIndex<ColRange> {
 	type Target;
 	/// slice `this` using `col`
 	fn get(this: Self, col: ColRange) -> Self::Target;
+	///
+	/// # Safety
+	/// the given ranges must be in bounds of the view.
 	/// slice `this` using `col` without bound checks
 	unsafe fn get_unchecked(this: Self, col: ColRange) -> Self::Target;
 }

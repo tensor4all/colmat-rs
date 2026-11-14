@@ -31,7 +31,7 @@ impl<'head, 'tail, 'n> Partition<'head, 'tail, 'n> {
 	}
 }
 /// lifetime branded length
-/// # safety
+/// # Safety
 /// the type's safety invariant is that all instances of this type with the same
 /// lifetime correspond to the same length.
 #[derive(Copy, Clone)]
@@ -51,8 +51,7 @@ impl Eq for Dim<'_> {}
 impl PartialOrd for Dim<'_> {
 	#[inline(always)]
 	fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-		equator::debug_assert!(self.unbound == other.unbound);
-		Some(core::cmp::Ordering::Equal)
+		Some(self.cmp(other))
 	}
 }
 impl Ord for Dim<'_> {
@@ -63,7 +62,7 @@ impl Ord for Dim<'_> {
 	}
 }
 /// lifetime branded index.
-/// # safety
+/// # Safety
 /// the type's safety invariant is that all instances of this type are valid
 /// indices for [`Dim<'n>`] and less than or equal to `i::signed::max`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -73,7 +72,7 @@ pub struct Idx<'n, I: Index = usize> {
 	__marker: PhantomData<Invariant<'n>>,
 }
 /// lifetime branded partition index.
-/// # safety
+/// # Safety
 /// the type's safety invariant is that all instances of this type are valid
 /// partition places for [`Dim<'n>`] and less than or equal to `i::signed::max`.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -150,7 +149,7 @@ impl<'n> Dim<'n> {
 	}
 
 	/// create new branded value with an arbitrary brand.
-	/// # safety
+	/// # Safety
 	/// see struct safety invariant.
 	#[inline(always)]
 	pub const unsafe fn new_unbound(dim: usize) -> Self {
@@ -245,7 +244,7 @@ impl<'n> Dim<'n> {
 }
 impl<'n, I: Index> Idx<'n, I> {
 	/// create new branded value with an arbitrary brand.
-	/// # safety
+	/// # Safety
 	/// see struct safety invariant.
 	#[inline(always)]
 	pub const unsafe fn new_unbound(idx: I) -> Self {
@@ -256,7 +255,7 @@ impl<'n, I: Index> Idx<'n, I> {
 	}
 
 	/// create new branded value with the same brand as `Dim`.
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined unless `idx < dim` and `idx <=
 	/// i::signed::max`.
 	#[inline(always)]
@@ -308,7 +307,7 @@ impl<'n> IdxInc<'n> {
 }
 impl<'n, I: Index> IdxInc<'n, I> {
 	/// create new branded value with an arbitrary brand.
-	/// # safety
+	/// # Safety
 	/// see struct safety invariant.
 	#[inline(always)]
 	pub const unsafe fn new_unbound(idx: I) -> Self {
@@ -319,7 +318,7 @@ impl<'n, I: Index> IdxInc<'n, I> {
 	}
 
 	/// create new branded value with the same brand as `Dim`.
-	/// # safety
+	/// # Safety
 	/// the behavior is undefined unless `idx <= dim`.
 	#[inline(always)]
 	pub unsafe fn new_unchecked(idx: I, dim: Dim<'n>) -> Self {
@@ -528,6 +527,9 @@ impl<'n, I: Index> Idx<'n, I> {
 		unsafe { &mut *(slice as *mut _ as *mut _) }
 	}
 
+	///
+	/// # Safety
+	/// every element of the slice must be smaller than the dimension tied to the brand.
 	/// assume that the values of `slice` are all bounded by the value tied to
 	/// `'n`.
 	#[track_caller]
@@ -550,6 +552,9 @@ impl<'n, I: Index> Idx<'n, I> {
 		unsafe { &*(slice as *const _ as *const _) }
 	}
 
+	///
+	/// # Safety
+	/// every element of the slice must be smaller than the dimension tied to the brand.
 	/// assume that the values of `slice` are all bounded by the value tied to
 	/// `'n`.
 	#[track_caller]
@@ -593,6 +598,9 @@ impl<'n, I: Index> MaybeIdx<'n, I> {
 		}
 	}
 
+	///
+	/// # Safety
+	/// the arguments must satisfy the invariant the checked constructor enforces; for an index, `idx` must lie within the given dimension.
 	/// returns a constrained index value if `idx` is nonnegative, `none`
 	/// otherwise.
 	#[inline]
@@ -604,6 +612,9 @@ impl<'n, I: Index> MaybeIdx<'n, I> {
 		}
 	}
 
+	///
+	/// # Safety
+	/// the value must satisfy the same bound as the branded constructor it bypasses (`idx < dim`, or `idx <= dim` for the inclusive index type).
 	/// returns a constrained index value if `idx` is nonnegative, `none`
 	/// otherwise.
 	#[inline]
@@ -647,6 +658,9 @@ impl<'n, I: Index> MaybeIdx<'n, I> {
 		unsafe { &mut *(slice as *mut _ as *mut _) }
 	}
 
+	///
+	/// # Safety
+	/// every element of the slice must be smaller than the dimension tied to the brand.
 	/// assume that the values of `slice` are all bounded by the value tied to
 	/// `'n`.
 	#[track_caller]
@@ -675,6 +689,9 @@ impl<'n, I: Index> MaybeIdx<'n, I> {
 		unsafe { &*(slice as *const _ as *const _) }
 	}
 
+	///
+	/// # Safety
+	/// every element of the slice must be smaller than the dimension tied to the brand.
 	/// assume that the values of `slice` are all bounded by the value tied to
 	/// `'n`.
 	#[track_caller]
@@ -743,6 +760,8 @@ impl<'n, T> Array<'n, T> {
 		unsafe { &mut *(slice as *mut [T] as *mut Self) }
 	}
 
+	#[allow(clippy::should_implement_trait)]
+	// inherent method kept as-is: adding the trait impl would add public API
 	/// returns the unconstrained slice.
 	#[inline]
 	#[track_caller]
@@ -750,6 +769,8 @@ impl<'n, T> Array<'n, T> {
 		unsafe { &*(self as *const _ as *const _) }
 	}
 
+	#[allow(clippy::should_implement_trait)]
+	// inherent method kept as-is: adding the trait impl would add public API
 	/// returns the unconstrained slice.
 	#[inline]
 	#[track_caller]

@@ -4,6 +4,7 @@ use crate::matrix_free::BiLinOp;
 use linalg::matmul::matmul;
 use linalg::temp_mat_zeroed;
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn iterate_lanczos<T: ComplexField>(
 	A: &dyn BiLinOp<T>,
 	H: MatMut<'_, T>,
@@ -24,8 +25,8 @@ fn iterate_lanczos<T: ComplexField>(
 		let Q = Q.rb();
 		let mut Pnext = Pnext.col_mut(0);
 		let mut Qnext = Qnext.col_mut(0);
-		let ref f =
-			from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>();
+		let f =
+			&(from_f64::<T::Real>(Ord::max(j, 8) as f64) * eps::<T::Real>());
 		{
 			A.apply(
 				Pnext.rb_mut().as_mat_mut(),
@@ -34,7 +35,7 @@ fn iterate_lanczos<T: ComplexField>(
 				stack,
 			);
 			for i in 0..j - 1 {
-				let ref r = P.col(i).adjoint() * Pnext.rb();
+				let r = &(P.col(i).adjoint() * Pnext.rb());
 				zip!(Pnext.rb_mut(), P.col(i))
 					.for_each(|unzip!(y, x): Zip!(&mut _, &_)| *y -= r * x);
 			}
@@ -46,7 +47,7 @@ fn iterate_lanczos<T: ComplexField>(
 					for i in 0..j - 1 {
 						if !converged[i] {
 							all_true = false;
-							let ref r = P.col(i).adjoint() * Pnext.rb();
+							let r = &(P.col(i).adjoint() * Pnext.rb());
 							zip!(Pnext.rb_mut(), P.col(i)).for_each(
 								|unzip!(y, x): Zip!(&mut _, &T)| *y -= r * x,
 							);
@@ -60,7 +61,7 @@ fn iterate_lanczos<T: ComplexField>(
 			}
 			let norm = Pnext.norm_l2();
 			if norm > zero() {
-				let ref norm_inv = norm.recip();
+				let norm_inv = &norm.recip();
 				zip!(&mut Pnext)
 					.for_each(|unzip!(v)| *v = v.mul_real(norm_inv));
 			} else {
@@ -77,7 +78,7 @@ fn iterate_lanczos<T: ComplexField>(
 				stack,
 			);
 			for i in 0..j {
-				let ref r = Q.col(i).adjoint() * Qnext.rb();
+				let r = &(Q.col(i).adjoint() * Qnext.rb());
 				zip!(Qnext.rb_mut(), Q.col(i))
 					.for_each(|unzip!(y, x): Zip!(&mut _, &T)| *y -= r * x);
 			}
@@ -89,7 +90,7 @@ fn iterate_lanczos<T: ComplexField>(
 					for i in 0..j {
 						if !converged[i] {
 							all_true = false;
-							let ref r = Q.col(i).adjoint() * Qnext.rb();
+							let r = &(Q.col(i).adjoint() * Qnext.rb());
 							zip!(Qnext.rb_mut(), Q.col(i)).for_each(
 								|unzip!(y, x): Zip!(&mut _, &T)| *y -= r * x,
 							);
@@ -103,7 +104,7 @@ fn iterate_lanczos<T: ComplexField>(
 			}
 			let norm = Qnext.norm_l2();
 			if norm > zero() {
-				let ref norm_inv = norm.recip();
+				let norm_inv = &norm.recip();
 				zip!(&mut Qnext)
 					.for_each(|unzip!(v)| *v = v.mul_real(norm_inv));
 			} else {
@@ -114,6 +115,7 @@ fn iterate_lanczos<T: ComplexField>(
 	}
 }
 
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub fn partial_svd_imp<T: ComplexField>(
 	left_singular_vecs: MatMut<'_, T>,
 	right_singular_vecs: MatMut<'_, T>,
@@ -159,16 +161,16 @@ pub fn partial_svd_imp<T: ComplexField>(
 	let mut Y = Y.as_mat_mut();
 	let (mut residual, stack) = temp_mat_zeroed::<T, _, _>(max_dim, 1, stack);
 	let mut residual = residual.as_mat_mut().col_mut(0);
-	let ref f = v0.norm_l2();
+	let f = &v0.norm_l2();
 	if *f > min_positive() {
-		let ref f = f.recip();
+		let f = &f.recip();
 		zip!(Q.rb_mut().col_mut(0), v0)
 			.for_each(|unzip!(y, x): Zip!(&mut _, &_)| *y = x.mul_real(f));
 	} else {
 		let n0 = n as u32;
 		let n1 = (n >> 32) as u32;
 		let n = from_f64::<T>(n0 as f64) + from_f64::<T>(n1 as f64);
-		let ref f = n.sqrt().recip();
+		let f = &n.sqrt().recip();
 		zip!(Q.rb_mut().col_mut(0)).for_each(|unzip!(y)| *y = f.copy());
 	}
 	iterate_lanczos(
@@ -193,7 +195,7 @@ pub fn partial_svd_imp<T: ComplexField>(
 			par.reborrow(),
 			stack,
 		);
-		let ref Hmm = H[(max_dim - 1, max_dim)].copy();
+		let Hmm = &H[(max_dim - 1, max_dim)].copy();
 		let dim = max_dim - active;
 		X.fill(zero());
 		X.rb_mut().diagonal_mut().fill(one());
@@ -378,6 +380,8 @@ mod tests {
 	use crate::stats::prelude::*;
 	use dyn_stack::{MemBuffer, StackReq};
 	use equator::assert;
+	#[allow(clippy::needless_range_loop)]
+	// index loop kept as written: the body indexes parallel buffers and strided views
 	#[test]
 	fn test_small_cplx() {
 		let rng = &mut StdRng::seed_from_u64(1);

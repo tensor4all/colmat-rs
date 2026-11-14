@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
-use core::ffi::c_void;
 use colmat::dyn_stack::StackReq;
 use colmat::{c32, c64, cx128, fx128};
+use core::ffi::c_void;
 trait RealField: colmat::traits::RealField + Copy + 'static {}
 impl<T: colmat::traits::RealField + Copy + 'static> RealField for T {}
 trait ComplexField: colmat::traits::ComplexField + Copy + 'static {}
@@ -9,22 +9,101 @@ impl<T: colmat::traits::ComplexField + Copy + 'static> ComplexField for T {}
 type AsIs<T> = T;
 #[derive(Copy, Clone)]
 pub enum Never {}
+/// A borrowed immutable matrix view, as the C API passes one.
+///
+/// This is the C spelling of `colmat::MatRef`: a pointer, a shape, two strides, and no lifetime.
+/// The caller owns the memory and promises that it stays live and initialized for the whole call.
+///
+/// # Contract
+///
+/// The header describes `nrows` x `ncols` elements of the element type named by the entry point's
+/// suffix (`_f32`, `_f64`, `_fx128`, `_c32`, `_c64`, `_cx128`). Element `(row i, column j)` lives at
+/// `ptr + i * row_stride + j * col_stride` **elements**, not bytes.
+///
+/// * `ptr` is the address of element `(0, 0)`. When the view is empty (`nrows == 0 || ncols == 0`)
+///   no element is addressed: `ptr` may be null, any alignment is accepted, and both strides are
+///   ignored (the conversion canonicalizes them to an aligned empty view).
+/// * When the view is non-empty, `ptr` must be non-null and aligned for the element type: 4 bytes
+///   for `_f32` / `_c32`, 8 bytes for `_f64`, `_fx128`, `_c64` and `_cx128` (`fx128` and `cx128` are
+///   the quad-double types, whose alignment is that of `f64`).
+/// * A stride may be negative; the view then walks backwards. It must be non-zero when the
+///   corresponding extent is greater than one: a zero row stride with `nrows > 1` (resp. a zero
+///   column stride with `ncols > 1`) would make two indices address the same element.
+/// * A view is a plain matrix, not a broadcast: no two distinct `(i, j)` may address the same
+///   element, and no two elements may share a byte. The zero-stride rule above is the check the
+///   API performs; general colliding strides (for example `row_stride == 2`, `col_stride == 3`,
+///   where `(3, 0)` and `(0, 2)` collide) are the caller's responsibility.
+/// * `nrows * ncols` must fit in `size_t`, and the lowest and highest element offsets must fit in
+///   `ptrdiff_t`; entry points that report a status validate both.
+/// * The header has no length: `ptr` must point into one allocation large enough for every element
+///   it addresses, and those elements must be valid for reads. Allocation bounds and
+///   initialization are always the caller's responsibility.
+///
+/// # Aliasing
+///
+/// Immutable views may share elements with other immutable arguments of the same call. They must
+/// not share an element with a `FaerV0_24_MatMut` argument of the same call. The shape must also
+/// satisfy the operation's own contract (which dimensions must agree); that is stated on the Rust
+/// function each entry point wraps.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct MatRef {
+	/// address of element `(0, 0)`, in elements of the type named by the symbol's suffix; null is
+	/// accepted only for an empty view
 	pub ptr: *const c_void,
+	/// number of rows
 	pub nrows: usize,
+	/// number of columns
 	pub ncols: usize,
+	/// offset from element `(i, j)` to `(i + 1, j)`, in elements; may be negative; zero only when
+	/// `nrows <= 1`
 	pub row_stride: isize,
+	/// offset from element `(i, j)` to `(i, j + 1)`, in elements; may be negative; zero only when
+	/// `ncols <= 1`
 	pub col_stride: isize,
 }
+/// A borrowed mutable matrix view, as the C API passes one.
+///
+/// The contract is `FaerV0_24_MatRef`'s, with exclusivity added: the view's elements must be
+/// unique, and the view must not overlap any other argument of the call.
+///
+/// # Contract
+///
+/// * `ptr` is null only when the view is empty (`nrows == 0 || ncols == 0`); an empty view
+///   addresses no element and its strides are ignored. A non-empty `ptr` must be non-null and
+///   aligned for the element type (4 bytes for `_f32` / `_c32`, 8 bytes for the other suffixes).
+/// * Strides are element offsets and may be negative; row (resp. column) stride must be non-zero
+///   when `nrows > 1` (resp. `ncols > 1`). No two distinct indices may address the same element,
+///   and two distinct elements may not share a byte; only the zero-stride case is checked cheaply,
+///   the rest is the caller's responsibility.
+/// * `nrows * ncols` must fit in `size_t`, and the extremes of the element offsets must fit in
+///   `ptrdiff_t`.
+/// * `ptr` must point into one live allocation large enough for the whole view; its elements must
+///   be initialized before they are read and stay valid for the whole call. Bounds and
+///   initialization are not checked.
+///
+/// # Aliasing
+///
+/// A mutable view must be disjoint from **every** other argument of the call, including other
+/// `MatMut` arguments and read-only views. Entry points that report a status check the cases they
+/// can prove cheaply (equal base pointers, or intersecting contiguous byte ranges) and return
+/// `InvalidView`; any other overlap is the caller's responsibility. The shape must satisfy the
+/// operation's own contract.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct MatMut {
+	/// address of element `(0, 0)`, in elements of the type named by the symbol's suffix; null is
+	/// accepted only for an empty view
 	pub ptr: *mut c_void,
+	/// number of rows
 	pub nrows: usize,
+	/// number of columns
 	pub ncols: usize,
+	/// offset from element `(i, j)` to `(i + 1, j)`, in elements; may be negative; zero only when
+	/// `nrows <= 1`
 	pub row_stride: isize,
+	/// offset from element `(i, j)` to `(i, j + 1)`, in elements; may be negative; zero only when
+	/// `ncols <= 1`
 	pub col_stride: isize,
 }
 #[repr(C)]
@@ -153,30 +232,224 @@ fn real<T: RealField>(x: *const Real) -> T {
 	unsafe { (x as *const T).read() }
 }
 impl MatRef {
+	/// The structural part of the [`MatRef`] contract, as a runtime check. Kept symmetric with
+	/// [`MatMut::is_valid`]; the entry points that take a `MatRef` check the whole argument list
+	/// through `views_are_valid`, so only the tests call this directly.
+	#[allow(dead_code)]
+	fn is_valid<T>(self) -> bool {
+		ViewHeader::from(self).is_valid::<T>()
+	}
+
+	/// Builds the Rust view, canonicalizing the cases the C contract leaves unspecified.
 	fn faer<'a, T>(self) -> colmat::MatRef<'a, T> {
+		// An empty view addresses no element. C callers naturally spell it as a zeroed struct or
+		// as `{NULL, n, 0, ...}`, while upstream requires a non-null, aligned pointer even for a
+		// zero-sized matrix: use the canonical dangling pointer and zero the strides so that no
+		// row/column walk computes an offset. A null pointer on a non-empty view is a contract
+		// violation; entry points that report a status reject it before they get here, and an
+		// unvalidated one gets the canonical empty view instead of immediate undefined behavior.
+		let (ptr, nrows, ncols, row_stride, col_stride) =
+			if self.nrows == 0 || self.ncols == 0 {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr() as *const T,
+					self.nrows,
+					self.ncols,
+					0,
+					0,
+				)
+			} else if self.ptr.is_null() {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr() as *const T,
+					0,
+					0,
+					0,
+					0,
+				)
+			} else {
+				(
+					self.ptr as *const T,
+					self.nrows,
+					self.ncols,
+					self.row_stride,
+					self.col_stride,
+				)
+			};
 		unsafe {
 			colmat::MatRef::from_raw_parts(
-				self.ptr as *const T,
-				self.nrows,
-				self.ncols,
-				self.row_stride,
-				self.col_stride,
+				ptr, nrows, ncols, row_stride, col_stride,
 			)
 		}
 	}
 }
 impl MatMut {
+	/// The structural part of the [`MatMut`] contract, as a runtime check.
+	fn is_valid<T>(self) -> bool {
+		ViewHeader::from(self).is_valid::<T>()
+	}
+
+	/// Builds the Rust view, canonicalizing the cases the C contract leaves unspecified.
+	///
+	/// See [`MatRef::faer`]; the same empty-view and null-pointer normalization applies.
 	fn faer<'a, T>(self) -> colmat::MatMut<'a, T> {
+		let (ptr, nrows, ncols, row_stride, col_stride) =
+			if self.nrows == 0 || self.ncols == 0 {
+				(
+					core::ptr::NonNull::<T>::dangling().as_ptr(),
+					self.nrows,
+					self.ncols,
+					0,
+					0,
+				)
+			} else if self.ptr.is_null() {
+				(core::ptr::NonNull::<T>::dangling().as_ptr(), 0, 0, 0, 0)
+			} else {
+				(
+					self.ptr as *mut T,
+					self.nrows,
+					self.ncols,
+					self.row_stride,
+					self.col_stride,
+				)
+			};
 		unsafe {
 			colmat::MatMut::from_raw_parts_mut(
-				self.ptr as *mut T,
-				self.nrows,
-				self.ncols,
-				self.row_stride,
-				self.col_stride,
+				ptr, nrows, ncols, row_stride, col_stride,
 			)
 		}
 	}
+}
+/// The header fields of either view type, so that validation has one spelling for both.
+#[derive(Copy, Clone)]
+struct ViewHeader {
+	ptr: *const c_void,
+	nrows: usize,
+	ncols: usize,
+	row_stride: isize,
+	col_stride: isize,
+}
+impl From<MatRef> for ViewHeader {
+	fn from(v: MatRef) -> Self {
+		Self {
+			ptr: v.ptr,
+			nrows: v.nrows,
+			ncols: v.ncols,
+			row_stride: v.row_stride,
+			col_stride: v.col_stride,
+		}
+	}
+}
+impl From<MatMut> for ViewHeader {
+	fn from(v: MatMut) -> Self {
+		Self {
+			ptr: v.ptr,
+			nrows: v.nrows,
+			ncols: v.ncols,
+			row_stride: v.row_stride,
+			col_stride: v.col_stride,
+		}
+	}
+}
+impl ViewHeader {
+	fn is_empty(self) -> bool {
+		self.nrows == 0 || self.ncols == 0
+	}
+
+	/// The structural conditions from the [`MatRef`] / [`MatMut`] contract: null only when empty,
+	/// alignment, a non-zero stride across an extent above one, and `size_t` / `ptrdiff_t` overflow.
+	/// Allocation bounds and general intra-view collisions are not checkable here.
+	fn is_valid<T>(self) -> bool {
+		if self.is_empty() {
+			return true;
+		}
+		if self.ptr.is_null()
+			|| !(self.ptr as usize).is_multiple_of(core::mem::align_of::<T>())
+		{
+			return false;
+		}
+		if (self.nrows > 1 && self.row_stride == 0)
+			|| (self.ncols > 1 && self.col_stride == 0)
+		{
+			return false;
+		}
+		if self.nrows.checked_mul(self.ncols).is_none() {
+			return false;
+		}
+		let (Some(rows), Some(cols)) = (
+			isize::try_from(self.nrows - 1).ok(),
+			isize::try_from(self.ncols - 1).ok(),
+		) else {
+			return false;
+		};
+		let row = rows as i128 * self.row_stride as i128;
+		let col = cols as i128 * self.col_stride as i128;
+		let low = row.min(0) + col.min(0);
+		let high = row.max(0) + col.max(0);
+		(isize::MIN as i128..=isize::MAX as i128).contains(&low)
+			&& (isize::MIN as i128..=isize::MAX as i128).contains(&high)
+	}
+
+	/// The byte range `[low, high]` covered by this view when its elements are contiguous, or
+	/// `None` when they are not. Used only to *prove* overlap; an unknown layout is never rejected.
+	fn contiguous_byte_range<T>(self) -> Option<(i128, i128)> {
+		if self.is_empty() {
+			return None;
+		}
+		let (rows, cols) = (self.nrows - 1, self.ncols - 1);
+		let contiguous = match (rows == 0, cols == 0) {
+			(true, true) => true,
+			(false, true) => self.row_stride == 1 || self.row_stride == -1,
+			(true, false) => self.col_stride == 1 || self.col_stride == -1,
+			(false, false) => {
+				let (nrows, ncols) = (self.nrows as i128, self.ncols as i128);
+				(self.row_stride == 1 && self.col_stride as i128 == nrows)
+					|| (self.row_stride == -1
+						&& self.col_stride as i128 == -nrows)
+					|| (self.col_stride == 1
+						&& self.row_stride as i128 == ncols)
+					|| (self.col_stride == -1
+						&& self.row_stride as i128 == -ncols)
+			},
+		};
+		if !contiguous {
+			return None;
+		}
+		let row = rows as i128 * self.row_stride as i128;
+		let col = cols as i128 * self.col_stride as i128;
+		let size = core::mem::size_of::<T>() as i128;
+		let base = self.ptr as usize as i128;
+		let low = base + row.min(0) * size + col.min(0) * size;
+		let high = base + row.max(0) * size + col.max(0) * size + (size - 1);
+		Some((low, high))
+	}
+}
+
+/// Whether two non-empty views provably share a byte: equal base pointers, or contiguous ranges
+/// that intersect. Anything else is left to the caller (a full check is not cheap).
+fn views_overlap<T>(a: ViewHeader, b: ViewHeader) -> bool {
+	if a.is_empty() || b.is_empty() {
+		return false;
+	}
+	if a.ptr == b.ptr {
+		return true;
+	}
+	match (
+		a.contiguous_byte_range::<T>(),
+		b.contiguous_byte_range::<T>(),
+	) {
+		(Some((a_low, a_high)), Some((b_low, b_high))) => {
+			a_low <= b_high && b_low <= a_high
+		},
+		_ => false,
+	}
+}
+
+/// The structural check plus pairwise disjointness of every matrix-view argument.
+fn views_are_valid<T>(views: &[ViewHeader]) -> bool {
+	views.iter().all(|v| v.is_valid::<T>())
+		&& (0..views.len()).all(|i| {
+			((i + 1)..views.len())
+				.all(|j| !views_overlap::<T>(views[i], views[j]))
+		})
 }
 #[allow(dead_code)]
 impl VecRef {
@@ -370,7 +643,6 @@ impl Team {
 		let r = {
 			let mut exec = team.exec(self.threads);
 			exec.team(|token| f(colmat::Par::Team(token)))
-				.ok()
 				.expect("a team token for the handle's own team")
 		};
 		*held = Some(team.into_pool());
@@ -457,6 +729,28 @@ macro_rules! funcs {
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _ $ty0_list>] $inputs -> $output_ty { type $ty0 = $ty0_list;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -472,12 +766,56 @@ macro_rules! funcs {
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u32_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u32;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
 		pastey::paste! {
 			$(
 				#[unsafe(no_mangle)]
+				/// # Safety
+				///
+				/// A matrix-view argument must satisfy the contract documented on
+				/// `FaerV0_24_MatRef` / `FaerV0_24_MatMut`: a non-empty view has a non-null
+				/// pointer aligned for the element type of the symbol's suffix, a shape whose
+				/// product fits `size_t`, non-zero strides across an extent above one, extreme
+				/// element offsets that fit `ptrdiff_t`, no two indices of one view addressing the
+				/// same element, and one live, initialized allocation covering the whole view.
+				/// Strides are in elements and may be negative; an empty view may use a null
+				/// pointer, and its strides are ignored. Read-only views may alias each other;
+				/// every `MatMut` must be disjoint from every other argument, including other
+				/// `MatMut` arguments. Bounds and initialization are never checked.
+				///
+				/// Every other pointer and length (`team`, `mem`, `Scalar`, `Real`, permutation
+				/// buffers, scratch) must describe a live object for the whole call, and `team` is
+				/// `NULL` or a handle from `libfaer_v0_23_team_create` that no other call is using.
+				///
+				/// Entry points that return a `*Status` validate the structural view conditions
+				/// above (null only when empty, alignment, zero strides, `size_t`/`ptrdiff_t`
+				/// overflow) and pairwise provable overlap of their view arguments, and report
+				/// `InvalidView` instead of `Ok`. Entry points that return `()` have no error
+				/// channel and do not validate: a violation is undefined behavior.
 				pub unsafe extern "C" fn [<libfaer_v0_23_ $func _u64_ $ty0_list >] $inputs -> $output_ty { type $ty0 = $ty0_list; type $ty1 = u64;#[allow(unused_unsafe)] unsafe {$body} }
 			)*
 		}
@@ -501,8 +839,12 @@ macro_rules! cerr {
 			Ok {$($field: $field_ty,)*},
 			$($err {$($err_field: $err_field_ty,)*},)*
 			Unknown,
+			/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+			/// `FaerV0_24_MatMut`
+			InvalidView,
 		}
 
+		#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 		impl Into<$name> for Result<$ok_path, $err_path> {
 			fn into(self) -> $name {
 				match self {
@@ -717,21 +1059,43 @@ pub mod linalg {
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum SvdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum EvdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
 	#[repr(C)]
 	#[derive(Copy, Clone)]
 	pub enum GevdStatus {
-		Ok { padding: usize },
-		NoConvergence { padding: usize },
+		Ok {
+			padding: usize,
+		},
+		NoConvergence {
+			padding: usize,
+		},
+		/// a matrix view violated the structural contract documented on `FaerV0_24_MatRef` /
+		/// `FaerV0_24_MatMut`
+		InvalidView,
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<SvdStatus> for Result<(), la::svd::SvdError> {
 		fn into(self) -> SvdStatus {
 			match self {
@@ -742,6 +1106,7 @@ pub mod linalg {
 			}
 		}
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<EvdStatus> for Result<(), la::evd::EvdError> {
 		fn into(self) -> EvdStatus {
 			match self {
@@ -752,6 +1117,7 @@ pub mod linalg {
 			}
 		}
 	}
+	#[allow(clippy::from_over_into)] // the `Into` impl is the existing public API; `From` would add to it
 	impl Into<GevdStatus> for Result<(), la::gevd::GevdError> {
 		fn into(self) -> GevdStatus {
 			match self {
@@ -792,7 +1158,9 @@ pub mod linalg {
 			blocking_threshold: usize,
 			par_threshold: usize,
 		}
-		#[repr(colmat::linalg::lu::partial_pivoting::factor::PartialPivLuParams)]
+		#[repr(
+			colmat::linalg::lu::partial_pivoting::factor::PartialPivLuParams
+		)]
 		pub struct PartialPivLuParams {
 			recursion_threshold: usize,
 			block_size: usize,
@@ -815,7 +1183,9 @@ pub mod linalg {
 			par_threshold: usize,
 			blocking_threshold: usize,
 		}
-		#[repr(colmat::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams)]
+		#[repr(
+			colmat::linalg::gevd::gen_hessenberg::GeneralizedHessenbergParams
+		)]
 		pub struct GeneralizedHessenbergParams {
 			block_size: usize,
 			blocking_threshold: usize,
@@ -909,7 +1279,9 @@ pub mod linalg {
 	impl From<GevdFromSchurParams> for la::gevd::GevdFromSchurParams {
 		#[allow(unused_variables)]
 		fn from(value: GevdFromSchurParams) -> la::gevd::GevdFromSchurParams {
-			la::gevd::GevdFromSchurParams { ..colmat::auto!(f32) }
+			la::gevd::GevdFromSchurParams {
+				..colmat::auto!(f32)
+			}
 		}
 	}
 	impl From<la::gevd::GevdFromSchurParams> for GevdFromSchurParams {
@@ -956,7 +1328,8 @@ pub mod linalg {
 	impl LdltRegularization {
 		fn faer<'a, T: RealField>(
 			self,
-		) -> colmat::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T> {
+		) -> colmat::linalg::cholesky::ldlt::factor::LdltRegularization<'a, T>
+		{
 			{
 				colmat::linalg::cholesky::ldlt::factor::LdltRegularization {
 					dynamic_regularization_delta: real(
@@ -1147,6 +1520,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LltParams,
 		) -> LltStatus {
+			if !A.is_valid::<T>() {
+				return LltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::llt::factor::cholesky_in_place::<T>(
 					A.faer(),
@@ -1187,7 +1563,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn llt_reconstruct_scratch<T>(dim: usize, team: *const Team) -> Layout {
+		pub fn llt_reconstruct_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::llt::reconstruct::reconstruct_scratch::<T>(
 				dim,
 				Team::shape(team),
@@ -1210,8 +1589,11 @@ pub mod linalg {
 			})
 		}
 		pub fn llt_inverse_scratch<T>(dim: usize, team: *const Team) -> Layout {
-			la::cholesky::llt::inverse::inverse_scratch::<T>(dim, Team::shape(team))
-				.into()
+			la::cholesky::llt::inverse::inverse_scratch::<T>(
+				dim,
+				Team::shape(team),
+			)
+			.into()
 		}
 		pub fn llt_inverse<T>(
 			A_inv: MatMut,
@@ -1243,6 +1625,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: PivLltParams,
 		) -> PivLltStatus {
+			if !A.is_valid::<T>() {
+				return PivLltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::llt_pivoting::factor::cholesky_in_place::<I, T>(
 					A.faer(),
@@ -1320,7 +1705,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn piv_llt_inverse_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn piv_llt_inverse_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::llt_pivoting::inverse::inverse_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1369,6 +1757,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LdltParams,
 		) -> LdltStatus {
+			if !A.is_valid::<T>() {
+				return LdltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				la::cholesky::ldlt::factor::cholesky_in_place::<T>(
 					A.faer(),
@@ -1411,7 +1802,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn ldlt_reconstruct_scratch<T>(dim: usize, team: *const Team) -> Layout {
+		pub fn ldlt_reconstruct_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::ldlt::reconstruct::reconstruct_scratch::<T>(
 				dim,
 				Team::shape(team),
@@ -1435,9 +1829,15 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn ldlt_inverse_scratch<T>(dim: usize, team: *const Team) -> Layout {
-			la::cholesky::ldlt::inverse::inverse_scratch::<T>(dim, Team::shape(team))
-				.into()
+		pub fn ldlt_inverse_scratch<T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
+			la::cholesky::ldlt::inverse::inverse_scratch::<T>(
+				dim,
+				Team::shape(team),
+			)
+			.into()
 		}
 		pub fn ldlt_inverse<T>(
 			A_inv: MatMut,
@@ -1478,6 +1878,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: LbltParams,
 		) -> LbltStatus {
+			if !A.is_valid::<T>() {
+				return LbltStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::cholesky::lblt::factor::cholesky_in_place::<I, T>(
 					A.faer(),
@@ -1532,7 +1935,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn lblt_reconstruct_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn lblt_reconstruct_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::lblt::reconstruct::reconstruct_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1565,7 +1971,10 @@ pub mod linalg {
 				)
 			})
 		}
-		pub fn lblt_inverse_scratch<I, T>(dim: usize, team: *const Team) -> Layout {
+		pub fn lblt_inverse_scratch<I, T>(
+			dim: usize,
+			team: *const Team,
+		) -> Layout {
 			la::cholesky::lblt::inverse::inverse_scratch::<I, T>(
 				dim,
 				Team::shape(team),
@@ -1735,6 +2144,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: QrParams,
 		) -> QrStatus {
+			if !views_are_valid::<T>(&[A.into(), Q_coeff.into()]) {
+				return QrStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::qr::no_pivoting::factor::qr_in_place::<T>(
 					A.faer(),
@@ -1805,7 +2217,9 @@ pub mod linalg {
 			mem: MemAlloc,
 		) {
 			with_team_par(team, |mut par| {
-				la::qr::no_pivoting::solve::solve_transpose_in_place_with_conj::<T>(
+				la::qr::no_pivoting::solve::solve_transpose_in_place_with_conj::<
+					T,
+				>(
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
@@ -1942,6 +2356,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: ColPivQrParams,
 		) -> ColPivQrStatus {
+			if !views_are_valid::<T>(&[A.into(), Q_coeff.into()]) {
+				return ColPivQrStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::qr::col_pivoting::factor::qr_in_place::<I, T>(
 					A.faer(),
@@ -2065,7 +2482,10 @@ pub mod linalg {
 			mem: MemAlloc,
 		) {
 			with_team_par(team, |mut par| {
-				la::qr::col_pivoting::solve::solve_lstsq_in_place_with_conj::<I, T>(
+				la::qr::col_pivoting::solve::solve_lstsq_in_place_with_conj::<
+					I,
+					T,
+				>(
 					Q_basis.faer(),
 					Q_coeff.faer(),
 					R.faer(),
@@ -2182,6 +2602,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: PartialPivLuParams,
 		) -> PartialPivLuStatus {
+			if !A.is_valid::<T>() {
+				return PartialPivLuStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::lu::partial_pivoting::factor::lu_in_place::<I, T>(
 					A.faer(),
@@ -2367,6 +2790,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: FullPivLuParams,
 		) -> FullPivLuStatus {
+			if !A.is_valid::<T>() {
+				return FullPivLuStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				Ok(la::lu::full_pivoting::factor::lu_in_place::<I, T>(
 					A.faer(),
@@ -2582,6 +3008,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: SvdParams,
 		) -> SvdStatus {
+			if !views_are_valid::<T>(&[A.into(), U.into(), V.into()]) {
+				return SvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				let U = if U.ncols == 0 { None } else { Some(U.faer()) };
 				let V = if V.ncols == 0 { None } else { Some(V.faer()) };
@@ -2620,6 +3049,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: SelfAdjointEvdParams,
 		) -> EvdStatus {
+			if !views_are_valid::<T>(&[A.into(), U.into()]) {
+				return EvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				let U = if U.ncols == 0 { None } else { Some(U.faer()) };
 				la::evd::self_adjoint_evd::<T>(
@@ -2660,6 +3092,9 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: EvdParams,
 		) -> EvdStatus {
+			if !views_are_valid::<T>(&[A.into(), UL.into(), UR.into()]) {
+				return EvdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				type R = <T as colmat::traits::ComplexField>::Real;
 				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
@@ -2721,6 +3156,14 @@ pub mod linalg {
 			mem: MemAlloc,
 			params: GevdParams,
 		) -> GevdStatus {
+			if !views_are_valid::<T>(&[
+				A.into(),
+				B.into(),
+				UL.into(),
+				UR.into(),
+			]) {
+				return GevdStatus::InvalidView;
+			}
 			with_team_par(team, |mut par| {
 				type R = <T as colmat::traits::ComplexField>::Real;
 				if const { <T as colmat::traits::ComplexField>::IS_REAL } {
@@ -2759,6 +3202,10 @@ pub mod linalg {
 		}
 	});
 }
+/// # Safety
+/// `size` must be nonzero (`std::alloc::alloc` takes a sized layout), and `align` a power of two.
+/// A non-null result is owned by the caller and must be handed back to `libfaer_v0_23_dealloc`
+/// exactly once with the same `size` and `align`; a null result must not be deallocated.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_alloc(
 	size: usize,
@@ -2830,8 +3277,13 @@ pub unsafe extern "C" fn libfaer_v0_23_alloc(
 /// libfaer_v0_23_team_set_threads(team, 2);     // not while an operation uses the handle
 /// libfaer_v0_23_team_destroy(team);
 /// ```
+/// # Safety
+/// The handle owns worker threads that outlive the call: it must be released with
+/// `libfaer_v0_23_team_destroy` exactly once.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn libfaer_v0_23_team_create(threads: usize) -> *mut Team {
+pub unsafe extern "C" fn libfaer_v0_23_team_create(
+	threads: usize,
+) -> *mut Team {
 	let threads = threads.max(1);
 	Box::into_raw(Box::new(Team {
 		threads,
@@ -2845,6 +3297,9 @@ pub unsafe extern "C" fn libfaer_v0_23_team_create(threads: usize) -> *mut Team 
 /// running. Dropping the pool ends its workers: they are dedicated to this handle (not threadteam's
 /// process-wide cache of shared workers), so when `destroy` returns every worker thread of the
 /// handle has been joined.
+/// # Safety
+/// `team` must be null or a handle returned by `libfaer_v0_23_team_create` that is not used by
+/// any running operation, and it must not be destroyed twice.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_team_destroy(team: *mut Team) {
 	if !team.is_null() {
@@ -2862,12 +3317,21 @@ pub unsafe extern "C" fn libfaer_v0_23_team_destroy(team: *mut Team) {
 /// (`*_scratch`) made before the change no longer describes an operation of the new width: some
 /// sizes depend on the number of participants (full-pivot LU sizes one pivot candidate per
 /// participant), so query the scratch again after setting the width.
+/// # Safety
+/// `team` must be a live handle, and no operation may be using it while its width changes.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn libfaer_v0_23_team_set_threads(team: *mut Team, threads: usize) {
+pub unsafe extern "C" fn libfaer_v0_23_team_set_threads(
+	team: *mut Team,
+	threads: usize,
+) {
 	if let Some(team) = unsafe { team.as_mut() } {
 		team.set_threads(threads.max(1));
 	}
 }
+/// # Safety
+/// `ptr` must be a non-null pointer to a block currently allocated by `libfaer_v0_23_alloc`, with
+/// this same `size` and `align`, that no longer aliases anything the caller still uses, and that is
+/// freed only once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn libfaer_v0_23_dealloc(
 	ptr: *mut c_void,
@@ -2952,7 +3416,8 @@ mod tests {
 	/// (threadteam 0.5, Linux), so a mask that still names a single CPU after a call is the
 	/// observable form of "the call did not leave the team".
 	fn mask() -> Option<String> {
-		let status = std::fs::read_to_string("/proc/thread-self/status").ok()?;
+		let status =
+			std::fs::read_to_string("/proc/thread-self/status").ok()?;
 		Some(
 			status
 				.lines()
@@ -2962,7 +3427,12 @@ mod tests {
 	}
 
 	/// `(a * b)` on `n` x `n` f64 matrices, through the C entry point.
-	fn matmul(c: &mut colmat::Mat<f64>, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>, team: *const Team) {
+	fn matmul(
+		c: &mut colmat::Mat<f64>,
+		a: &colmat::Mat<f64>,
+		b: &colmat::Mat<f64>,
+		team: *const Team,
+	) {
 		let alpha = 1.0f64;
 		let c = MatMut {
 			ptr: c.as_ptr_mut() as *mut c_void,
@@ -2997,7 +3467,11 @@ mod tests {
 	}
 
 	/// The sequential product, from the Rust API.
-	fn want(n: usize, a: &colmat::Mat<f64>, b: &colmat::Mat<f64>) -> colmat::Mat<f64> {
+	fn want(
+		n: usize,
+		a: &colmat::Mat<f64>,
+		b: &colmat::Mat<f64>,
+	) -> colmat::Mat<f64> {
 		let mut c = colmat::Mat::<f64>::zeros(n, n);
 		colmat::linalg::matmul::matmul(
 			c.as_mut(),
@@ -3012,7 +3486,11 @@ mod tests {
 
 	fn close(x: &colmat::Mat<f64>, y: &colmat::Mat<f64>) -> bool {
 		let (n, m) = (x.nrows(), x.ncols());
-		(0..n).all(|i| (0..m).all(|j| (x[(i, j)] - y[(i, j)]).abs() <= 1e-10 * (1.0 + x[(i, j)].abs())))
+		(0..n).all(|i| {
+			(0..m).all(|j| {
+				(x[(i, j)] - y[(i, j)]).abs() <= 1e-10 * (1.0 + x[(i, j)].abs())
+			})
+		})
 	}
 
 	/// faer's dispatch counters are process wide, and both tests dispatch (one reads the counters,
@@ -3063,8 +3541,12 @@ mod tests {
 	fn the_team_handle_is_entered_per_call_and_left_again() {
 		let _turn = TEAM_TURN.lock().unwrap_or_else(|e| e.into_inner());
 		let n = 512;
-		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 31 + j * 7) % 13) as f64 - 6.0);
-		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 5 + j * 11) % 17) as f64 - 8.0);
+		let a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 31 + j * 7) % 13) as f64 - 6.0
+		});
+		let b = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 5 + j * 11) % 17) as f64 - 8.0
+		});
 		let expected = want(n, &a, &b);
 
 		// (a) no team: the sequential product, and no region on a team
@@ -3075,13 +3557,23 @@ mod tests {
 		matmul(&mut got, &a, &b, core::ptr::null());
 		let serial = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a null handle must give the sequential product");
-		assert_eq!(mask(), before, "a null handle must not touch the calling thread");
+		assert!(
+			close(&expected, &got),
+			"a null handle must give the sequential product"
+		);
+		assert_eq!(
+			mask(),
+			before,
+			"a null handle must not touch the calling thread"
+		);
 		let teamless = serial.run.iter().skip(2).sum::<usize>()
 			+ serial.split.iter().skip(2).sum::<usize>()
 			+ serial.gemm_tiled
 			+ serial.gemm_team_kernel;
-		assert_eq!(teamless, 0, "a null handle must not run on a team: {serial:?}");
+		assert_eq!(
+			teamless, 0,
+			"a null handle must not run on a team: {serial:?}"
+		);
 
 		// the control: a held team narrows the mask, and hands it back when it goes. threadteam
 		// places its leader only where the caller's mask is at least as wide as the team, and that
@@ -3091,16 +3583,25 @@ mod tests {
 		let placed = {
 			let before = mask();
 			let inside = colmat::team::with_team(width, |_| mask());
-			assert_eq!(mask(), before, "a dropped team must hand the mask back");
+			assert_eq!(
+				mask(),
+				before,
+				"a dropped team must hand the mask back"
+			);
 			inside.is_some() && inside != before
 		};
 		// Deliberately a failure, not a skip: the placement is the observable the check below needs,
 		// so a host where threadteam cannot pin (a mask wider than its `cpu_set_t`, or affinity
 		// syscalls denied) must say so instead of reporting coverage it does not have.
 		if cpus >= width {
-			assert!(placed, "threadteam placed no leader on a mask of {cpus} CPUs");
+			assert!(
+				placed,
+				"threadteam placed no leader on a mask of {cpus} CPUs"
+			);
 		} else {
-			eprintln!("a mask of {cpus} CPU(s) cannot hold a team of {width}: placement is not checked");
+			eprintln!(
+				"a mask of {cpus} CPU(s) cannot hold a team of {width}: placement is not checked"
+			);
 		}
 
 		// (b) and (c): the same product on the handle, no team left behind
@@ -3113,12 +3614,18 @@ mod tests {
 		matmul(&mut got, &a, &b, team);
 		let parallel = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a team handle must give the sequential product");
+		assert!(
+			close(&expected, &got),
+			"a team handle must give the sequential product"
+		);
 		let on_team = parallel.run.iter().skip(2).sum::<usize>()
 			+ parallel.split.iter().skip(2).sum::<usize>()
 			+ parallel.gemm_tiled
 			+ parallel.gemm_team_kernel;
-		assert!(on_team > 0, "the handle ran no region on its team: {parallel:?}");
+		assert!(
+			on_team > 0,
+			"the handle ran no region on its team: {parallel:?}"
+		);
 		if placed {
 			assert_eq!(
 				mask(),
@@ -3136,13 +3643,23 @@ mod tests {
 		matmul(&mut got, &a, &b, team);
 		let one = colmat::team::stats::take();
 		colmat::team::stats::enable(false);
-		assert!(close(&expected, &got), "a one-participant team must give the same product");
+		assert!(
+			close(&expected, &got),
+			"a one-participant team must give the same product"
+		);
 		assert_eq!(
-			one.run.iter().skip(2).sum::<usize>() + one.split.iter().skip(2).sum::<usize>() + one.gemm_tiled + one.gemm_team_kernel,
+			one.run.iter().skip(2).sum::<usize>()
+				+ one.split.iter().skip(2).sum::<usize>()
+				+ one.gemm_tiled
+				+ one.gemm_team_kernel,
 			0,
 			"a one-participant team must be sequential: {one:?}"
 		);
-		assert_eq!(mask(), before, "a one-participant team must not place the caller");
+		assert_eq!(
+			mask(),
+			before,
+			"a one-participant team must not place the caller"
+		);
 		unsafe {
 			libfaer_v0_23_team_destroy(team);
 			libfaer_v0_23_team_destroy(core::ptr::null_mut());
@@ -3153,11 +3670,19 @@ mod tests {
 	/// which is what threadteam requires a team to fit into before it places its leader.
 	fn cpus() -> usize {
 		let Some(list) = mask() else { return 1 };
-		let Some(list) = list.split(':').nth(1) else { return 1 };
-		list.split(',').map(|item| match item.split_once('-') {
-			Some((lo, hi)) => hi.trim().parse::<usize>().unwrap_or(0) - lo.trim().parse::<usize>().unwrap_or(0) + 1,
-			None => 1,
-		}).sum()
+		let Some(list) = list.split(':').nth(1) else {
+			return 1;
+		};
+		list.split(',')
+			.map(|item| match item.split_once('-') {
+				Some((lo, hi)) => {
+					hi.trim().parse::<usize>().unwrap_or(0)
+						- lo.trim().parse::<usize>().unwrap_or(0)
+						+ 1
+				},
+				None => 1,
+			})
+			.sum()
 	}
 
 	fn perm_of(n: usize) -> Vec<u32> {
@@ -3178,9 +3703,18 @@ mod tests {
 		let width = cpus().clamp(2, 4);
 		let team = unsafe { libfaer_v0_23_team_create(width) };
 		let seq = unsafe {
-			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(n, n, core::ptr::null(), params)
+			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(
+				n,
+				n,
+				core::ptr::null(),
+				params,
+			)
 		};
-		let par = unsafe { la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(n, n, team, params) };
+		let par = unsafe {
+			la::libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(
+				n, n, team, params,
+			)
+		};
 		assert!(
 			par.len_bytes > seq.len_bytes,
 			"a query with a team must size more than the sequential one: {} vs {}",
@@ -3193,42 +3727,80 @@ mod tests {
 		// handle there), not something a mask that is restored after a drop could show.
 		let before = mask();
 		unsafe {
-			la::libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(n, n, team);
+			la::libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(
+				n, n, team,
+			);
 		};
 		assert_eq!(mask(), before, "a scratch query must not enter a team");
 
 		// a factorization on exactly the queried buffer, with the same team
-		let mut a = colmat::Mat::<f64>::from_fn(n, n, |i, j| ((i * 7 + j * 3) % 11) as f64 - 5.0);
+		let mut a = colmat::Mat::<f64>::from_fn(n, n, |i, j| {
+			((i * 7 + j * 3) % 11) as f64 - 5.0
+		});
 		let mut row_fwd = vec![0u32; n];
 		let mut row_bwd = vec![0u32; n];
 		let (mut col_fwd, mut col_bwd) = (vec![0u32; n], vec![0u32; n]);
 		let mem = unsafe {
 			MemAlloc {
-				ptr: std::alloc::alloc(core::alloc::Layout::from_size_align(par.len_bytes, par.align_bytes).unwrap()) as *mut c_void,
+				ptr: std::alloc::alloc(
+					core::alloc::Layout::from_size_align(
+						par.len_bytes,
+						par.align_bytes,
+					)
+					.unwrap(),
+				) as *mut c_void,
 				len_bytes: par.len_bytes,
 			}
 		};
 		assert!(!mem.ptr.is_null());
 		let status = unsafe {
 			la::libfaer_v0_23_full_piv_lu_factor_in_place_u32_f64(
-				MatMut { ptr: a.as_ptr_mut() as *mut c_void, nrows: n, ncols: n, row_stride: a.row_stride(), col_stride: a.col_stride() },
-				SliceMut { ptr: row_fwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: row_bwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: col_fwd.as_mut_ptr() as *mut c_void, len: n },
-				SliceMut { ptr: col_bwd.as_mut_ptr() as *mut c_void, len: n },
+				MatMut {
+					ptr: a.as_ptr_mut() as *mut c_void,
+					nrows: n,
+					ncols: n,
+					row_stride: a.row_stride(),
+					col_stride: a.col_stride(),
+				},
+				SliceMut {
+					ptr: row_fwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: row_bwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: col_fwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
+				SliceMut {
+					ptr: col_bwd.as_mut_ptr() as *mut c_void,
+					len: n,
+				},
 				team,
 				mem,
 				params,
 			)
 		};
-		assert!(matches!(status, la::FullPivLuStatus::Ok { .. }), "the factorization on the queried buffer failed");
+		assert!(
+			matches!(status, la::FullPivLuStatus::Ok { .. }),
+			"the factorization on the queried buffer failed"
+		);
 		for perm in [&row_fwd, &row_bwd, &col_fwd, &col_bwd] {
 			let mut sorted = perm.clone();
-				sorted.sort_unstable();
+			sorted.sort_unstable();
 			assert_eq!(sorted, perm_of(n), "not a permutation");
 		}
 		unsafe {
-			std::alloc::dealloc(mem.ptr as *mut u8, core::alloc::Layout::from_size_align(par.len_bytes, par.align_bytes).unwrap());
+			std::alloc::dealloc(
+				mem.ptr as *mut u8,
+				core::alloc::Layout::from_size_align(
+					par.len_bytes,
+					par.align_bytes,
+				)
+				.unwrap(),
+			);
 			libfaer_v0_23_team_destroy(team);
 		}
 	}
@@ -3610,5 +4182,183 @@ mod tests {
 			"a null handle must be sequential"
 		);
 		unsafe { libfaer_v0_23_team_destroy(team) };
+	}
+
+	/// The structural view check accepts what the C contract allows (empty views, a zero stride
+	/// across an extent of one) and rejects what it forbids (null on a non-empty view, a
+	/// misaligned pointer, a zero stride across an extent above one).
+	#[test]
+	fn the_structural_view_check_matches_the_documented_contract() {
+		let mut data = [0.0f64; 8];
+		let valid = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(valid.is_valid::<f64>());
+		assert!(
+			!MatMut {
+				row_stride: 0,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a zero row stride over two rows is not a matrix"
+		);
+		assert!(
+			MatMut {
+				nrows: 1,
+				row_stride: 0,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a zero stride over one row still addresses one element per column"
+		);
+		assert!(
+			!MatMut {
+				ptr: unsafe { (data.as_mut_ptr() as *mut u8).add(1) }
+					as *mut c_void,
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a misaligned pointer is rejected"
+		);
+		assert!(
+			!MatMut {
+				ptr: core::ptr::null_mut(),
+				..valid
+			}
+			.is_valid::<f64>(),
+			"a null pointer on a non-empty view is rejected"
+		);
+		let empty = MatRef {
+			ptr: core::ptr::null(),
+			nrows: 0,
+			ncols: 3,
+			row_stride: -7,
+			col_stride: 0,
+		};
+		assert!(
+			empty.is_valid::<f64>(),
+			"an empty view may use a null pointer"
+		);
+		let view = empty.faer::<f64>();
+		assert_eq!(view.ncols(), 3, "the empty view keeps its shape");
+		assert!(
+			!view.as_ptr().is_null(),
+			"an empty view gets a dangling pointer"
+		);
+		assert_eq!(
+			view.as_ptr() as usize % core::mem::align_of::<f64>(),
+			0,
+			"the dangling pointer is aligned"
+		);
+	}
+
+	/// Overlap is rejected only where it can be proved cheaply: the same base pointer, or two
+	/// contiguous byte ranges that intersect. A layout the check cannot see is not rejected.
+	#[test]
+	fn only_provable_view_overlaps_are_rejected() {
+		let mut data = [0.0f64; 8];
+		let base = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		let same = MatMut { ..base };
+		assert!(
+			!views_are_valid::<f64>(&[base.into(), same.into()]),
+			"two views with one base pointer overlap at (0, 0)"
+		);
+		let second = MatMut {
+			ptr: unsafe { data.as_mut_ptr().add(4) } as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(
+			views_are_valid::<f64>(&[base.into(), second.into()]),
+			"two disjoint contiguous views are accepted"
+		);
+		let crossing = MatMut {
+			ptr: unsafe { data.as_mut_ptr().add(1) } as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		assert!(
+			!views_are_valid::<f64>(&[base.into(), crossing.into()]),
+			"two contiguous ranges that intersect are rejected"
+		);
+	}
+
+	/// The finding this change closes: a zero row stride used to reach a status-returning entry
+	/// point and come back as `Ok`. The validation now runs before the scratch buffer is touched,
+	/// which is why a null `mem` here is enough to make the point.
+	#[test]
+	fn a_structurally_invalid_view_is_reported_as_invalid_view() {
+		let mut data = [0.0f64; 4];
+		let invalid = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 0,
+			col_stride: 1,
+		};
+		let params = unsafe { la::libfaer_v0_23_QrParams_f64() };
+		let mem = MemAlloc {
+			ptr: core::ptr::null_mut(),
+			len_bytes: 0,
+		};
+		let status = unsafe {
+			la::libfaer_v0_23_qr_factor_in_place_f64(
+				invalid,
+				invalid,
+				core::ptr::null(),
+				mem,
+				params,
+			)
+		};
+		assert!(
+			matches!(status, la::QrStatus::InvalidView),
+			"a zero row stride must not come back as Ok"
+		);
+	}
+
+	/// Two structurally valid outputs that share a base pointer are still rejected, again before
+	/// the scratch buffer or the params are read.
+	#[test]
+	fn overlapping_mutable_outputs_are_reported_as_invalid_view() {
+		let mut data = [0.0f64; 4];
+		let output = MatMut {
+			ptr: data.as_mut_ptr() as *mut c_void,
+			nrows: 2,
+			ncols: 2,
+			row_stride: 2,
+			col_stride: 1,
+		};
+		let params = unsafe { la::libfaer_v0_23_QrParams_f64() };
+		let mem = MemAlloc {
+			ptr: core::ptr::null_mut(),
+			len_bytes: 0,
+		};
+		let status = unsafe {
+			la::libfaer_v0_23_qr_factor_in_place_f64(
+				output,
+				output,
+				core::ptr::null(),
+				mem,
+				params,
+			)
+		};
+		assert!(
+			matches!(status, la::QrStatus::InvalidView),
+			"two outputs over the same memory must not come back as Ok"
+		);
 	}
 }

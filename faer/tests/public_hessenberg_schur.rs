@@ -1,6 +1,6 @@
 mod common;
-use common::*;
 use colmat::linalg::evd::*;
+use common::*;
 
 fn real<T: RealField>() {
 	for n in SIZES {

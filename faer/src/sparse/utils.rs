@@ -70,6 +70,7 @@ pub fn permute_self_adjoint_scratch<I: Index>(dim: usize) -> StackReq {
 pub fn permute_dedup_self_adjoint_scratch<I: Index>(dim: usize) -> StackReq {
 	StackReq::new::<I>(dim)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the self-adjoint permutation $P A P^\top$ of the matrix $A$
 ///
 /// the result is stored in `new_col_ptrs`, `new_row_indices`
@@ -109,6 +110,7 @@ pub fn permute_self_adjoint<
 	)
 	.as_shape_mut(n, n)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the self-adjoint permutation $P A P^\top$ of the matrix $A$ without
 /// sorting the row indices, and returns a view over it
 ///
@@ -148,6 +150,7 @@ pub fn permute_self_adjoint_to_unsorted<
 	)
 	.as_shape_mut(n, n)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the self-adjoint permutation $P A P^\top$ of the matrix $A$ and
 /// deduplicate the elements of the output matrix
 ///
@@ -187,6 +190,7 @@ pub fn permute_dedup_self_adjoint<
 	)
 	.as_shape_mut(n, n)
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn permute_self_adjoint_imp<'N, 'out, I: Index, T: ComplexField>(
 	new_val: &'out mut [T],
 	new_col_ptr: &'out mut [I],
@@ -302,6 +306,7 @@ fn permute_self_adjoint_imp<'N, 'out, I: Index, T: ComplexField>(
 		)
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn permute_dedup_self_adjoint_imp<'N, 'out, I: Index, T: ComplexField>(
 	new_val: &'out mut [T],
 	new_col_ptr: &'out mut [I],
