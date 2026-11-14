@@ -113,6 +113,9 @@ pub fn recommended_block_size<T: ComplexField>(
 pub struct QrParams {
 	/// threshold at which blocking algorithms should be disabled
 	pub blocking_threshold: usize,
+	/// maximum recursive panel width handled by the unblocked leaf.
+	/// one preserves the original recursion; this does not limit the team width.
+	pub recursion_leaf_size: usize,
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
 }
@@ -121,6 +124,7 @@ impl<T: ComplexField> Auto<T> for QrParams {
 	fn auto() -> Self {
 		Self {
 			blocking_threshold: 48 * 48,
+			recursion_leaf_size: 1,
 			non_exhaustive: NonExhaustive(()),
 		}
 	}
@@ -145,7 +149,9 @@ fn qr_in_place_blocked<T: ComplexField>(
 	if block_size == 1 {
 		return qr_in_place_unblocked(A, H.row_mut(0), row_start, col_start);
 	}
-	let sub_block_size = if m * n < params.blocking_threshold {
+	let sub_block_size = if block_size <= params.recursion_leaf_size.max(1)
+		|| m * n < params.blocking_threshold
+	{
 		1
 	} else {
 		block_size / 2
@@ -1409,6 +1415,123 @@ mod tests {
 		}
 	}
 
+	#[cfg(feature = "threadteam")]
+	#[test]
+	fn test_recursion_leaf_widths() {
+		fn case<T: ComplexField>(
+			make: fn(f64, f64) -> T,
+			mag: fn(&T) -> f64,
+			eps: f64,
+		) {
+			use crate::linalg::qr::no_pivoting::{reconstruct, unitary};
+			crate::team::with_team(4, |mut par| {
+				for (m, n) in [(97, 61), (61, 97), (67, 67), (257, 129)] {
+					for leaf in [1, 4, 8, 12, 16, 24, 48] {
+						for zero_col in [false, true] {
+							let a = Mat::from_fn(m, n, |i, j| {
+								if zero_col && j == n / 2 {
+									zero()
+								} else {
+									let r = |i, j| {
+										((i * 7 + j * 13) % 23) as f64 / 23.0
+											- 0.5 + if i == j { 2.0 } else { 0.0 }
+									};
+									make(r(i, j), r(j + 3, i + 1))
+								}
+							});
+							let k = m.min(n);
+							let b = 48;
+							let mut packed = a.clone();
+							let mut h = Mat::<T>::zeros(b, k);
+							let params = Spec::new(QrParams {
+								recursion_leaf_size: leaf,
+								..<QrParams as Auto<T>>::auto()
+							});
+							let mut mem =
+								MemBuffer::new(qr_in_place_scratch::<T>(
+									m,
+									n,
+									b,
+									par.shape(),
+									params,
+								));
+							let rank = qr_in_place(
+								packed.as_mut(),
+								h.as_mut(),
+								par.reborrow(),
+								MemStack::new(&mut mem),
+								params,
+							)
+							.rank;
+							assert!(rank <= k);
+							let mut qr = Mat::<T>::zeros(m, n);
+							let mut mem = MemBuffer::new(
+								reconstruct::reconstruct_scratch::<T>(
+									m,
+									n,
+									b,
+									ParShape::Seq,
+								),
+							);
+							reconstruct::reconstruct(
+								qr.as_mut(),
+								packed.as_ref().get(.., ..k),
+								h.as_ref(),
+								packed.as_ref().get(..k, ..),
+								Par::Seq,
+								MemStack::new(&mut mem),
+							);
+							for j in 0..n {
+								for i in 0..m {
+									let d = mag(&(qr[(i, j)].clone()
+										- a[(i, j)].clone()));
+									assert!(
+										d <= eps * (m + n) as f64,
+										"leaf {leaf}, {m}x{n}: {d}"
+									);
+								}
+							}
+							let mut q = Mat::<T>::zeros(m, k);
+							let mut mem =
+								MemBuffer::new(unitary::unitary_scratch::<T>(
+									m,
+									n,
+									k,
+									b,
+									ParShape::Seq,
+								));
+							unitary::unitary(
+								q.as_mut(),
+								packed.as_ref(),
+								h.as_ref(),
+								false,
+								Par::Seq,
+								MemStack::new(&mut mem),
+							);
+							let orth =
+								q.adjoint() * &q - Mat::<T>::identity(k, k);
+							for j in 0..k {
+								for i in 0..k {
+									assert!(
+										mag(&orth[(i, j)])
+											<= eps * (m + n) as f64
+									);
+								}
+							}
+						}
+					}
+				}
+			});
+		}
+		case::<f64>(|r, _| r, |x| x.abs(), 2e-14);
+		case::<f32>(|r, _| r as f32, |x| x.abs() as f64, 1e-5);
+		case::<crate::c64>(crate::c64::new, |x| x.norm(), 2e-14);
+		case::<crate::c32>(
+			|r, i| crate::c32::new(r as f32, i as f32),
+			|x| x.norm() as f64,
+			1e-5,
+		);
+	}
 	/// The look-ahead factors each next panel on its own participants while the trailing apply runs.
 	/// Against `Par::Seq`: R and the rank to rounding, the compact factors on full-rank input, and
 	/// `Q R = A` (the reflector tails and the factor layout the sequence consumers read). Shapes:

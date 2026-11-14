@@ -1332,23 +1332,32 @@ impl<T: ComplexField> Qr<T> {
 		let par_shape = par.shape();
 		let (m, n) = QR.shape();
 		let size = Ord::min(m, n);
-		let block_size =
+		let recommended =
 			linalg::qr::no_pivoting::factor::recommended_block_size::<T>(m, n);
+		// Small tall QR scan, 2048x256 f64 at 8T (factor/Q ms):
+		// block/leaf 16/8: 7.97/5.20, 32/8: 9.36/4.72, 48/12: 11.59/4.92.
+		// Regrouping 16-column factors into Q blocks32/64 cost more than it saved.
+		// Limit this experiment to n<=256 and aspect>=2, checked at n=128/256
+		// and m=512..4096; other shapes retain their original factor policy.
+		// Scans and frozen-binary comparison: tensor4all/colmat-rs#195.
+		let small_tall =
+			n <= 256 && m >= n.saturating_mul(2) && recommended > 16;
+		let block_size = if small_tall { 16 } else { recommended };
 		let mut Q_coeff = Mat::zeros(block_size, size);
+		let params = Spec::new(linalg::qr::no_pivoting::factor::QrParams {
+			recursion_leaf_size: if small_tall { 8 } else { 1 },
+			..<linalg::qr::no_pivoting::factor::QrParams as Auto<T>>::auto()
+		});
 		linalg::qr::no_pivoting::factor::qr_in_place(
 			QR.as_mut(),
 			Q_coeff.as_mut(),
 			par.reborrow(),
 			MemStack::new(&mut MemBuffer::new(
 				linalg::qr::no_pivoting::factor::qr_in_place_scratch::<T>(
-					m,
-					n,
-					block_size,
-					par_shape,
-					default(),
+					m, n, block_size, par_shape, params,
 				),
 			)),
-			default(),
+			params,
 		);
 		let (Q_basis, R) = split_LU(QR);
 		Self {
@@ -3209,6 +3218,81 @@ mod tests {
 	use crate::assert;
 	use crate::stats::prelude::*;
 	use crate::utils::approx::*;
+	#[cfg(feature = "threadteam")]
+	#[test]
+	fn test_small_tall_qr_four_scalars() {
+		fn case<T: ComplexField>(
+			make: fn(f64, f64) -> T,
+			mag: fn(&T) -> f64,
+			eps: f64,
+		) {
+			crate::team::with_team(4, |mut par| {
+				for (m, n, block) in [
+					(512, 128, 16),
+					(514, 129, 16),
+					(512, 256, 16),
+					(511, 256, 32),
+					(1024, 257, 48),
+					(128, 512, 32),
+					(256, 256, 32),
+				] {
+					for kind in 0..if n == 128 { 3 } else { 2 } {
+						let a = Mat::from_fn(m, n, |i, j| {
+							if kind == 2 || (kind == 1 && j % 11 == 0) {
+								zero()
+							} else {
+								let r = |i, j| {
+									((i * 7 + j * 13) % 23) as f64 / 23.0 - 0.5
+										+ if i == j { 2.0 } else { 0.0 }
+								};
+								make(r(i, j), r(j + 3, i + 1))
+							}
+						});
+						// A row-major borrowed input also takes the same owning policy.
+						let storage = a.transpose().to_owned();
+						let f = Qr::new(storage.transpose(), par.reborrow());
+						assert!(f.Q_coeff().nrows() == block);
+						let q = f.compute_thin_Q(par.reborrow());
+						let diff = &q * f.thin_R() - &a;
+						for j in 0..n {
+							for i in 0..m {
+								assert!(
+									mag(&diff[(i, j)]) <= eps * (m + n) as f64
+								);
+							}
+						}
+						let k = m.min(n);
+						let orth = q.adjoint() * &q - Mat::<T>::identity(k, k);
+						for j in 0..k {
+							for i in 0..k {
+								assert!(
+									mag(&orth[(i, j)]) <= eps * (m + n) as f64
+								);
+							}
+						}
+						if m == 514 && kind == 0 {
+							let repeated = f.compute_thin_Q(par.reborrow());
+							let diff = &q - repeated;
+							for j in 0..k {
+								for i in 0..m {
+									assert!(mag(&diff[(i, j)]) == 0.0);
+								}
+							}
+						}
+					}
+				}
+			});
+		}
+		case::<f64>(|r, _| r, |x| x.abs(), 2e-14);
+		case::<f32>(|r, _| r as f32, |x| x.abs() as f64, 1e-5);
+		case::<crate::c64>(crate::c64::new, |x| x.norm(), 2e-14);
+		case::<crate::c32>(
+			|r, i| crate::c32::new(r as f32, i as f32),
+			|x| x.norm() as f64,
+			1e-5,
+		);
+	}
+
 	#[track_caller]
 	fn test_solver(A: MatRef<'_, c64>, A_dec: impl SolveCore<c64>) {
 		#[track_caller]

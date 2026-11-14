@@ -85,24 +85,37 @@ fn parallel_regions_allocate_nothing() {
 			// Identity-seeded thin Q on a held team: output and scratch are reused.
 			if width <= 8 {
 				use colmat::linalg::qr::no_pivoting::{factor, unitary};
-				let (m, n, block) = (1024, 257, 32);
-				let mut packed = sample(m, n, 84);
+				let (m, n, block) = (1024, 257, 16);
+				let a0 = sample(m, n, 84);
+				let mut packed = a0.clone();
 				let mut coeff = Mat::<f64>::zeros(block, n);
+				let params = colmat::Spec::new(factor::QrParams {
+					recursion_leaf_size: 8,
+					..<factor::QrParams as Auto<f64>>::auto()
+				});
 				let mut factor_mem =
 					MemBuffer::new(factor::qr_in_place_scratch::<f64>(
 						m,
 						n,
 						block,
 						par.shape(),
-						Default::default(),
+						params,
 					));
-				factor::qr_in_place(
-					packed.as_mut(),
-					coeff.as_mut(),
-					par.reborrow(),
-					MemStack::new(&mut factor_mem),
-					Default::default(),
+				let (allocs, parallel) = counted(|| {
+					packed.copy_from(&a0);
+					factor::qr_in_place(
+						packed.as_mut(),
+						coeff.as_mut(),
+						par.reborrow(),
+						MemStack::new(&mut factor_mem),
+						params,
+					);
+				});
+				assert!(
+					parallel > 0,
+					"QR factor, width {width}: no parallel region"
 				);
+				assert_eq!(allocs, 0, "QR factor, width {width}");
 				let mut q = Mat::<f64>::zeros(m, n);
 				let mut mem = MemBuffer::new(unitary::unitary_scratch::<f64>(
 					m,
