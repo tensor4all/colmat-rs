@@ -494,236 +494,1047 @@ typedef struct FaerV0_24_SvdStatus {
 extern "C" {
 #endif // __cplusplus
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_BidiagParams libfaer_v0_23_BidiagParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrParams libfaer_v0_23_ColPivQrParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdFromSchurParams libfaer_v0_23_EvdFromSchurParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdParams libfaer_v0_23_EvdParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuParams libfaer_v0_23_FullPivLuParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedHessenbergParams libfaer_v0_23_GeneralizedHessenbergParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GeneralizedSchurParams libfaer_v0_23_GeneralizedSchurParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdParams libfaer_v0_23_GevdParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_HessenbergParams libfaer_v0_23_HessenbergParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltParams libfaer_v0_23_LbltParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltParams libfaer_v0_23_LdltParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltParams libfaer_v0_23_LltParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuParams libfaer_v0_23_PartialPivLuParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltParams libfaer_v0_23_PivLltParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrParams libfaer_v0_23_QrParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SchurParams libfaer_v0_23_SchurParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SelfAdjointEvdParams libfaer_v0_23_SelfAdjointEvdParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdParams libfaer_v0_23_SvdParams_fx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_c32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_c64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_cx128(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_f32(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_f64(void);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_TridiagParams libfaer_v0_23_TridiagParams_fx128(void);
 
+/**
+ * # Safety
+ * `size` must be nonzero (`std::alloc::alloc` takes a sized layout), and `align` a power of two.
+ * A non-null result is owned by the caller and must be handed back to `libfaer_v0_23_dealloc`
+ * exactly once with the same `size` and `align`; a null result must not be deallocated.
+ */
 void *libfaer_v0_23_alloc(size_t size, size_t align);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_c32(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
@@ -731,6 +1542,13 @@ void libfaer_v0_23_apply_householder_on_the_left_c32(struct FaerV0_24_MatRef hou
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_c64(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
@@ -738,6 +1556,13 @@ void libfaer_v0_23_apply_householder_on_the_left_c64(struct FaerV0_24_MatRef hou
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_cx128(struct FaerV0_24_MatRef householder_basis,
                                                        struct FaerV0_24_MatRef householder_factor,
                                                        enum FaerV0_24_Conj householder_conj,
@@ -745,6 +1570,13 @@ void libfaer_v0_23_apply_householder_on_the_left_cx128(struct FaerV0_24_MatRef h
                                                        const struct FaerV0_24_Team *team,
                                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_f32(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
@@ -752,6 +1584,13 @@ void libfaer_v0_23_apply_householder_on_the_left_f32(struct FaerV0_24_MatRef hou
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_f64(struct FaerV0_24_MatRef householder_basis,
                                                      struct FaerV0_24_MatRef householder_factor,
                                                      enum FaerV0_24_Conj householder_conj,
@@ -759,6 +1598,13 @@ void libfaer_v0_23_apply_householder_on_the_left_f64(struct FaerV0_24_MatRef hou
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_left_fx128(struct FaerV0_24_MatRef householder_basis,
                                                        struct FaerV0_24_MatRef householder_factor,
                                                        enum FaerV0_24_Conj householder_conj,
@@ -766,30 +1612,79 @@ void libfaer_v0_23_apply_householder_on_the_left_fx128(struct FaerV0_24_MatRef h
                                                        const struct FaerV0_24_Team *team,
                                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_c32(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_c64(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_cx128(size_t dim,
                                                                                   size_t block_size,
                                                                                   size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_f32(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_f64(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_left_scratch_fx128(size_t dim,
                                                                                   size_t block_size,
                                                                                   size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_c32(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
@@ -797,6 +1692,13 @@ void libfaer_v0_23_apply_householder_on_the_right_c32(struct FaerV0_24_MatRef ho
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_c64(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
@@ -804,6 +1706,13 @@ void libfaer_v0_23_apply_householder_on_the_right_c64(struct FaerV0_24_MatRef ho
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_cx128(struct FaerV0_24_MatRef householder_basis,
                                                         struct FaerV0_24_MatRef householder_factor,
                                                         enum FaerV0_24_Conj householder_conj,
@@ -811,6 +1720,13 @@ void libfaer_v0_23_apply_householder_on_the_right_cx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_f32(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
@@ -818,6 +1734,13 @@ void libfaer_v0_23_apply_householder_on_the_right_f32(struct FaerV0_24_MatRef ho
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_f64(struct FaerV0_24_MatRef householder_basis,
                                                       struct FaerV0_24_MatRef householder_factor,
                                                       enum FaerV0_24_Conj householder_conj,
@@ -825,6 +1748,13 @@ void libfaer_v0_23_apply_householder_on_the_right_f64(struct FaerV0_24_MatRef ho
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_on_the_right_fx128(struct FaerV0_24_MatRef householder_basis,
                                                         struct FaerV0_24_MatRef householder_factor,
                                                         enum FaerV0_24_Conj householder_conj,
@@ -832,30 +1762,79 @@ void libfaer_v0_23_apply_householder_on_the_right_fx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_c32(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_c64(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_cx128(size_t dim,
                                                                                    size_t block_size,
                                                                                    size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_f32(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_f64(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_on_the_right_scratch_fx128(size_t dim,
                                                                                    size_t block_size,
                                                                                    size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_c32(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
@@ -863,6 +1842,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_c32(struct FaerV0_24_
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_c64(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
@@ -870,6 +1856,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_c64(struct FaerV0_24_
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_cx128(struct FaerV0_24_MatRef householder_basis,
                                                                  struct FaerV0_24_MatRef householder_factor,
                                                                  enum FaerV0_24_Conj householder_conj,
@@ -877,6 +1870,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_cx128(struct FaerV0_2
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_f32(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
@@ -884,6 +1884,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_f32(struct FaerV0_24_
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_f64(struct FaerV0_24_MatRef householder_basis,
                                                                struct FaerV0_24_MatRef householder_factor,
                                                                enum FaerV0_24_Conj householder_conj,
@@ -891,6 +1898,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_f64(struct FaerV0_24_
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_left_fx128(struct FaerV0_24_MatRef householder_basis,
                                                                  struct FaerV0_24_MatRef householder_factor,
                                                                  enum FaerV0_24_Conj householder_conj,
@@ -898,30 +1912,79 @@ void libfaer_v0_23_apply_householder_transpose_on_the_left_fx128(struct FaerV0_2
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_c32(size_t dim,
                                                                                           size_t block_size,
                                                                                           size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_c64(size_t dim,
                                                                                           size_t block_size,
                                                                                           size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_cx128(size_t dim,
                                                                                             size_t block_size,
                                                                                             size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_f32(size_t dim,
                                                                                           size_t block_size,
                                                                                           size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_f64(size_t dim,
                                                                                           size_t block_size,
                                                                                           size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_left_scratch_fx128(size_t dim,
                                                                                             size_t block_size,
                                                                                             size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_c32(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
@@ -929,6 +1992,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_c32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_c64(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
@@ -936,6 +2006,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_c64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_cx128(struct FaerV0_24_MatRef householder_basis,
                                                                   struct FaerV0_24_MatRef householder_factor,
                                                                   enum FaerV0_24_Conj householder_conj,
@@ -943,6 +2020,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_cx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_f32(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
@@ -950,6 +2034,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_f32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_f64(struct FaerV0_24_MatRef householder_basis,
                                                                 struct FaerV0_24_MatRef householder_factor,
                                                                 enum FaerV0_24_Conj householder_conj,
@@ -957,6 +2048,13 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_f64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_apply_householder_transpose_on_the_right_fx128(struct FaerV0_24_MatRef householder_basis,
                                                                   struct FaerV0_24_MatRef householder_factor,
                                                                   enum FaerV0_24_Conj householder_conj,
@@ -964,102 +2062,235 @@ void libfaer_v0_23_apply_householder_transpose_on_the_right_fx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_c32(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_c64(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_cx128(size_t dim,
                                                                                              size_t block_size,
                                                                                              size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_f32(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_f64(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_apply_householder_transpose_on_the_right_scratch_fx128(size_t dim,
                                                                                              size_t block_size,
                                                                                              size_t rhs_ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_c32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_c64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_cx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_f32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_f64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u32_fx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_c32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_c64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_cx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_f32(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_f64(size_t nrows,
                                                                                 size_t ncols,
                                                                                 size_t block_size,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_factor_in_place_scratch_u64_fx128(size_t nrows,
                                                                                   size_t ncols,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1068,6 +2299,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c32(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1076,6 +2314,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_c64(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
@@ -1084,6 +2329,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_cx12
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1092,6 +2344,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f32(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1100,6 +2359,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_f64(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
@@ -1108,6 +2374,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u32_fx12
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1116,6 +2389,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c32(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1124,6 +2404,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_c64(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
@@ -1132,6 +2419,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_cx12
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1140,6 +2434,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f32(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                                 struct FaerV0_24_MatMut Q_coeff,
                                                                                 struct FaerV0_24_SliceMut perm_fwd,
@@ -1148,6 +2449,13 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_f64(
                                                                                 struct FaerV0_24_MemAlloc mem,
                                                                                 struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                                   struct FaerV0_24_MatMut Q_coeff,
                                                                                   struct FaerV0_24_SliceMut perm_fwd,
@@ -1156,54 +2464,145 @@ struct FaerV0_24_ColPivQrStatus libfaer_v0_23_colpiv_qr_factor_in_place_u64_fx12
                                                                                   struct FaerV0_24_MemAlloc mem,
                                                                                   struct FaerV0_24_ColPivQrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_c32(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_c64(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_cx128(size_t dim,
                                                                           size_t block_size,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_f32(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_f64(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u32_fx128(size_t dim,
                                                                           size_t block_size,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_c32(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_c64(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_cx128(size_t dim,
                                                                           size_t block_size,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_f32(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_f64(size_t dim,
                                                                         size_t block_size,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_inverse_scratch_u64_fx128(size_t dim,
                                                                           size_t block_size,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1213,6 +2612,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1222,6 +2628,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
@@ -1231,6 +2644,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1240,6 +2660,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1249,6 +2676,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
@@ -1258,6 +2692,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1267,6 +2708,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1276,6 +2724,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
@@ -1285,6 +2740,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1294,6 +2756,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                              struct FaerV0_24_MatRef Q_basis,
                                              struct FaerV0_24_MatRef Q_coeff,
@@ -1303,6 +2772,13 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
@@ -1312,66 +2788,157 @@ void libfaer_v0_23_colpiv_qr_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_c32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_c64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_f32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_f64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_c32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_c64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_f32(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_f64(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                               size_t ncols,
                                                                               size_t block_size,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1381,6 +2948,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1390,6 +2964,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
@@ -1399,6 +2980,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1408,6 +2996,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1417,6 +3012,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
@@ -1426,6 +3028,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1435,6 +3044,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1444,6 +3060,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
@@ -1453,6 +3076,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1462,6 +3092,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
@@ -1471,6 +3108,13 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
@@ -1480,66 +3124,157 @@ void libfaer_v0_23_colpiv_qr_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                size_t block_size,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                  size_t block_size,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1550,6 +3285,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c32(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1560,6 +3302,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_c64(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
                                                       struct FaerV0_24_MatRef Q_coeff,
                                                       struct FaerV0_24_MatRef R,
@@ -1570,6 +3319,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_cx128(struct FaerV0_24_MatRef Q_
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1580,6 +3336,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f32(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1590,6 +3353,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_f64(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
                                                       struct FaerV0_24_MatRef Q_coeff,
                                                       struct FaerV0_24_MatRef R,
@@ -1600,6 +3370,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u32_fx128(struct FaerV0_24_MatRef Q_
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1610,6 +3387,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c32(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1620,6 +3404,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_c64(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
                                                       struct FaerV0_24_MatRef Q_coeff,
                                                       struct FaerV0_24_MatRef R,
@@ -1630,6 +3421,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_cx128(struct FaerV0_24_MatRef Q_
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1640,6 +3438,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f32(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
                                                     struct FaerV0_24_MatRef Q_coeff,
                                                     struct FaerV0_24_MatRef R,
@@ -1650,6 +3455,13 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_f64(struct FaerV0_24_MatRef Q_ba
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
                                                       struct FaerV0_24_MatRef Q_coeff,
                                                       struct FaerV0_24_MatRef R,
@@ -1660,78 +3472,169 @@ void libfaer_v0_23_colpiv_qr_solve_in_place_u64_fx128(struct FaerV0_24_MatRef Q_
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_c32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_c64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_cx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
                                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_f32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_f64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u32_fx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
                                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_c32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_c64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_cx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
                                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_f32(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_f64(size_t nrows,
                                                                                      size_t ncols,
                                                                                      size_t block_size,
                                                                                      size_t rhs_ncols,
                                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_scratch_u64_fx128(size_t nrows,
                                                                                        size_t ncols,
                                                                                        size_t block_size,
                                                                                        size_t rhs_ncols,
                                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1742,6 +3645,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c32(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1752,6 +3662,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_c64(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
                                                             struct FaerV0_24_MatRef Q_coeff,
                                                             struct FaerV0_24_MatRef R,
@@ -1762,6 +3679,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_cx128(struct FaerV0_24_Mat
                                                             const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1772,6 +3696,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f32(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1782,6 +3713,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_f64(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
                                                             struct FaerV0_24_MatRef Q_coeff,
                                                             struct FaerV0_24_MatRef R,
@@ -1792,6 +3730,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u32_fx128(struct FaerV0_24_Mat
                                                             const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1802,6 +3747,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c32(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1812,6 +3764,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_c64(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
                                                             struct FaerV0_24_MatRef Q_coeff,
                                                             struct FaerV0_24_MatRef R,
@@ -1822,6 +3781,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_cx128(struct FaerV0_24_Mat
                                                             const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1832,6 +3798,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f32(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
                                                           struct FaerV0_24_MatRef Q_coeff,
                                                           struct FaerV0_24_MatRef R,
@@ -1842,6 +3815,13 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_f64(struct FaerV0_24_MatRe
                                                           const struct FaerV0_24_Team *team,
                                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
                                                             struct FaerV0_24_MatRef Q_coeff,
                                                             struct FaerV0_24_MatRef R,
@@ -1852,66 +3832,157 @@ void libfaer_v0_23_colpiv_qr_solve_lstsq_in_place_u64_fx128(struct FaerV0_24_Mat
                                                             const struct FaerV0_24_Team *team,
                                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                          size_t block_size,
                                                                                          size_t rhs_ncols,
                                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_colpiv_qr_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                            size_t block_size,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1922,6 +3993,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c32(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1932,6 +4010,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_c64(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef Q_basis,
                                                                 struct FaerV0_24_MatRef Q_coeff,
                                                                 struct FaerV0_24_MatRef R,
@@ -1942,6 +4027,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_cx128(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1952,6 +4044,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f32(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1962,6 +4061,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_f64(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef Q_basis,
                                                                 struct FaerV0_24_MatRef Q_coeff,
                                                                 struct FaerV0_24_MatRef R,
@@ -1972,6 +4078,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u32_fx128(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1982,6 +4095,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c32(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -1992,6 +4112,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_c64(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef Q_basis,
                                                                 struct FaerV0_24_MatRef Q_coeff,
                                                                 struct FaerV0_24_MatRef R,
@@ -2002,6 +4129,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_cx128(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -2012,6 +4146,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f32(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef Q_basis,
                                                               struct FaerV0_24_MatRef Q_coeff,
                                                               struct FaerV0_24_MatRef R,
@@ -2022,6 +4163,13 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_f64(struct FaerV0_24_M
                                                               const struct FaerV0_24_Team *team,
                                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef Q_basis,
                                                                 struct FaerV0_24_MatRef Q_coeff,
                                                                 struct FaerV0_24_MatRef R,
@@ -2032,8 +4180,21 @@ void libfaer_v0_23_colpiv_qr_solve_transpose_in_place_u64_fx128(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * `ptr` must be a non-null pointer to a block currently allocated by `libfaer_v0_23_alloc`, with
+ * this same `size` and `align`, that no longer aliases anything the caller still uses, and that is
+ * freed only once.
+ */
 void libfaer_v0_23_dealloc(void *ptr, size_t size, size_t align);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UL,
                                                  struct FaerV0_24_MatMut UR,
@@ -2043,6 +4204,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UL,
                                                  struct FaerV0_24_MatMut UR,
@@ -2052,6 +4220,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut UL,
                                                    struct FaerV0_24_MatMut UR,
@@ -2061,6 +4236,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UL,
                                                  struct FaerV0_24_MatMut UR,
@@ -2070,6 +4252,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut UL,
                                                  struct FaerV0_24_MatMut UR,
@@ -2079,6 +4268,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_evd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut UL,
                                                    struct FaerV0_24_MatMut UR,
@@ -2088,102 +4284,235 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_evd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_c32(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_c64(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_cx128(size_t dim,
                                                         enum FaerV0_24_ComputeEigenvectors compute_left,
                                                         enum FaerV0_24_ComputeEigenvectors compute_right,
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_f32(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_f64(size_t dim,
                                                       enum FaerV0_24_ComputeEigenvectors compute_left,
                                                       enum FaerV0_24_ComputeEigenvectors compute_right,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_evd_scratch_fx128(size_t dim,
                                                         enum FaerV0_24_ComputeEigenvectors compute_left,
                                                         enum FaerV0_24_ComputeEigenvectors compute_right,
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_EvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_c32(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_c64(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                                     size_t block_size,
                                                                                     const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f32(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_f64(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                                     size_t block_size,
                                                                                     const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_c32(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_c64(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                                     size_t block_size,
                                                                                     const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_f32(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_f64(size_t dim,
                                                                                   size_t block_size,
                                                                                   const struct FaerV0_24_Team *team,
                                                                                   struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                                     size_t block_size,
                                                                                     const struct FaerV0_24_Team *team,
                                                                                     struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2193,6 +4522,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2202,6 +4538,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                                      struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2211,6 +4554,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_c
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2220,6 +4570,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2229,6 +4586,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                                      struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2238,6 +4602,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u32_f
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2247,6 +4618,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2256,6 +4634,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                                      struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2265,6 +4650,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_c
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2274,6 +4666,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                                    struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                    struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2283,6 +4682,13 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                    struct FaerV0_24_MemAlloc mem,
                                                                                    struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                                      struct FaerV0_24_SliceMut row_perm_fwd,
                                                                                      struct FaerV0_24_SliceMut row_perm_bwd,
@@ -2292,42 +4698,133 @@ struct FaerV0_24_FullPivLuStatus libfaer_v0_23_full_piv_lu_factor_in_place_u64_f
                                                                                      struct FaerV0_24_MemAlloc mem,
                                                                                      struct FaerV0_24_FullPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_c32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_c64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_cx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_f32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_f64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u32_fx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_c32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_c64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_cx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_f32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_f64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_inverse_scratch_u64_fx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2338,6 +4835,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2348,6 +4852,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_MatRef U,
@@ -2358,6 +4869,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2368,6 +4886,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2378,6 +4903,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_MatRef U,
@@ -2388,6 +4920,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2398,6 +4937,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2408,6 +4954,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_MatRef U,
@@ -2418,6 +4971,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2428,6 +4988,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_MatRef U,
@@ -2438,6 +5005,13 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_MatRef U,
@@ -2448,54 +5022,145 @@ void libfaer_v0_23_full_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_c32(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_c64(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                                 size_t ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f32(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_f64(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                                 size_t ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_c32(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_c64(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                                 size_t ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_f32(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_f64(size_t nrows,
                                                                               size_t ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                                 size_t ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2506,6 +5171,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2516,6 +5188,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_MatRef L,
                                                      struct FaerV0_24_MatRef U,
@@ -2526,6 +5205,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2536,6 +5222,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2546,6 +5239,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_MatRef L,
                                                      struct FaerV0_24_MatRef U,
@@ -2556,6 +5256,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2566,6 +5273,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2576,6 +5290,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_MatRef L,
                                                      struct FaerV0_24_MatRef U,
@@ -2586,6 +5307,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2596,6 +5324,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                    struct FaerV0_24_MatRef L,
                                                    struct FaerV0_24_MatRef U,
@@ -2606,6 +5341,13 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                      struct FaerV0_24_MatRef L,
                                                      struct FaerV0_24_MatRef U,
@@ -2616,54 +5358,145 @@ void libfaer_v0_23_full_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                    size_t rhs_ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                    size_t rhs_ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                    size_t rhs_ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                  size_t rhs_ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                    size_t rhs_ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2675,6 +5508,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2686,6 +5526,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
                                                         enum FaerV0_24_Conj A_conj,
@@ -2697,6 +5544,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2708,6 +5562,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2719,6 +5580,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
                                                         enum FaerV0_24_Conj A_conj,
@@ -2730,6 +5598,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2741,6 +5616,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2752,6 +5634,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
                                                         enum FaerV0_24_Conj A_conj,
@@ -2763,6 +5652,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2774,6 +5670,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
                                                       enum FaerV0_24_Conj A_conj,
@@ -2785,6 +5688,13 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
                                                         enum FaerV0_24_Conj A_conj,
@@ -2796,54 +5706,145 @@ void libfaer_v0_23_full_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                              size_t rhs_ncols,
                                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                              size_t rhs_ncols,
                                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                              size_t rhs_ncols,
                                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                            size_t rhs_ncols,
                                                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_full_piv_lu_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                              size_t rhs_ncols,
                                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2855,6 +5856,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2866,6 +5874,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                                   struct FaerV0_24_MatRef U,
                                                                   enum FaerV0_24_Conj A_conj,
@@ -2877,6 +5892,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2888,6 +5910,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2899,6 +5928,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                                   struct FaerV0_24_MatRef U,
                                                                   enum FaerV0_24_Conj A_conj,
@@ -2910,6 +5946,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2921,6 +5964,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2932,6 +5982,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                                   struct FaerV0_24_MatRef U,
                                                                   enum FaerV0_24_Conj A_conj,
@@ -2943,6 +6000,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2954,6 +6018,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                                 struct FaerV0_24_MatRef U,
                                                                 enum FaerV0_24_Conj A_conj,
@@ -2965,6 +6036,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24
                                                                 const struct FaerV0_24_Team *team,
                                                                 struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                                   struct FaerV0_24_MatRef U,
                                                                   enum FaerV0_24_Conj A_conj,
@@ -2976,6 +6054,13 @@ void libfaer_v0_23_full_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c32(struct FaerV0_24_MatMut A,
                                                               struct FaerV0_24_MatMut B,
                                                               struct FaerV0_24_MatMut UL,
@@ -2987,6 +6072,13 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c32(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c64(struct FaerV0_24_MatMut A,
                                                               struct FaerV0_24_MatMut B,
                                                               struct FaerV0_24_MatMut UL,
@@ -2998,6 +6090,13 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_c64(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_cx128(struct FaerV0_24_MatMut A,
                                                                 struct FaerV0_24_MatMut B,
                                                                 struct FaerV0_24_MatMut UL,
@@ -3009,6 +6108,13 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_cx128(struct FaerV0_24
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f32(struct FaerV0_24_MatMut A,
                                                               struct FaerV0_24_MatMut B,
                                                               struct FaerV0_24_MatMut UL,
@@ -3020,6 +6126,13 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f32(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f64(struct FaerV0_24_MatMut A,
                                                               struct FaerV0_24_MatMut B,
                                                               struct FaerV0_24_MatMut UL,
@@ -3031,6 +6144,13 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_f64(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_fx128(struct FaerV0_24_MatMut A,
                                                                 struct FaerV0_24_MatMut B,
                                                                 struct FaerV0_24_MatMut UL,
@@ -3042,186 +6162,487 @@ struct FaerV0_24_GevdStatus libfaer_v0_23_generalized_evd_fx128(struct FaerV0_24
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_c32(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_c64(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_cx128(size_t dim,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                     const struct FaerV0_24_Team *team,
                                                                     struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_f32(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_f64(size_t dim,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                   enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                   const struct FaerV0_24_Team *team,
                                                                   struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_generalized_evd_scratch_fx128(size_t dim,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_left,
                                                                     enum FaerV0_24_ComputeEigenvectors compute_right,
                                                                     const struct FaerV0_24_Team *team,
                                                                     struct FaerV0_24_GevdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_lower_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                          struct FaerV0_24_MatRef L,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_triangular_upper_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                            struct FaerV0_24_MatRef L,
                                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_lower_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_c32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_c64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_cx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_f32(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_f64(struct FaerV0_24_MatMut L_inv,
                                                               struct FaerV0_24_MatRef L,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_inverse_unit_triangular_upper_in_place_fx128(struct FaerV0_24_MatMut L_inv,
                                                                 struct FaerV0_24_MatRef L,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_c32(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_c64(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                              const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_f32(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_f64(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                              const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_c32(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_c64(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                              const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_f32(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_f64(size_t dim,
                                                                            const struct FaerV0_24_Team *team,
                                                                            struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                              const struct FaerV0_24_Team *team,
                                                                              struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3230,6 +6651,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c32(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3238,6 +6666,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_c64(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
@@ -3246,6 +6681,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_cx128(struct 
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3254,6 +6696,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f32(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3262,6 +6711,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_f64(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
@@ -3270,6 +6726,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u32_fx128(struct 
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3278,6 +6741,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c32(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3286,6 +6756,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_c64(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
@@ -3294,6 +6771,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_cx128(struct 
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3302,6 +6786,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f32(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                        struct FaerV0_24_VecMut subdiag,
                                                                        struct FaerV0_24_SliceMut perm_fwd,
@@ -3310,6 +6801,13 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_f64(struct Fa
                                                                        struct FaerV0_24_MemAlloc mem,
                                                                        struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                          struct FaerV0_24_VecMut subdiag,
                                                                          struct FaerV0_24_SliceMut perm_fwd,
@@ -3318,42 +6816,133 @@ struct FaerV0_24_LbltStatus libfaer_v0_23_lblt_factor_in_place_u64_fx128(struct 
                                                                          struct FaerV0_24_MemAlloc mem,
                                                                          struct FaerV0_24_LbltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_c32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_c64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_cx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_f32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_f64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u32_fx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_c32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_c64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_cx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_f32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_f64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_inverse_scratch_u64_fx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3363,6 +6952,13 @@ void libfaer_v0_23_lblt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3372,6 +6968,13 @@ void libfaer_v0_23_lblt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef diag,
@@ -3381,6 +6984,13 @@ void libfaer_v0_23_lblt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3390,6 +7000,13 @@ void libfaer_v0_23_lblt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3399,6 +7016,13 @@ void libfaer_v0_23_lblt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef diag,
@@ -3408,6 +7032,13 @@ void libfaer_v0_23_lblt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3417,6 +7048,13 @@ void libfaer_v0_23_lblt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3426,6 +7064,13 @@ void libfaer_v0_23_lblt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef diag,
@@ -3435,6 +7080,13 @@ void libfaer_v0_23_lblt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3444,6 +7096,13 @@ void libfaer_v0_23_lblt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef diag,
@@ -3453,6 +7112,13 @@ void libfaer_v0_23_lblt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef diag,
@@ -3462,42 +7128,133 @@ void libfaer_v0_23_lblt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_c32(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_c64(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_cx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_f32(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_f64(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u32_fx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_c32(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_c64(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_cx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_f32(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_f64(size_t dim,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_reconstruct_scratch_u64_fx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3507,6 +7264,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3516,6 +7280,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_MatRef L,
                                               struct FaerV0_24_VecRef diag,
@@ -3525,6 +7296,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                               const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3534,6 +7312,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3543,6 +7328,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_MatRef L,
                                               struct FaerV0_24_VecRef diag,
@@ -3552,6 +7344,13 @@ void libfaer_v0_23_lblt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                               const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3561,6 +7360,13 @@ void libfaer_v0_23_lblt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3570,6 +7376,13 @@ void libfaer_v0_23_lblt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_MatRef L,
                                               struct FaerV0_24_VecRef diag,
@@ -3579,6 +7392,13 @@ void libfaer_v0_23_lblt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                               const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3588,6 +7408,13 @@ void libfaer_v0_23_lblt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                             struct FaerV0_24_MatRef L,
                                             struct FaerV0_24_VecRef diag,
@@ -3597,6 +7424,13 @@ void libfaer_v0_23_lblt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                               struct FaerV0_24_MatRef L,
                                               struct FaerV0_24_VecRef diag,
@@ -3606,54 +7440,145 @@ void libfaer_v0_23_lblt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                               const struct FaerV0_24_Team *team,
                                               struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_c32(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_c64(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_f32(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_f64(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_c32(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_c64(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_f32(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_f64(size_t dim,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_lblt_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3664,6 +7589,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3674,6 +7606,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_VecRef diag,
                                                  struct FaerV0_24_VecRef subdiag,
@@ -3684,6 +7623,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3694,6 +7640,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3704,6 +7657,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_VecRef diag,
                                                  struct FaerV0_24_VecRef subdiag,
@@ -3714,6 +7674,13 @@ void libfaer_v0_23_lblt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3724,6 +7691,13 @@ void libfaer_v0_23_lblt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3734,6 +7708,13 @@ void libfaer_v0_23_lblt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_VecRef diag,
                                                  struct FaerV0_24_VecRef subdiag,
@@ -3744,6 +7725,13 @@ void libfaer_v0_23_lblt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3754,6 +7742,13 @@ void libfaer_v0_23_lblt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_VecRef diag,
                                                struct FaerV0_24_VecRef subdiag,
@@ -3764,6 +7759,13 @@ void libfaer_v0_23_lblt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_lblt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_VecRef diag,
                                                  struct FaerV0_24_VecRef subdiag,
@@ -3774,174 +7776,433 @@ void libfaer_v0_23_lblt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                      struct FaerV0_24_LdltRegularization regularization,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem,
                                                                      struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LdltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LdltStatus libfaer_v0_23_ldlt_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                      struct FaerV0_24_LdltRegularization regularization,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem,
                                                                      struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_c32(size_t dim,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_c64(size_t dim,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_cx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_f32(size_t dim,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_f64(size_t dim,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_factor_in_place_scratch_fx128(size_t dim,
                                                                          const struct FaerV0_24_Team *team,
                                                                          struct FaerV0_24_LdltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_c32(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_c64(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_cx128(struct FaerV0_24_MatMut A_inv,
                                       struct FaerV0_24_MatRef L,
                                       struct FaerV0_24_VecRef D,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_f32(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_f64(struct FaerV0_24_MatMut A_inv,
                                     struct FaerV0_24_MatRef L,
                                     struct FaerV0_24_VecRef D,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_inverse_fx128(struct FaerV0_24_MatMut A_inv,
                                       struct FaerV0_24_MatRef L,
                                       struct FaerV0_24_VecRef D,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_c32(size_t dim,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_c64(size_t dim,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_cx128(size_t dim,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_f32(size_t dim,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_f64(size_t dim,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_inverse_scratch_fx128(size_t dim,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_c32(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_c64(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef D,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_f32(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_f64(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef L,
                                         struct FaerV0_24_VecRef D,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                           struct FaerV0_24_MatRef L,
                                           struct FaerV0_24_VecRef D,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_c32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_c64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_cx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_f32(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_f64(size_t dim,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_reconstruct_scratch_fx128(size_t dim,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_c32(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
@@ -3949,6 +8210,13 @@ void libfaer_v0_23_ldlt_solve_in_place_c32(struct FaerV0_24_MatRef L,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_c64(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
@@ -3956,6 +8224,13 @@ void libfaer_v0_23_ldlt_solve_in_place_c64(struct FaerV0_24_MatRef L,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_cx128(struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_VecRef D,
                                              enum FaerV0_24_Conj A_conj,
@@ -3963,6 +8238,13 @@ void libfaer_v0_23_ldlt_solve_in_place_cx128(struct FaerV0_24_MatRef L,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_f32(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
@@ -3970,6 +8252,13 @@ void libfaer_v0_23_ldlt_solve_in_place_f32(struct FaerV0_24_MatRef L,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_f64(struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_VecRef D,
                                            enum FaerV0_24_Conj A_conj,
@@ -3977,6 +8266,13 @@ void libfaer_v0_23_ldlt_solve_in_place_f64(struct FaerV0_24_MatRef L,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_ldlt_solve_in_place_fx128(struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_VecRef D,
                                              enum FaerV0_24_Conj A_conj,
@@ -3984,246 +8280,631 @@ void libfaer_v0_23_ldlt_solve_in_place_fx128(struct FaerV0_24_MatRef L,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_c32(size_t dim,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_c64(size_t dim,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_cx128(size_t dim,
                                                                         size_t rhs_ncols,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_f32(size_t dim,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_f64(size_t dim,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_ldlt_solve_in_place_scratch_fx128(size_t dim,
                                                                         size_t rhs_ncols,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_LltRegularization regularization,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_LltStatus libfaer_v0_23_llt_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                    struct FaerV0_24_LltRegularization regularization,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem,
                                                                    struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_c32(size_t dim,
                                                                       const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_c64(size_t dim,
                                                                       const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_cx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team,
                                                                         struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_f32(size_t dim,
                                                                       const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_f64(size_t dim,
                                                                       const struct FaerV0_24_Team *team,
                                                                       struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_factor_in_place_scratch_fx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team,
                                                                         struct FaerV0_24_LltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_c32(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
                                    const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_c64(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
                                    const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_cx128(struct FaerV0_24_MatMut A_inv,
                                      struct FaerV0_24_MatRef L,
                                      const struct FaerV0_24_Team *team,
                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_f32(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
                                    const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_f64(struct FaerV0_24_MatMut A_inv,
                                    struct FaerV0_24_MatRef L,
                                    const struct FaerV0_24_Team *team,
                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_inverse_fx128(struct FaerV0_24_MatMut A_inv,
                                      struct FaerV0_24_MatRef L,
                                      const struct FaerV0_24_Team *team,
                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c32(size_t dim,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_c64(size_t dim,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_cx128(size_t dim,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f32(size_t dim,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_f64(size_t dim,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_inverse_scratch_fx128(size_t dim,
                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_c32(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
                                        const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_c64(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
                                        const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                          struct FaerV0_24_MatRef L,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_f32(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
                                        const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_f64(struct FaerV0_24_MatMut A,
                                        struct FaerV0_24_MatRef L,
                                        const struct FaerV0_24_Team *team,
                                        struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                          struct FaerV0_24_MatRef L,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_c32(size_t dim,
                                                                   const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_c64(size_t dim,
                                                                   const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_cx128(size_t dim,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_f32(size_t dim,
                                                                   const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_f64(size_t dim,
                                                                   const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_reconstruct_scratch_fx128(size_t dim,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_c32(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_c64(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_cx128(struct FaerV0_24_MatRef L,
                                             enum FaerV0_24_Conj A_conj,
                                             struct FaerV0_24_MatMut rhs,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_f32(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_f64(struct FaerV0_24_MatRef L,
                                           enum FaerV0_24_Conj A_conj,
                                           struct FaerV0_24_MatMut rhs,
                                           const struct FaerV0_24_Team *team,
                                           struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_llt_solve_in_place_fx128(struct FaerV0_24_MatRef L,
                                             enum FaerV0_24_Conj A_conj,
                                             struct FaerV0_24_MatMut rhs,
                                             const struct FaerV0_24_Team *team,
                                             struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_c32(size_t dim,
                                                                      size_t rhs_ncols,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_c64(size_t dim,
                                                                      size_t rhs_ncols,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_cx128(size_t dim,
                                                                        size_t rhs_ncols,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_f32(size_t dim,
                                                                      size_t rhs_ncols,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_f64(size_t dim,
                                                                      size_t rhs_ncols,
                                                                      const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_llt_solve_in_place_scratch_fx128(size_t dim,
                                                                        size_t rhs_ncols,
                                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_c32(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
@@ -4231,6 +8912,13 @@ void libfaer_v0_23_matmul_c32(struct FaerV0_24_MatMut C,
                               const struct FaerV0_24_Scalar *alpha,
                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_c64(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
@@ -4238,6 +8926,13 @@ void libfaer_v0_23_matmul_c64(struct FaerV0_24_MatMut C,
                               const struct FaerV0_24_Scalar *alpha,
                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_cx128(struct FaerV0_24_MatMut C,
                                 enum FaerV0_24_Accum accum,
                                 struct FaerV0_24_MatRef A,
@@ -4245,6 +8940,13 @@ void libfaer_v0_23_matmul_cx128(struct FaerV0_24_MatMut C,
                                 const struct FaerV0_24_Scalar *alpha,
                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_f32(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
@@ -4252,6 +8954,13 @@ void libfaer_v0_23_matmul_f32(struct FaerV0_24_MatMut C,
                               const struct FaerV0_24_Scalar *alpha,
                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_f64(struct FaerV0_24_MatMut C,
                               enum FaerV0_24_Accum accum,
                               struct FaerV0_24_MatRef A,
@@ -4259,6 +8968,13 @@ void libfaer_v0_23_matmul_f64(struct FaerV0_24_MatMut C,
                               const struct FaerV0_24_Scalar *alpha,
                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_fx128(struct FaerV0_24_MatMut C,
                                 enum FaerV0_24_Accum accum,
                                 struct FaerV0_24_MatRef A,
@@ -4266,6 +8982,13 @@ void libfaer_v0_23_matmul_fx128(struct FaerV0_24_MatMut C,
                                 const struct FaerV0_24_Scalar *alpha,
                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_c32(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
                                          enum FaerV0_24_Accum accum,
@@ -4276,6 +8999,13 @@ void libfaer_v0_23_matmul_triangular_c32(struct FaerV0_24_MatMut C,
                                          const struct FaerV0_24_Scalar *alpha,
                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_c64(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
                                          enum FaerV0_24_Accum accum,
@@ -4286,6 +9016,13 @@ void libfaer_v0_23_matmul_triangular_c64(struct FaerV0_24_MatMut C,
                                          const struct FaerV0_24_Scalar *alpha,
                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_cx128(struct FaerV0_24_MatMut C,
                                            enum FaerV0_24_Block C_block,
                                            enum FaerV0_24_Accum accum,
@@ -4296,6 +9033,13 @@ void libfaer_v0_23_matmul_triangular_cx128(struct FaerV0_24_MatMut C,
                                            const struct FaerV0_24_Scalar *alpha,
                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_f32(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
                                          enum FaerV0_24_Accum accum,
@@ -4306,6 +9050,13 @@ void libfaer_v0_23_matmul_triangular_f32(struct FaerV0_24_MatMut C,
                                          const struct FaerV0_24_Scalar *alpha,
                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_f64(struct FaerV0_24_MatMut C,
                                          enum FaerV0_24_Block C_block,
                                          enum FaerV0_24_Accum accum,
@@ -4316,6 +9067,13 @@ void libfaer_v0_23_matmul_triangular_f64(struct FaerV0_24_MatMut C,
                                          const struct FaerV0_24_Scalar *alpha,
                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_matmul_triangular_fx128(struct FaerV0_24_MatMut C,
                                            enum FaerV0_24_Block C_block,
                                            enum FaerV0_24_Accum accum,
@@ -4326,66 +9084,157 @@ void libfaer_v0_23_matmul_triangular_fx128(struct FaerV0_24_MatMut C,
                                            const struct FaerV0_24_Scalar *alpha,
                                            const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_c32(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_c64(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                                        size_t block_size,
                                                                                        const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_f32(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_f64(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                                        size_t block_size,
                                                                                        const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_c32(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_c64(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                                        size_t block_size,
                                                                                        const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_f32(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_f64(size_t dim,
                                                                                      size_t block_size,
                                                                                      const struct FaerV0_24_Team *team,
                                                                                      struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                                        size_t block_size,
                                                                                        const struct FaerV0_24_Team *team,
                                                                                        struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4393,6 +9242,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4400,6 +9256,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
@@ -4407,6 +9270,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4414,6 +9284,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4421,6 +9298,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
@@ -4428,6 +9312,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4435,6 +9326,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4442,6 +9340,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
@@ -4449,6 +9354,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4456,6 +9368,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                                          struct FaerV0_24_SliceMut perm_fwd,
                                                                                          struct FaerV0_24_SliceMut perm_bwd,
@@ -4463,6 +9382,13 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                          struct FaerV0_24_MemAlloc mem,
                                                                                          struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                                            struct FaerV0_24_SliceMut perm_fwd,
                                                                                            struct FaerV0_24_SliceMut perm_bwd,
@@ -4470,42 +9396,133 @@ struct FaerV0_24_PartialPivLuStatus libfaer_v0_23_partial_piv_lu_factor_in_place
                                                                                            struct FaerV0_24_MemAlloc mem,
                                                                                            struct FaerV0_24_PartialPivLuParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_c32(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_c64(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_cx128(size_t dim,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_f32(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_f64(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u32_fx128(size_t dim,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_c32(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_c64(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_cx128(size_t dim,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_f32(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_f64(size_t dim,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_inverse_scratch_u64_fx128(size_t dim,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4514,6 +9531,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_c32(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4522,6 +9546,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_c64(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_MatRef U,
@@ -4530,6 +9561,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_cx128(struct FaerV0_24_MatMut A,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4538,6 +9576,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_f32(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4546,6 +9591,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_f64(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_MatRef U,
@@ -4554,6 +9606,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u32_fx128(struct FaerV0_24_MatMut A,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4562,6 +9621,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_c32(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4570,6 +9636,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_c64(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_MatRef U,
@@ -4578,6 +9651,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_cx128(struct FaerV0_24_MatMut A,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4586,6 +9666,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_f32(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                   struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_MatRef U,
@@ -4594,6 +9681,13 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_f64(struct FaerV0_24_MatMut A,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                     struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_MatRef U,
@@ -4602,54 +9696,145 @@ void libfaer_v0_23_partial_piv_lu_inverse_u64_fx128(struct FaerV0_24_MatMut A,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_c32(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_c64(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_cx128(size_t nrows,
                                                                                    size_t ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_f32(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_f64(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u32_fx128(size_t nrows,
                                                                                    size_t ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_c32(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_c64(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_cx128(size_t nrows,
                                                                                    size_t ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_f32(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_f64(size_t nrows,
                                                                                  size_t ncols,
                                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_reconstruct_scratch_u64_fx128(size_t nrows,
                                                                                    size_t ncols,
                                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4658,6 +9843,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4666,6 +9858,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                         struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
@@ -4674,6 +9873,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_cx128(struct FaerV0_24_MatMut 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4682,6 +9888,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4690,6 +9903,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                         struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
@@ -4698,6 +9918,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u32_fx128(struct FaerV0_24_MatMut 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4706,6 +9933,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4714,6 +9948,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                         struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
@@ -4722,6 +9963,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_cx128(struct FaerV0_24_MatMut 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4730,6 +9978,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                       struct FaerV0_24_MatRef L,
                                                       struct FaerV0_24_MatRef U,
@@ -4738,6 +9993,13 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                         struct FaerV0_24_MatRef L,
                                                         struct FaerV0_24_MatRef U,
@@ -4746,54 +10008,145 @@ void libfaer_v0_23_partial_piv_lu_reconstruct_u64_fx128(struct FaerV0_24_MatMut 
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_c32(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_c64(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                       size_t rhs_ncols,
                                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_f32(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_f64(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                       size_t rhs_ncols,
                                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_c32(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_c64(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                       size_t rhs_ncols,
                                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_f32(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_f64(size_t dim,
                                                                                     size_t rhs_ncols,
                                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                       size_t rhs_ncols,
                                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4803,6 +10156,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c32(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4812,6 +10172,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_c64(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                            struct FaerV0_24_MatRef U,
                                                            enum FaerV0_24_Conj A_conj,
@@ -4821,6 +10188,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_cx128(struct FaerV0_24_MatR
                                                            const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4830,6 +10204,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f32(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4839,6 +10220,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_f64(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                            struct FaerV0_24_MatRef U,
                                                            enum FaerV0_24_Conj A_conj,
@@ -4848,6 +10236,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u32_fx128(struct FaerV0_24_MatR
                                                            const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4857,6 +10252,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c32(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4866,6 +10268,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_c64(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                            struct FaerV0_24_MatRef U,
                                                            enum FaerV0_24_Conj A_conj,
@@ -4875,6 +10284,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_cx128(struct FaerV0_24_MatR
                                                            const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4884,6 +10300,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f32(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                          struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj A_conj,
@@ -4893,6 +10316,13 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_f64(struct FaerV0_24_MatRef
                                                          const struct FaerV0_24_Team *team,
                                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                            struct FaerV0_24_MatRef U,
                                                            enum FaerV0_24_Conj A_conj,
@@ -4902,54 +10332,145 @@ void libfaer_v0_23_partial_piv_lu_solve_in_place_u64_fx128(struct FaerV0_24_MatR
                                                            const struct FaerV0_24_Team *team,
                                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_c32(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_c64(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_cx128(size_t dim,
                                                                                                 size_t rhs_ncols,
                                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_f32(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_f64(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u32_fx128(size_t dim,
                                                                                                 size_t rhs_ncols,
                                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_c32(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_c64(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_cx128(size_t dim,
                                                                                                 size_t rhs_ncols,
                                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_f32(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_f64(size_t dim,
                                                                                               size_t rhs_ncols,
                                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_scratch_u64_fx128(size_t dim,
                                                                                                 size_t rhs_ncols,
                                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -4959,6 +10480,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c32(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -4968,6 +10496,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_c64(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                                      struct FaerV0_24_MatRef U,
                                                                      enum FaerV0_24_Conj A_conj,
@@ -4977,6 +10512,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_cx128(struct Faer
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -4986,6 +10528,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f32(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -4995,6 +10544,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_f64(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                                      struct FaerV0_24_MatRef U,
                                                                      enum FaerV0_24_Conj A_conj,
@@ -5004,6 +10560,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u32_fx128(struct Faer
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -5013,6 +10576,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c32(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -5022,6 +10592,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_c64(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                                      struct FaerV0_24_MatRef U,
                                                                      enum FaerV0_24_Conj A_conj,
@@ -5031,6 +10608,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_cx128(struct Faer
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -5040,6 +10624,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f32(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                                    struct FaerV0_24_MatRef U,
                                                                    enum FaerV0_24_Conj A_conj,
@@ -5049,6 +10640,13 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_f64(struct FaerV0
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                                      struct FaerV0_24_MatRef U,
                                                                      enum FaerV0_24_Conj A_conj,
@@ -5058,54 +10656,145 @@ void libfaer_v0_23_partial_piv_lu_solve_transpose_in_place_u64_fx128(struct Faer
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_c32(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_c64(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_cx128(size_t dim,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_f32(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_f64(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u32_fx128(size_t dim,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_c32(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_c64(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_cx128(size_t dim,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_f32(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_f64(size_t dim,
                                                                               const struct FaerV0_24_Team *team,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_factor_in_place_scratch_u64_fx128(size_t dim,
                                                                                 const struct FaerV0_24_Team *team,
                                                                                 struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5113,6 +10802,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c32(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5120,6 +10816,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_c64(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_cx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
@@ -5127,6 +10830,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_cx128(st
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5134,6 +10844,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f32(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5141,6 +10858,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_f64(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_fx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
@@ -5148,6 +10872,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u32_fx128(st
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5155,6 +10886,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c32(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5162,6 +10900,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_c64(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_cx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
@@ -5169,6 +10914,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_cx128(st
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f32(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5176,6 +10928,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f32(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f64(struct FaerV0_24_MatMut A,
                                                                             struct FaerV0_24_SliceMut perm_fwd,
                                                                             struct FaerV0_24_SliceMut perm_bwd,
@@ -5183,6 +10942,13 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_f64(stru
                                                                             struct FaerV0_24_MemAlloc mem,
                                                                             struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_fx128(struct FaerV0_24_MatMut A,
                                                                               struct FaerV0_24_SliceMut perm_fwd,
                                                                               struct FaerV0_24_SliceMut perm_bwd,
@@ -5190,42 +10956,133 @@ struct FaerV0_24_PivLltStatus libfaer_v0_23_piv_llt_factor_in_place_u64_fx128(st
                                                                               struct FaerV0_24_MemAlloc mem,
                                                                               struct FaerV0_24_PivLltParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_c32(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_c64(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_cx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_f32(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_f64(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u32_fx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_c32(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_c64(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_cx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_f32(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_f64(size_t dim,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_inverse_scratch_u64_fx128(size_t dim,
                                                                         const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5233,6 +11090,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_c32(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5240,6 +11104,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_c64(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
@@ -5247,6 +11118,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_cx128(struct FaerV0_24_MatMut A_inv,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5254,6 +11132,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_f32(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5261,6 +11146,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_f64(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
@@ -5268,6 +11160,13 @@ void libfaer_v0_23_piv_llt_inverse_u32_fx128(struct FaerV0_24_MatMut A_inv,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5275,6 +11174,13 @@ void libfaer_v0_23_piv_llt_inverse_u64_c32(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5282,6 +11188,13 @@ void libfaer_v0_23_piv_llt_inverse_u64_c64(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
@@ -5289,6 +11202,13 @@ void libfaer_v0_23_piv_llt_inverse_u64_cx128(struct FaerV0_24_MatMut A_inv,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5296,6 +11216,13 @@ void libfaer_v0_23_piv_llt_inverse_u64_f32(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                            struct FaerV0_24_MatRef L,
                                            struct FaerV0_24_SliceRef perm_fwd,
@@ -5303,6 +11230,13 @@ void libfaer_v0_23_piv_llt_inverse_u64_f64(struct FaerV0_24_MatMut A_inv,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                              struct FaerV0_24_MatRef L,
                                              struct FaerV0_24_SliceRef perm_fwd,
@@ -5310,42 +11244,133 @@ void libfaer_v0_23_piv_llt_inverse_u64_fx128(struct FaerV0_24_MatMut A_inv,
                                              const struct FaerV0_24_Team *team,
                                              struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_c32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_c64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_cx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_f32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_f64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u32_fx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_c32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_c64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_cx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_f32(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_f64(size_t dim,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_reconstruct_scratch_u64_fx128(size_t dim,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5353,6 +11378,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_c32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5360,6 +11392,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_c64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
@@ -5367,6 +11406,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_cx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5374,6 +11420,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_f32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5381,6 +11434,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_f64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
@@ -5388,6 +11448,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u32_fx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5395,6 +11462,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_c32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5402,6 +11476,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_c64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
@@ -5409,6 +11490,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_cx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5416,6 +11504,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_f32(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                struct FaerV0_24_MatRef L,
                                                struct FaerV0_24_SliceRef perm_fwd,
@@ -5423,6 +11518,13 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_f64(struct FaerV0_24_MatMut A,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                  struct FaerV0_24_MatRef L,
                                                  struct FaerV0_24_SliceRef perm_fwd,
@@ -5430,54 +11532,145 @@ void libfaer_v0_23_piv_llt_reconstruct_u64_fx128(struct FaerV0_24_MatMut A,
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_c32(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_c64(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_cx128(size_t dim,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_f32(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_f64(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u32_fx128(size_t dim,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_c32(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_c64(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_cx128(size_t dim,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_f32(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_f64(size_t dim,
                                                                              size_t rhs_ncols,
                                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_piv_llt_solve_in_place_scratch_u64_fx128(size_t dim,
                                                                                size_t rhs_ncols,
                                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5486,6 +11679,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_c32(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5494,6 +11694,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_c64(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
@@ -5502,6 +11709,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_cx128(struct FaerV0_24_MatRef L,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5510,6 +11724,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_f32(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5518,6 +11739,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_f64(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
@@ -5526,6 +11754,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u32_fx128(struct FaerV0_24_MatRef L,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5534,6 +11769,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_c32(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5542,6 +11784,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_c64(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
@@ -5550,6 +11799,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_cx128(struct FaerV0_24_MatRef L,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5558,6 +11814,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_f32(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                   struct FaerV0_24_SliceRef perm_fwd,
                                                   struct FaerV0_24_SliceRef perm_bwd,
@@ -5566,6 +11829,13 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_f64(struct FaerV0_24_MatRef L,
                                                   const struct FaerV0_24_Team *team,
                                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_piv_llt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                     struct FaerV0_24_SliceRef perm_fwd,
                                                     struct FaerV0_24_SliceRef perm_bwd,
@@ -5574,78 +11844,169 @@ void libfaer_v0_23_piv_llt_solve_in_place_u64_fx128(struct FaerV0_24_MatRef L,
                                                     const struct FaerV0_24_Team *team,
                                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_c32(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_c64(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_cx128(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_MatMut Q_coeff,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_f32(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_f64(struct FaerV0_24_MatMut A,
                                                                struct FaerV0_24_MatMut Q_coeff,
                                                                const struct FaerV0_24_Team *team,
                                                                struct FaerV0_24_MemAlloc mem,
                                                                struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_QrStatus libfaer_v0_23_qr_factor_in_place_fx128(struct FaerV0_24_MatMut A,
                                                                  struct FaerV0_24_MatMut Q_coeff,
                                                                  const struct FaerV0_24_Team *team,
                                                                  struct FaerV0_24_MemAlloc mem,
                                                                  struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_c32(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_c64(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_cx128(size_t nrows,
                                                                        size_t ncols,
                                                                        size_t block_size,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_f32(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_f64(size_t nrows,
                                                                      size_t ncols,
                                                                      size_t block_size,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_factor_in_place_scratch_fx128(size_t nrows,
                                                                        size_t ncols,
                                                                        size_t block_size,
                                                                        const struct FaerV0_24_Team *team,
                                                                        struct FaerV0_24_QrParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_c32(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
@@ -5653,6 +12014,13 @@ void libfaer_v0_23_qr_inverse_c32(struct FaerV0_24_MatMut A,
                                   const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_c64(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
@@ -5660,6 +12028,13 @@ void libfaer_v0_23_qr_inverse_c64(struct FaerV0_24_MatMut A,
                                   const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_cx128(struct FaerV0_24_MatMut A,
                                     struct FaerV0_24_MatRef Q_basis,
                                     struct FaerV0_24_MatRef Q_coeff,
@@ -5667,6 +12042,13 @@ void libfaer_v0_23_qr_inverse_cx128(struct FaerV0_24_MatMut A,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_f32(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
@@ -5674,6 +12056,13 @@ void libfaer_v0_23_qr_inverse_f32(struct FaerV0_24_MatMut A,
                                   const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_f64(struct FaerV0_24_MatMut A,
                                   struct FaerV0_24_MatRef Q_basis,
                                   struct FaerV0_24_MatRef Q_coeff,
@@ -5681,6 +12070,13 @@ void libfaer_v0_23_qr_inverse_f64(struct FaerV0_24_MatMut A,
                                   const struct FaerV0_24_Team *team,
                                   struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_inverse_fx128(struct FaerV0_24_MatMut A,
                                     struct FaerV0_24_MatRef Q_basis,
                                     struct FaerV0_24_MatRef Q_coeff,
@@ -5688,42 +12084,133 @@ void libfaer_v0_23_qr_inverse_fx128(struct FaerV0_24_MatMut A,
                                     const struct FaerV0_24_Team *team,
                                     struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_c32(size_t dim,
                                                              size_t block_size,
                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_c64(size_t dim,
                                                              size_t block_size,
                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_cx128(size_t dim,
                                                                size_t block_size,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_f32(size_t dim,
                                                              size_t block_size,
                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_f64(size_t dim,
                                                              size_t block_size,
                                                              const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_inverse_scratch_fx128(size_t dim,
                                                                size_t block_size,
                                                                const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_c32(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_c64(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_cx128(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_f32(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_f64(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 size_t libfaer_v0_23_qr_recommended_block_size_fx128(size_t nrows, size_t ncols);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_c32(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
@@ -5731,6 +12218,13 @@ void libfaer_v0_23_qr_reconstruct_c32(struct FaerV0_24_MatMut A,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_c64(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
@@ -5738,6 +12232,13 @@ void libfaer_v0_23_qr_reconstruct_c64(struct FaerV0_24_MatMut A,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef Q_basis,
                                         struct FaerV0_24_MatRef Q_coeff,
@@ -5745,6 +12246,13 @@ void libfaer_v0_23_qr_reconstruct_cx128(struct FaerV0_24_MatMut A,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_f32(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
@@ -5752,6 +12260,13 @@ void libfaer_v0_23_qr_reconstruct_f32(struct FaerV0_24_MatMut A,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_f64(struct FaerV0_24_MatMut A,
                                       struct FaerV0_24_MatRef Q_basis,
                                       struct FaerV0_24_MatRef Q_coeff,
@@ -5759,6 +12274,13 @@ void libfaer_v0_23_qr_reconstruct_f64(struct FaerV0_24_MatMut A,
                                       const struct FaerV0_24_Team *team,
                                       struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                         struct FaerV0_24_MatRef Q_basis,
                                         struct FaerV0_24_MatRef Q_coeff,
@@ -5766,36 +12288,85 @@ void libfaer_v0_23_qr_reconstruct_fx128(struct FaerV0_24_MatMut A,
                                         const struct FaerV0_24_Team *team,
                                         struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_c32(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_c64(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_cx128(size_t nrows,
                                                                    size_t ncols,
                                                                    size_t block_size,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_f32(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_f64(size_t nrows,
                                                                  size_t ncols,
                                                                  size_t block_size,
                                                                  const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_reconstruct_scratch_fx128(size_t nrows,
                                                                    size_t ncols,
                                                                    size_t block_size,
                                                                    const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef Q_coeff,
                                          struct FaerV0_24_MatRef R,
@@ -5804,6 +12375,13 @@ void libfaer_v0_23_qr_solve_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef Q_coeff,
                                          struct FaerV0_24_MatRef R,
@@ -5812,6 +12390,13 @@ void libfaer_v0_23_qr_solve_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
                                            struct FaerV0_24_MatRef Q_coeff,
                                            struct FaerV0_24_MatRef R,
@@ -5820,6 +12405,13 @@ void libfaer_v0_23_qr_solve_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef Q_coeff,
                                          struct FaerV0_24_MatRef R,
@@ -5828,6 +12420,13 @@ void libfaer_v0_23_qr_solve_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                          struct FaerV0_24_MatRef Q_coeff,
                                          struct FaerV0_24_MatRef R,
@@ -5836,6 +12435,13 @@ void libfaer_v0_23_qr_solve_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                          const struct FaerV0_24_Team *team,
                                          struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
                                            struct FaerV0_24_MatRef Q_coeff,
                                            struct FaerV0_24_MatRef R,
@@ -5844,36 +12450,85 @@ void libfaer_v0_23_qr_solve_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
                                            const struct FaerV0_24_Team *team,
                                            struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_c32(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_c64(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_cx128(size_t dim,
                                                                       size_t block_size,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_f32(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_f64(size_t dim,
                                                                     size_t block_size,
                                                                     size_t rhs_ncols,
                                                                     const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_in_place_scratch_fx128(size_t dim,
                                                                       size_t block_size,
                                                                       size_t rhs_ncols,
                                                                       const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
                                                struct FaerV0_24_MatRef R,
@@ -5882,6 +12537,13 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
                                                struct FaerV0_24_MatRef R,
@@ -5890,6 +12552,13 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
                                                  struct FaerV0_24_MatRef R,
@@ -5898,6 +12567,13 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_cx128(struct FaerV0_24_MatRef Q_basis
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
                                                struct FaerV0_24_MatRef R,
@@ -5906,6 +12582,13 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                                struct FaerV0_24_MatRef Q_coeff,
                                                struct FaerV0_24_MatRef R,
@@ -5914,6 +12597,13 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                                const struct FaerV0_24_Team *team,
                                                struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_lstsq_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
                                                  struct FaerV0_24_MatRef Q_coeff,
                                                  struct FaerV0_24_MatRef R,
@@ -5922,42 +12612,91 @@ void libfaer_v0_23_qr_solve_lstsq_in_place_fx128(struct FaerV0_24_MatRef Q_basis
                                                  const struct FaerV0_24_Team *team,
                                                  struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_c32(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_c64(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_cx128(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_f32(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_f64(size_t nrows,
                                                                           size_t ncols,
                                                                           size_t block_size,
                                                                           size_t rhs_ncols,
                                                                           const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_lstsq_in_place_scratch_fx128(size_t nrows,
                                                                             size_t ncols,
                                                                             size_t block_size,
                                                                             size_t rhs_ncols,
                                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_c32(struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
                                                    struct FaerV0_24_MatRef R,
@@ -5966,6 +12705,13 @@ void libfaer_v0_23_qr_solve_transpose_in_place_c32(struct FaerV0_24_MatRef Q_bas
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_c64(struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
                                                    struct FaerV0_24_MatRef R,
@@ -5974,6 +12720,13 @@ void libfaer_v0_23_qr_solve_transpose_in_place_c64(struct FaerV0_24_MatRef Q_bas
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_cx128(struct FaerV0_24_MatRef Q_basis,
                                                      struct FaerV0_24_MatRef Q_coeff,
                                                      struct FaerV0_24_MatRef R,
@@ -5982,6 +12735,13 @@ void libfaer_v0_23_qr_solve_transpose_in_place_cx128(struct FaerV0_24_MatRef Q_b
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_f32(struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
                                                    struct FaerV0_24_MatRef R,
@@ -5990,6 +12750,13 @@ void libfaer_v0_23_qr_solve_transpose_in_place_f32(struct FaerV0_24_MatRef Q_bas
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_f64(struct FaerV0_24_MatRef Q_basis,
                                                    struct FaerV0_24_MatRef Q_coeff,
                                                    struct FaerV0_24_MatRef R,
@@ -5998,6 +12765,13 @@ void libfaer_v0_23_qr_solve_transpose_in_place_f64(struct FaerV0_24_MatRef Q_bas
                                                    const struct FaerV0_24_Team *team,
                                                    struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_qr_solve_transpose_in_place_fx128(struct FaerV0_24_MatRef Q_basis,
                                                      struct FaerV0_24_MatRef Q_coeff,
                                                      struct FaerV0_24_MatRef R,
@@ -6006,36 +12780,85 @@ void libfaer_v0_23_qr_solve_transpose_in_place_fx128(struct FaerV0_24_MatRef Q_b
                                                      const struct FaerV0_24_Team *team,
                                                      struct FaerV0_24_MemAlloc mem);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_c32(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_c64(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_cx128(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_f32(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_f64(size_t dim,
                                                                               size_t block_size,
                                                                               size_t rhs_ncols,
                                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_qr_solve_transpose_in_place_scratch_fx128(size_t dim,
                                                                                 size_t block_size,
                                                                                 size_t rhs_ncols,
                                                                                 const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c32(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
@@ -6043,6 +12866,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c32(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c64(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
@@ -6050,6 +12880,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_c64(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_cx128(struct FaerV0_24_MatRef A,
                                                                 struct FaerV0_24_MatMut U,
                                                                 struct FaerV0_24_VecMut S,
@@ -6057,6 +12894,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_cx128(struct FaerV0_24
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f32(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
@@ -6064,6 +12908,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f32(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f64(struct FaerV0_24_MatRef A,
                                                               struct FaerV0_24_MatMut U,
                                                               struct FaerV0_24_VecMut S,
@@ -6071,6 +12922,13 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_f64(struct FaerV0_24_M
                                                               struct FaerV0_24_MemAlloc mem,
                                                               struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_fx128(struct FaerV0_24_MatRef A,
                                                                 struct FaerV0_24_MatMut U,
                                                                 struct FaerV0_24_VecMut S,
@@ -6078,156 +12936,373 @@ struct FaerV0_24_EvdStatus libfaer_v0_23_self_adjoint_evd_fx128(struct FaerV0_24
                                                                 struct FaerV0_24_MemAlloc mem,
                                                                 struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_c32(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_c64(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_cx128(size_t dim,
                                                                      enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_f32(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_f64(size_t dim,
                                                                    enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                    const struct FaerV0_24_Team *team,
                                                                    struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_self_adjoint_evd_scratch_fx128(size_t dim,
                                                                      enum FaerV0_24_ComputeEigenvectors compute_U,
                                                                      const struct FaerV0_24_Team *team,
                                                                      struct FaerV0_24_SelfAdjointEvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_c32(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_c64(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_cx128(struct FaerV0_24_MatRef L,
                                                          enum FaerV0_24_Conj L_conj,
                                                          struct FaerV0_24_MatMut rhs,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_f32(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_f64(struct FaerV0_24_MatRef L,
                                                        enum FaerV0_24_Conj L_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_lower_in_place_fx128(struct FaerV0_24_MatRef L,
                                                          enum FaerV0_24_Conj L_conj,
                                                          struct FaerV0_24_MatMut rhs,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_c32(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_c64(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_cx128(struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj U_conj,
                                                          struct FaerV0_24_MatMut rhs,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_f32(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_f64(struct FaerV0_24_MatRef U,
                                                        enum FaerV0_24_Conj U_conj,
                                                        struct FaerV0_24_MatMut rhs,
                                                        const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_triangular_upper_in_place_fx128(struct FaerV0_24_MatRef U,
                                                          enum FaerV0_24_Conj U_conj,
                                                          struct FaerV0_24_MatMut rhs,
                                                          const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_c32(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_c64(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_cx128(struct FaerV0_24_MatRef L,
                                                               enum FaerV0_24_Conj L_conj,
                                                               struct FaerV0_24_MatMut rhs,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_f32(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_f64(struct FaerV0_24_MatRef L,
                                                             enum FaerV0_24_Conj L_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_lower_in_place_fx128(struct FaerV0_24_MatRef L,
                                                               enum FaerV0_24_Conj L_conj,
                                                               struct FaerV0_24_MatMut rhs,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_c32(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_c64(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_cx128(struct FaerV0_24_MatRef U,
                                                               enum FaerV0_24_Conj U_conj,
                                                               struct FaerV0_24_MatMut rhs,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_f32(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_f64(struct FaerV0_24_MatRef U,
                                                             enum FaerV0_24_Conj U_conj,
                                                             struct FaerV0_24_MatMut rhs,
                                                             const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 void libfaer_v0_23_solve_unit_triangular_upper_in_place_fx128(struct FaerV0_24_MatRef U,
                                                               enum FaerV0_24_Conj U_conj,
                                                               struct FaerV0_24_MatMut rhs,
                                                               const struct FaerV0_24_Team *team);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
@@ -6236,6 +13311,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
@@ -6244,6 +13326,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_c64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut U,
                                                    struct FaerV0_24_VecMut S,
@@ -6252,6 +13341,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_cx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
@@ -6260,6 +13356,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f32(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MatMut U,
                                                  struct FaerV0_24_VecMut S,
@@ -6268,6 +13371,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_f64(struct FaerV0_24_MatRef A,
                                                  struct FaerV0_24_MemAlloc mem,
                                                  struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_SvdStatus libfaer_v0_23_svd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MatMut U,
                                                    struct FaerV0_24_VecMut S,
@@ -6276,6 +13386,13 @@ struct FaerV0_24_SvdStatus libfaer_v0_23_svd_fx128(struct FaerV0_24_MatRef A,
                                                    struct FaerV0_24_MemAlloc mem,
                                                    struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c32(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6283,6 +13400,13 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c32(size_t nrows,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c64(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6290,6 +13414,13 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_c64(size_t nrows,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_cx128(size_t nrows,
                                                         size_t ncols,
                                                         enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6297,6 +13428,13 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_cx128(size_t nrows,
                                                         const struct FaerV0_24_Team *team,
                                                         struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f32(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6304,6 +13442,13 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f32(size_t nrows,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f64(size_t nrows,
                                                       size_t ncols,
                                                       enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6311,6 +13456,13 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_f64(size_t nrows,
                                                       const struct FaerV0_24_Team *team,
                                                       struct FaerV0_24_SvdParams params);
 
+/**
+ * # Safety
+ * The caller must pass valid pointers and the lengths that describe them, as the operation
+ * documents. Every buffer must stay alive for the duration of the call; read-only inputs may
+ * alias each other, but every output and scratch buffer must be exclusively borrowed, with
+ * only the overlap the operation allows.
+ */
 struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
                                                         size_t ncols,
                                                         enum FaerV0_24_ComputeSvdVectors compute_U,
@@ -6376,6 +13528,9 @@ struct FaerV0_24_Layout libfaer_v0_23_svd_scratch_fx128(size_t nrows,
  * libfaer_v0_23_team_set_threads(team, 2);     // not while an operation uses the handle
  * libfaer_v0_23_team_destroy(team);
  * ```
+ * # Safety
+ * The handle owns worker threads that outlive the call: it must be released with
+ * `libfaer_v0_23_team_destroy` exactly once.
  */
 struct FaerV0_24_Team *libfaer_v0_23_team_create(size_t threads);
 
@@ -6387,6 +13542,9 @@ struct FaerV0_24_Team *libfaer_v0_23_team_create(size_t threads);
  * running. Dropping the pool ends its workers: they are dedicated to this handle (not threadteam's
  * process-wide cache of shared workers), so when `destroy` returns every worker thread of the
  * handle has been joined.
+ * # Safety
+ * `team` must be null or a handle returned by `libfaer_v0_23_team_create` that is not used by
+ * any running operation, and it must not be destroyed twice.
  */
 void libfaer_v0_23_team_destroy(struct FaerV0_24_Team *team);
 
@@ -6402,6 +13560,8 @@ void libfaer_v0_23_team_destroy(struct FaerV0_24_Team *team);
  * (`*_scratch`) made before the change no longer describes an operation of the new width: some
  * sizes depend on the number of participants (full-pivot LU sizes one pivot candidate per
  * participant), so query the scratch again after setting the width.
+ * # Safety
+ * `team` must be a live handle, and no operation may be using it while its width changes.
  */
 void libfaer_v0_23_team_set_threads(struct FaerV0_24_Team *team, size_t threads);
 
