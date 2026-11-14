@@ -19,6 +19,9 @@ commands that prove it.
 Reproducibility: [docs/reproducibility.md](docs/reproducibility.md) — bitwise identical results are
 promised at a fixed thread count only, and it says what the cost model does when the count is free.
 
+Coverage: [docs/coverage.md](docs/coverage.md) — the workspace coverage job, the measured floor, how
+to reproduce it locally, and what it deliberately does not measure.
+
 Before performance work: [PERFORMANCE_TIPS.md](PERFORMANCE_TIPS.md) — the lessons that carry
 over between changes (strided rows, leading-dimension aliasing, the caller-held worker group, dqds).
 
