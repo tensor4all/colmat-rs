@@ -13,6 +13,12 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT: `bidiagonal_dqds` and its scratch query expose the existing real
+  dqds operation with immutable off-diagonal input and error rollback
+  (AtelierArith/Colmat.jl#306). Existing numerical kernels and dispatch are
+  unchanged; no performance claim is made.
+  [Contract and verification scope](docs/worklogs/2026-11-15-public-bidiagonal-dqds.md).
+
 - EXPERIMENT: owned `Mat::row_capacity/col_capacity` and
   `Col/Row/Diag::capacity` expose the current allocation metadata without private
   layout assumptions ([#284](https://github.com/tensor4all/faer/issues/284)).

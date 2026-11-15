@@ -33,6 +33,7 @@ type, so one Rust function serves all four where the algorithm applies to comple
 | `?stebz`, `?stein` | Bisection / inverse iteration on a tridiagonal | **No equivalent** | — |
 | `?gesvd`, `?gesdd` | SVD | `MatRef::svd(par)`, `thin_svd`, or `svd` | `faer/src/linalg/solvers.rs:434`, `:442`, `faer/src/linalg/svd/mod.rs:741` |
 | `?bdsqr` | SVD of a bidiagonal matrix | `bidiagonal_svd` | `faer/src/linalg/svd/mod.rs:460` |
+| `?lasq1` | Values-only real bidiagonal dqds | `bidiagonal_dqds` and `bidiagonal_dqds_scratch`; error rollback is supported, LAPACK iteration codes/intermediate qd factors are not | `faer/src/linalg/svd/mod.rs`, public dqds contract |
 | `?geev` | Nonsymmetric eigenproblem | `MatRef::eigen(par)` | `faer/src/linalg/solvers.rs:805` |
 | `?ggev` | Generalized nonsymmetric eigenproblem | `MatRef::generalized_eigen(b, par)` | `faer/src/linalg/solvers.rs:795` |
 | `?gees` | Schur factorization | `multishift_qr` (real and complex) | `faer/src/linalg/evd/schur/real_schur.rs:2427`, `faer/src/linalg/evd/schur/complex_schur.rs:643` |

@@ -424,6 +424,94 @@ fn compute_bidiag_real_svd<T: RealField>(
 		)
 	}
 }
+/// Scratch for [`bidiagonal_dqds`]. No heap allocation is made by the call.
+///
+/// # Examples
+/// ```
+/// use colmat::dyn_stack::{MemBuffer, MemStack};
+/// use colmat::linalg::svd::{bidiagonal_dqds, bidiagonal_dqds_scratch};
+/// let mut memory = MemBuffer::new(bidiagonal_dqds_scratch::<f64>(2));
+/// let mut d = [3.0f64, -2.0];
+/// bidiagonal_dqds(&mut d, &[0.0], MemStack::new(&mut memory))?;
+/// assert!((d[0] - 3.0).abs() < 1e-12 && (d[1] - 2.0).abs() < 1e-12);
+/// # Ok::<(), colmat::linalg::svd::SvdError>(())
+/// ```
+pub fn bidiagonal_dqds_scratch<T: RealField>(dim: usize) -> StackReq {
+	if dim <= 1 {
+		return StackReq::EMPTY;
+	}
+	StackReq::all_of(&[
+		StackReq::new::<T>(dim),
+		StackReq::new::<T>(dim - 1),
+		dqds::singular_values_scratch::<T>(dim),
+	])
+}
+
+/// Computes descending singular values of a real square bidiagonal by dqds.
+/// Upper and lower bidiagonals with the same diagonal and off-diagonal have
+/// the same singular values. On success, `diag` holds the nonnegative values.
+/// `offdiag` is never changed; on error, `diag` is unchanged too.
+///
+/// This is the dqds operation itself: it does not silently finish by QR or
+/// divide-and-conquer. Callers needing recovery can retain this bidiagonal
+/// and choose another algorithm. For dimension greater than one the dqds
+/// factors require a nonzero diagonal. Empty and singleton inputs are accepted.
+/// Scratch is linear in the dimension and all working memory comes from `stack`.
+///
+/// # Errors
+/// Returns [`SvdError::NoConvergence`] for nonfinite input, a zero diagonal in
+/// dimension greater than one, failure of the dqds iteration (including a
+/// squared-factor range limitation), or nonfinite output. The original inputs
+/// remain available for recovery; no LAPACK-specific iteration status or
+/// intermediate qd-factor representation is promised.
+///
+/// # Panics
+/// Panics if `offdiag.len() != diag.len().saturating_sub(1)` or `stack` is
+/// smaller than [`bidiagonal_dqds_scratch`].
+///
+/// # Examples
+/// ```
+/// use colmat::dyn_stack::{MemBuffer, MemStack};
+/// use colmat::linalg::svd::{bidiagonal_dqds, bidiagonal_dqds_scratch};
+/// let mut d = [-4.0f64, 2.0, 1.0];
+/// let e = [0.0, 0.0];
+/// let mut memory = MemBuffer::new(bidiagonal_dqds_scratch::<f64>(d.len()));
+/// bidiagonal_dqds(&mut d, &e, MemStack::new(&mut memory))?;
+/// assert!(d.iter().zip([4.0, 2.0, 1.0]).all(|(x, y)| (x-y).abs() < 1e-12));
+/// assert_eq!(e, [0.0, 0.0]);
+/// # Ok::<(), colmat::linalg::svd::SvdError>(())
+/// ```
+pub fn bidiagonal_dqds<T: RealField>(
+	diag: &mut [T],
+	offdiag: &[T],
+	stack: &mut MemStack,
+) -> Result<(), SvdError> {
+	let n = diag.len();
+	assert!(offdiag.len() == n.saturating_sub(1));
+	if !diag.iter().chain(offdiag).all(|x| x.is_finite()) {
+		return Err(SvdError::NoConvergence);
+	}
+	if n == 0 {
+		return Ok(());
+	}
+	if n == 1 {
+		diag[0] = diag[0].abs();
+		return Ok(());
+	}
+	if diag.iter().any(|x| *x == zero()) {
+		return Err(SvdError::NoConvergence);
+	}
+	let (mut staged_diag, stack) = stack.make_with::<T>(n, |i| diag[i].copy());
+	let (mut staged_off, stack) =
+		stack.make_with::<T>(n - 1, |i| offdiag[i].copy());
+	dqds::singular_values(&mut staged_diag, &mut staged_off, stack)?;
+	if !staged_diag.iter().all(|x| x.is_finite() && *x > zero()) {
+		return Err(SvdError::NoConvergence);
+	}
+	diag.clone_from_slice(&staged_diag);
+	Ok(())
+}
+
 /// Workspace for [`bidiagonal_svd`], including the padded
 /// lower-bidiagonal storage used by the existing divide-and-conquer
 /// implementation.

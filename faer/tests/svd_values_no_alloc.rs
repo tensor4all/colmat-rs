@@ -172,3 +172,29 @@ cells! {
 	values_only_svd_allocates_nothing_300x60: (300, 60);
 	values_only_svd_allocates_nothing_700x700: (700, 700);
 }
+
+#[test]
+fn public_bidiagonal_dqds_allocates_nothing() {
+	use colmat::linalg::svd::{bidiagonal_dqds, bidiagonal_dqds_scratch};
+	let _turn = GATE.lock().unwrap_or_else(|e| e.into_inner());
+	macro_rules! check {
+		($t:ty) => {{
+			let mut d = vec![2.0 as $t; 700];
+			let e = vec![0.125 as $t; 699];
+			let mut memory =
+				MemBuffer::new(bidiagonal_dqds_scratch::<$t>(d.len()));
+			bidiagonal_dqds(&mut d, &e, MemStack::new(&mut memory)).unwrap();
+			d.fill(2.0);
+			ALLOCATIONS.store(0, Ordering::SeqCst);
+			COUNTING.with(|flag| flag.set(true));
+			let result =
+				bidiagonal_dqds(&mut d, &e, MemStack::new(&mut memory));
+			COUNTING.with(|flag| flag.set(false));
+			let count = ALLOCATIONS.load(Ordering::SeqCst);
+			result.unwrap();
+			assert_eq!(count, 0);
+		}};
+	}
+	check!(f32);
+	check!(f64);
+}
