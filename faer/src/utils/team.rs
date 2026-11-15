@@ -3290,26 +3290,43 @@ mod tests {
 			}
 			d
 		};
-		let llt = |par: Par| {
+		let llt_with = |par: Par, block: Option<(usize, usize)>| {
+			use crate::linalg::cholesky::llt::factor::{
+				LltParams, cholesky_in_place, cholesky_in_place_scratch,
+			};
+			let mut params = <LltParams as crate::Auto<f64>>::auto();
+			if let Some((block_size, recursion_threshold)) = block {
+				params.block_size = block_size;
+				params.recursion_threshold = recursion_threshold;
+			}
 			let mut f = spd.clone();
 			let mut mem = dyn_stack::MemBuffer::new(
-				crate::linalg::cholesky::llt::factor::cholesky_in_place_scratch::<
-					f64,
-				>(n, par.shape(), Default::default()),
+				cholesky_in_place_scratch::<f64>(n, par.shape(), params.into()),
 			);
-			crate::linalg::cholesky::llt::factor::cholesky_in_place(
+			cholesky_in_place(
 				f.as_mut(),
 				Default::default(),
 				par,
 				dyn_stack::MemStack::new(&mut mem),
-				Default::default(),
+				params.into(),
 			)
 			.unwrap();
 			f
 		};
-		let (got, st) = counted(6, llt);
-		assert!(lower_diff(&llt(Par::Seq), &got) < 1e-8, "llt");
-		assert!(st.gemm_team_kernel > 0, "llt: {st:?}");
+		// the default f64 LLT blocking (64/32, #192) on a team: the sequential factor
+		let (got, _) = counted(6, |par| llt_with(par, None));
+		assert!(lower_diff(&llt_with(Par::Seq, None), &got) < 1e-8, "llt");
+		// the team kernel at a 128-wide blocking (the LDLT default this check was written for):
+		// whether the 64-wide default's trailing products clear the kernel's cost floor depends on
+		// the host's measured rates (an instrumented CI runner declines all of them), so the
+		// kernel engagement is checked where the products are large enough everywhere
+		let wide = Some((128, 64));
+		let (got, st) = counted(6, |par| llt_with(par, wide));
+		assert!(
+			lower_diff(&llt_with(Par::Seq, wide), &got) < 1e-8,
+			"llt 128"
+		);
+		assert!(st.gemm_team_kernel > 0, "llt 128: {st:?}");
 		let ldlt = |par: Par| {
 			let mut f = spd.clone();
 			let mut mem = dyn_stack::MemBuffer::new(crate::linalg::cholesky::ldlt::factor::cholesky_in_place_scratch::<f64>(n, par.shape(), Default::default()));
