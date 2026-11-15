@@ -2092,7 +2092,15 @@ impl ComplexField for f32 {
 impl RealField for f32 {
 	#[inline(always)]
 	fn mul_add_impl(&self, lhs: Self, rhs: Self) -> Self {
-		f32::mul_add(*self, lhs, rhs)
+		// `f32::mul_add` is a `std` method; `libm::fmaf` is the same single-rounding fused operation
+		#[cfg(feature = "std")]
+		{
+			f32::mul_add(*self, lhs, rhs)
+		}
+		#[cfg(not(feature = "std"))]
+		{
+			libm::fmaf(*self, lhs, rhs)
+		}
 	}
 
 	#[inline(always)]
@@ -2572,7 +2580,15 @@ impl ComplexField for f64 {
 impl RealField for f64 {
 	#[inline(always)]
 	fn mul_add_impl(&self, lhs: Self, rhs: Self) -> Self {
-		f64::mul_add(*self, lhs, rhs)
+		// `f64::mul_add` is a `std` method; `libm::fma` is the same single-rounding fused operation
+		#[cfg(feature = "std")]
+		{
+			f64::mul_add(*self, lhs, rhs)
+		}
+		#[cfg(not(feature = "std"))]
+		{
+			libm::fma(*self, lhs, rhs)
+		}
 	}
 
 	#[inline(always)]
