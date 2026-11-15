@@ -139,19 +139,46 @@ fn parallel_regions_allocate_nothing() {
 					"QR thin Q, width {width}: no parallel region"
 				);
 				assert_eq!(allocs, 0, "QR thin Q, width {width}");
-			// The tridiagonal EVD solver, including its independent merge repairs.
-				use colmat::linalg::evd::{tridiagonal_self_adjoint_evd, tridiagonal_self_adjoint_evd_scratch, ComputeEigenvectors};
+				// The tridiagonal EVD solver, including its independent merge repairs.
+				use colmat::linalg::evd::{
+					ComputeEigenvectors, tridiagonal_self_adjoint_evd,
+					tridiagonal_self_adjoint_evd_scratch,
+				};
 				let n = 256;
-				let diag = colmat::Col::<f64>::from_fn(n, |i| (i % 19) as f64 / 19.0).into_diagonal();
-				let sub = colmat::Col::<f64>::from_fn(n - 1, |i| 0.2 + (i % 7) as f64 / 13.0).into_diagonal();
+				let diag =
+					colmat::Col::<f64>::from_fn(n, |i| (i % 19) as f64 / 19.0)
+						.into_diagonal();
+				let sub = colmat::Col::<f64>::from_fn(n - 1, |i| {
+					0.2 + (i % 7) as f64 / 13.0
+				})
+				.into_diagonal();
 				let mut values = colmat::diag::Diag::<f64>::zeros(n);
 				let mut vectors = Mat::<f64>::zeros(n, n);
 				let params = Default::default();
-				let mut mem = MemBuffer::new(tridiagonal_self_adjoint_evd_scratch::<f64>(n, ComputeEigenvectors::Yes, par.shape(), params));
+				let mut mem = MemBuffer::new(
+					tridiagonal_self_adjoint_evd_scratch::<f64>(
+						n,
+						ComputeEigenvectors::Yes,
+						par.shape(),
+						params,
+					),
+				);
 				let (allocs, parallel) = counted(|| {
-					tridiagonal_self_adjoint_evd(diag.as_ref(), sub.as_ref(), values.as_mut(), Some(vectors.as_mut()), par.reborrow(), MemStack::new(&mut mem), params).unwrap();
+					tridiagonal_self_adjoint_evd(
+						diag.as_ref(),
+						sub.as_ref(),
+						values.as_mut(),
+						Some(vectors.as_mut()),
+						par.reborrow(),
+						MemStack::new(&mut mem),
+						params,
+					)
+					.unwrap();
 				});
-				assert!(parallel > 0, "tridiagonal EVD, width {width}: no parallel region");
+				assert!(
+					parallel > 0,
+					"tridiagonal EVD, width {width}: no parallel region"
+				);
 				assert_eq!(allocs, 0, "tridiagonal EVD, width {width}");
 			}
 
