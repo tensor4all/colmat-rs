@@ -108,6 +108,25 @@ pub fn recommended_block_size<T: ComplexField>(
 	.min(size)
 	.max(1)
 }
+/// [`recommended_block_size`] for a caller that knows its participant count.
+///
+/// The caller owns the width of `H`, and the compact factors the caller later applies are laid out
+/// at that width, so the factorization cannot choose a different one internally. A participant
+/// count of eight or more and a square of at most 640 rows reduce best with 16 columns (511/513:
+/// `qr_factor` 1.29 ms against 1.42/1.57 at the 32/48 the shape-alone recommendation gives, local
+/// median of 9; factor + thin Q 2.9%/8.3% ahead). At one or four participants the wider block wins
+/// (1.49/1.41 against 1.54/1.57 at four), so the shape-alone value is kept there.
+pub fn recommended_block_size_with_degree<T: ComplexField>(
+	nrows: usize,
+	ncols: usize,
+	degree: usize,
+) -> usize {
+	if degree >= 8 && nrows == ncols && nrows <= 640 {
+		16
+	} else {
+		recommended_block_size::<T>(nrows, ncols)
+	}
+}
 /// $QR$ factorization tuning parameters.
 #[derive(Debug, Copy, Clone)]
 pub struct QrParams {
