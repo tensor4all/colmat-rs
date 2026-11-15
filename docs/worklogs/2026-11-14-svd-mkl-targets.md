@@ -246,8 +246,10 @@ participant-aware API below.
 ### Participant-aware recommendation (`9cced7f4`)
 
 The width is the caller's, so the participant count belongs in the recommendation the
-caller uses. `recommended_block_size_with_degree` returns 16 for a square of at most 640
-rows at eight or more participants and the shape-alone width otherwise. The fbench
+caller uses. `recommended_block_size_with_degree` returns 16 for a square of 129..640
+rows at eight or more participants and the shape-alone width otherwise (below 129 rows
+the shape-alone width is at most 8, so 16 would be wider than the shape calls for and can
+exceed `n`). The fbench
 caller passes its declared budget (`fbench` commit `2fc0fa2`); the upstream arm keeps the
 shape-alone width, so the pair has the same control structure as the SVD runs.
 

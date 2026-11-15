@@ -112,16 +112,18 @@ pub fn recommended_block_size<T: ComplexField>(
 ///
 /// The caller owns the width of `H`, and the compact factors the caller later applies are laid out
 /// at that width, so the factorization cannot choose a different one internally. A participant
-/// count of eight or more and a square of at most 640 rows reduce best with 16 columns (511/513:
+/// count of eight or more and a square of 129..640 rows reduce best with 16 columns (511/513:
 /// `qr_factor` 1.29 ms against 1.42/1.57 at the 32/48 the shape-alone recommendation gives, local
-/// median of 9; factor + thin Q 2.9%/8.3% ahead). At one or four participants the wider block wins
-/// (1.49/1.41 against 1.54/1.57 at four), so the shape-alone value is kept there.
+/// median of 9; factor + thin Q 2.9%/8.3% ahead). Below 129 rows the shape-alone width is at
+/// most 8, so 16 would be wider than the shape calls for (and can exceed `n`) and is not used.
+/// At one or four participants the wider block wins (1.49/1.41 against 1.54/1.57 at four), so the
+/// shape-alone value is kept there too.
 pub fn recommended_block_size_with_degree<T: ComplexField>(
 	nrows: usize,
 	ncols: usize,
 	degree: usize,
 ) -> usize {
-	if degree >= 8 && nrows == ncols && nrows <= 640 {
+	if degree >= 8 && nrows == ncols && (129..=640).contains(&nrows) {
 		16
 	} else {
 		recommended_block_size::<T>(nrows, ncols)
@@ -849,6 +851,53 @@ mod tests {
 	use crate::utils::approx::*;
 	use crate::{Mat, Row, assert, c64};
 	use dyn_stack::MemBuffer;
+
+	/// The participant-aware recommendation may only narrow a square: 16
+	/// columns pays off at eight or more participants from 129 rows (where the
+	/// shape-alone width is already 32 or more) through 640. Below 129 rows the
+	/// shape-alone width is at most 8, so 16 would be wider than the shape calls
+	/// for and can exceed `n`; outside the square-and-range gate the function
+	/// must return the shape-alone value exactly.
+	#[test]
+	fn participant_aware_block_size_only_narrows_129_to_640() {
+		for degree in [1, 4, 8] {
+			for (n, shape) in
+				[(8, 1), (16, 1), (128, 8), (129, 32), (640, 48), (641, 48)]
+			{
+				assert_eq!(
+					recommended_block_size::<f64>(n, n),
+					shape,
+					"shape-alone width at {n}x{n}"
+				);
+				let got =
+					recommended_block_size_with_degree::<f64>(n, n, degree);
+				let want = if degree >= 8 && (129..=640).contains(&n) {
+					16
+				} else {
+					shape
+				};
+				assert_eq!(got, want, "degree = {degree}, {n}x{n}");
+				if n < 129 {
+					assert_eq!(
+						got, shape,
+						"degree = {degree}, below 129 rows: {n}x{n}"
+					);
+				}
+				assert!(
+					got <= n,
+					"degree = {degree}, {n}x{n}: got = {got} exceeds n"
+				);
+			}
+			// only squares take the participant-aware width
+			for (m, n) in [(128, 129), (129, 128), (129, 130), (130, 129)] {
+				assert_eq!(
+					recommended_block_size_with_degree::<f64>(m, n, degree),
+					recommended_block_size::<f64>(m, n),
+					"non-square {m}x{n}, degree = {degree}"
+				);
+			}
+		}
+	}
 
 	/// [`copy_r`] reaches the tiled gate of `copy_lower_across_layouts` the long
 	/// way round: it copies the *upper* triangle, and
