@@ -904,8 +904,12 @@ pub struct Lblt<T> {
 /// $LU$ decomposition with partial (row) pivoting
 #[derive(Clone, Debug)]
 pub struct PartialPivLu<T> {
-	L: Mat<T>,
-	U: Mat<T>,
+	/// both factors in one allocation (tensor4all/colmat-rs#191): the packed `m x n` block and
+	/// the `size x size` block, in the order [`Self::packed_at`] gives, each at the column stride
+	/// its own allocation would have, so nothing about `L`, `U` or the factorization changes
+	factors: Mat<T>,
+	m: usize,
+	n: usize,
 	P: Perm<usize>,
 }
 /// $LU$ decomposition with full pivoting
@@ -1190,41 +1194,110 @@ impl<T: ComplexField> PartialPivLu<T> {
 	#[track_caller]
 	pub fn new<C: Conjugate<Canonical = T>>(
 		A: MatRef<'_, C>,
-		mut par: Par<'_>,
+		par: Par<'_>,
 	) -> Self {
 		// the copy and the split in `new_imp` run on `par` (#191): at 1024 on 8 threads they were
 		// longer than the factorization while they ran on the caller
-		let LU = if const { C::IS_CANONICAL } {
-			linalg::owned_copy(A.canonical(), par.reborrow())
+		let owned;
+		let A = if const { C::IS_CANONICAL } {
+			A.canonical()
 		} else {
-			A.to_owned()
+			owned = A.to_owned();
+			owned.as_ref()
 		};
-		Self::new_imp(LU, par)
+		Self::new_imp(A, par)
+	}
+
+	/// a `rows x cols` block of the factor buffer, `at` elements in, with column stride `ld`
+	///
+	/// # Safety
+	/// `ptr` must be the live base of a buffer holding `at + rows + cols.saturating_sub(1) * ld`
+	/// elements, and no other live view may overlap the block
+	unsafe fn block<'a>(
+		ptr: *mut T,
+		at: usize,
+		rows: usize,
+		cols: usize,
+		ld: usize,
+	) -> MatMut<'a, T> {
+		MatMut::from_raw_parts_mut(ptr.add(at), rows, cols, 1, ld as isize)
+	}
+
+	/// the element offset of the packed `m x n` block: first for a tall matrix, after the square
+	/// one for a wide matrix
+	fn packed_at(m: usize, n: usize) -> usize {
+		if m >= n {
+			0
+		} else {
+			let size = Ord::min(m, n);
+			linalg::padded_col_stride::<T>(size) * size
+		}
+	}
+
+	/// the element offset of the `size x size` block, the other way round; both blocks are cut
+	/// on a multiple of the column stride, so each starts element-alignment aligned
+	fn square_at(m: usize, n: usize) -> usize {
+		if m >= n {
+			linalg::padded_col_stride::<T>(m) * n
+		} else {
+			0
+		}
 	}
 
 	#[track_caller]
-	fn new_imp(mut LU: Mat<T>, mut par: Par<'_>) -> Self {
+	fn new_imp(A: MatRef<'_, T>, mut par: Par<'_>) -> Self {
 		let par_shape = par.shape();
-		let (m, n) = LU.shape();
+		let (m, n) = A.shape();
+		let size = Ord::min(m, n);
+		// the two blocks keep the strides their own allocations had
+		let (ld_p, ld_s) = (
+			linalg::padded_col_stride::<T>(m),
+			linalg::padded_col_stride::<T>(size),
+		);
+		let (packed_at, square_at) =
+			(Self::packed_at(m, n), Self::square_at(m, n));
+		let mut factors = Mat::<T>::with_capacity(ld_p * n + ld_s * size, 1);
+		let base = factors.as_ptr_mut();
 		let mut row_perm_fwd = vec![0usize; m];
 		let mut row_perm_bwd = vec![0usize; m];
-		linalg::lu::partial_pivoting::factor::lu_in_place(
-			LU.as_mut(),
-			&mut row_perm_fwd,
-			&mut row_perm_bwd,
-			par.reborrow(),
-			MemStack::new(&mut MemBuffer::new(
-				linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<
-					usize,
-					T,
-				>(m, n, par_shape, default()),
-			)),
-			default(),
-		);
-		let (L, U) = linalg::split_lu_owned(LU, par);
+		// SAFETY: neither block leaves the buffer (`packed_at + ld_p * n` and
+		// `square_at + ld_s * size` are both `<= total`), and no two of these views are alive at
+		// the same time
+		unsafe {
+			linalg::copy_columns_into(
+				Self::block(base, packed_at, m, n, ld_p),
+				A,
+				par.reborrow(),
+			);
+			linalg::lu::partial_pivoting::factor::lu_in_place(
+				Self::block(base, packed_at, m, n, ld_p),
+				&mut row_perm_fwd,
+				&mut row_perm_bwd,
+				par.reborrow(),
+				MemStack::new(&mut MemBuffer::new(
+					linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<
+						usize,
+						T,
+					>(m, n, par_shape, default()),
+				)),
+				default(),
+			);
+			linalg::split_lu_in_place(
+				Self::block(base, packed_at, m, n, ld_p),
+				Self::block(base, square_at, size, size, ld_s),
+				par,
+			);
+		}
+		// SAFETY: the two blocks reach `total` between them and the fills above wrote every
+		// element of them, padding rows included, so nothing that is now in bounds is
+		// uninitialised. This is last on purpose: `set_dims` promises exactly that, and a panic
+		// in a fill then leaves a matrix that owns nothing rather than one that drops memory it
+		// never wrote.
+		unsafe { factors.set_dims(ld_p * n + ld_s * size, 1) };
 		Self {
-			L,
-			U,
+			factors,
+			m,
+			n,
 			P: unsafe {
 				Perm::new_unchecked(
 					row_perm_fwd.into_boxed_slice(),
@@ -1236,12 +1309,46 @@ impl<T: ComplexField> PartialPivLu<T> {
 
 	/// returns the $L$ factor
 	pub fn L(&self) -> MatRef<'_, T> {
-		self.L.as_ref()
+		// `L` is the block the buffer starts with, and it is `m x size` either way: the packed
+		// block for a tall matrix (`n == size`), the square block for a wide one (`m == size`)
+		let size = Ord::min(self.m, self.n);
+		let ld = linalg::padded_col_stride::<T>(Ord::max(self.m, size));
+		// SAFETY: the buffer covers an `m x size` block from offset 0 with stride `ld`
+		unsafe {
+			MatRef::from_raw_parts(
+				self.factors.as_ptr(),
+				self.m,
+				size,
+				1,
+				ld as isize,
+			)
+		}
 	}
 
 	/// returns the $U$ factor
 	pub fn U(&self) -> MatRef<'_, T> {
-		self.U.as_ref()
+		let size = Ord::min(self.m, self.n);
+		let (at, ld) = if self.m >= self.n {
+			(
+				Self::square_at(self.m, self.n),
+				linalg::padded_col_stride::<T>(size),
+			)
+		} else {
+			(
+				Self::packed_at(self.m, self.n),
+				linalg::padded_col_stride::<T>(self.m),
+			)
+		};
+		// SAFETY: the buffer covers a `size x n` block from `at` with stride `ld`
+		unsafe {
+			MatRef::from_raw_parts(
+				self.factors.as_ptr().add(at),
+				size,
+				self.n,
+				1,
+				ld as isize,
+			)
+		}
 	}
 
 	/// returns the row pivoting permutation $P$
@@ -2030,12 +2137,12 @@ impl<T: ComplexField> ShapeCore for Lblt<T> {
 impl<T: ComplexField> ShapeCore for PartialPivLu<T> {
 	#[inline]
 	fn nrows(&self) -> usize {
-		self.L().nrows()
+		self.m
 	}
 
 	#[inline]
 	fn ncols(&self) -> usize {
-		self.U().ncols()
+		self.n
 	}
 }
 impl<T: ComplexField> ShapeCore for FullPivLu<T> {
@@ -3308,6 +3415,8 @@ mod tests {
 		let rng = &mut StdRng::seed_from_u64(0x5917);
 		for (m, n) in [
 			(0usize, 0usize),
+			(1, 0),
+			(0, 1),
 			(1, 1),
 			(17, 17),
 			(100, 100),

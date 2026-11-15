@@ -33,6 +33,29 @@ use crate::mat::{AsMatMut, MatMut};
 use colmat_traits::ComplexField;
 use core::marker::PhantomData;
 use dyn_stack::StackReq;
+/// The column stride `matown` gives an owned matrix with `nrows` rows: the row capacity is
+/// rounded up so the byte stride is a multiple of the element alignment (`matown::align_for`),
+/// so a `505 x 505` f64 matrix has a 512-row stride.
+///
+/// A buffer that holds factors at the stride their own allocation would have needs this number
+/// too, because it is what keeps every column aligned. Note the padding only exists for a `T`
+/// without drop glue: `align_for` only asks for the wider alignment when `!needs_drop`, so
+/// `Mat`'s drop never reaches a padded row.
+pub(crate) fn padded_col_stride<T>(nrows: usize) -> usize {
+	let size = core::mem::size_of::<T>();
+	let align = align_for(
+		size,
+		core::mem::align_of::<T>(),
+		core::mem::needs_drop::<T>(),
+	);
+	// a zero-sized element has a zero stride, so there is nothing to pad and `align / size` is
+	// undefined (`matown` guards the same division the same way)
+	if size > 0 && align > size {
+		nrows.msrv_next_multiple_of(align / size)
+	} else {
+		nrows
+	}
+}
 /// returns the stack requirements for creating a temporary matrix with the
 /// given dimensions.
 pub fn temp_mat_scratch<T: ComplexField>(
@@ -44,11 +67,7 @@ pub fn temp_mat_scratch<T: ComplexField>(
 		core::mem::align_of::<T>(),
 		core::mem::needs_drop::<T>(),
 	);
-	let mut col_stride = nrows;
-	if align > core::mem::size_of::<T>() {
-		col_stride =
-			col_stride.msrv_next_multiple_of(align / core::mem::size_of::<T>());
-	}
+	let col_stride = padded_col_stride::<T>(nrows);
 	let len = col_stride.checked_mul(ncols).unwrap();
 	StackReq::new_aligned::<T>(len, align)
 }
@@ -341,25 +360,31 @@ fn for_column_ranges(n: usize, par: Par, fill: impl Sync + Fn(usize, usize)) {
 	fill(0, n);
 }
 
-/// An owned column-major copy of `src`, bit for bit [`MatRef::to_owned`]'s, built on `par`:
-/// the allocation is left uninitialised and each thread writes its own columns, so the pages
-/// are first touched, and the copy runs, on the team instead of as a serial pass on the
-/// caller (tensor4all/colmat-rs#191: the owning `PartialPivLu::new` spent more time in its
-/// copies than in the factorization at 1024 on 8 threads). A row-major `src` is copied in
-/// [`copy_across_layouts_block`] tiles, one tile of columns after its zeroing.
-pub(crate) fn owned_copy<T: ComplexField>(
+/// Copies `src` into the caller's `dst`, bit for bit the values of `MatRef::to_owned`, built on
+/// `par`: each thread writes its own columns, so the pages are first touched, and the copy runs,
+/// on the team instead of as a serial pass on the caller (tensor4all/colmat-rs#191: the owning
+/// `PartialPivLu::new` spent more time in its copies than in the factorization at 1024 on 8
+/// threads). A row-major `src` is copied in [`copy_across_layouts_block`] tiles, one tile of
+/// columns after its zeroing.
+///
+/// `dst` keeps its own column stride, and the rows past its last one
+/// (`nrows..col_stride()`) are written as zeros: an owned buffer pads each column up to the
+/// element alignment, and a caller that clones the matrix that owns the column clones its
+/// logical rows, padding included, so the padding is initialised even though nothing reads it
+/// as data.
+pub(crate) fn copy_columns_into<T: ComplexField>(
+	dst: MatMut<'_, T>,
 	src: MatRef<'_, T>,
 	par: Par,
-) -> Mat<T> {
-	let (m, n) = src.shape();
-	let mut out = Mat::<T>::with_capacity(m, n);
-	let ld = out.col_stride() as usize;
-	let base = SendPtr(out.as_ptr_mut());
+) {
+	let (m, n) = dst.shape();
+	let ld = dst.col_stride() as usize;
+	debug_assert_eq!(src.shape(), dst.shape());
+	let base = SendPtr(dst.as_ptr_mut());
 	let row_major = src.col_stride().unsigned_abs() == 1
 		&& src.row_stride().unsigned_abs() != 1;
-	// SAFETY: the capacity holds `ld * n` elements with `ld >= m`; every task writes the `m`
-	// leading elements of its own columns (`j0..j1`, disjoint across tasks) before any view of
-	// them is formed, and `set_dims` runs once every column is written.
+	// SAFETY: `j * ld + i` stays inside `dst`'s buffer for `i < ld`, `j < n`; every task writes
+	// its own columns (`j0..j1`, disjoint across tasks) and forms no view of them before it has.
 	let fill = |j0: usize, j1: usize| unsafe {
 		if row_major {
 			let mut t0 = j0;
@@ -367,7 +392,7 @@ pub(crate) fn owned_copy<T: ComplexField>(
 				let t1 = Ord::min(t0 + COPY_TILE, j1);
 				for j in t0..t1 {
 					let col = base.get().add(j * ld);
-					for i in 0..m {
+					for i in 0..ld {
 						col.add(i).write(zero::<T>());
 					}
 				}
@@ -389,29 +414,32 @@ pub(crate) fn owned_copy<T: ComplexField>(
 				for i in 0..m {
 					col.add(i).write(src[(i, j)].copy());
 				}
+				for i in m..ld {
+					col.add(i).write(zero::<T>());
+				}
 			}
 		}
 	};
 	for_column_ranges(n, par, fill);
-	unsafe { out.set_dims(m, n) };
-	out
 }
 
 /// The `(L, U)` split of a packed `m x n` LU (unit lower trapezoidal `L`, upper trapezoidal
-/// `U`), the same values as the serial split, built on `par`: the new square factor is
-/// allocated uninitialised and written once, each column by one thread, and the packed matrix
-/// becomes the other factor in place (tensor4all/colmat-rs#191).
-pub(crate) fn split_lu_owned<T: ComplexField>(
-	LU: Mat<T>,
+/// `U`), the same values as the serial split, built on `par`: the packed matrix becomes the
+/// taller factor in place, `square` receives the `size x size` one, and each column of both is
+/// written by one thread (tensor4all/colmat-rs#191).
+///
+/// `square` keeps its own column stride and its padding rows are written as zeros, for the
+/// reason given in [`copy_columns_into`].
+pub(crate) fn split_lu_in_place<T: ComplexField>(
+	packed: MatMut<'_, T>,
+	square: MatMut<'_, T>,
 	par: Par,
-) -> (Mat<T>, Mat<T>) {
-	let (m, n) = LU.shape();
+) {
+	let (m, n) = packed.shape();
 	let size = Ord::min(m, n);
-	let mut packed = LU;
 	let ld_p = packed.col_stride() as usize;
-	let p = SendPtr(packed.as_ptr_mut());
-	let mut square = Mat::<T>::with_capacity(size, size);
 	let ld_s = square.col_stride() as usize;
+	let p = SendPtr(packed.as_ptr_mut());
 	let s = SendPtr(square.as_ptr_mut());
 	let tall = m >= n;
 	// SAFETY: column `j` of both matrices is touched by the one task whose range holds `j`; the
@@ -448,15 +476,12 @@ pub(crate) fn split_lu_owned<T: ComplexField>(
 					*pc.add(i) = zero::<T>();
 				}
 			}
+			for i in size..ld_s {
+				sc.add(i).write(zero::<T>());
+			}
 		}
 	};
 	for_column_ranges(size, par, fill);
-	unsafe { square.set_dims(size, size) };
-	if tall {
-		(packed, square)
-	} else {
-		(square, packed)
-	}
 }
 /// The base of [`column_major_copy`]'s buffer, handed to the threads that
 /// initialise disjoint ranges of it.
@@ -672,11 +697,7 @@ pub unsafe fn temp_mat_uninit<
 		core::mem::align_of::<T>(),
 		core::mem::needs_drop::<T>(),
 	);
-	let mut col_stride = nrows.unbound();
-	if align > core::mem::size_of::<T>() {
-		col_stride =
-			col_stride.msrv_next_multiple_of(align / core::mem::size_of::<T>());
-	}
+	let col_stride = padded_col_stride::<T>(nrows.unbound());
 	let len = col_stride.checked_mul(ncols.unbound()).unwrap();
 	let (uninit, stack) = stack.make_aligned_uninit::<T>(len, align);
 	let ptr = uninit.as_mut_ptr() as *mut T;
@@ -723,11 +744,7 @@ pub fn temp_mat_zeroed<
 		core::mem::align_of::<T>(),
 		core::mem::needs_drop::<T>(),
 	);
-	let mut col_stride = nrows.unbound();
-	if align > core::mem::size_of::<T>() {
-		col_stride =
-			col_stride.msrv_next_multiple_of(align / core::mem::size_of::<T>());
-	}
+	let col_stride = padded_col_stride::<T>(nrows.unbound());
 	let len = col_stride.checked_mul(ncols.unbound()).unwrap();
 	_ = stack.make_aligned_uninit::<T>(len, align);
 	let (uninit, stack) = stack.make_aligned_uninit::<T>(len, align);
