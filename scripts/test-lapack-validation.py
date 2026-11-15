@@ -27,9 +27,11 @@ class Runner(unittest.TestCase):
         self.assertEqual(v.classify('linalg::svd::tests::lapack_svd_f32::lapack::diagonal_families'), 'svd')
         self.assertEqual(v.classify('linalg::svd::bidiag_svd::tests::test_josef'), 'svd_large')
         self.assertIsNone(v.classify('linalg::svd::bidiag_svd::tests::test_deflation43'))
-        # a non-LAPACK bit-identity unit test in the `lu` suite: ordinary tests, not a family
+        # non-LAPACK bit-identity unit tests in the `lu` suite: ordinary tests, not a family
         self.assertIsNone(v.classify(
             'linalg::lu::lapack::c64::parallel_path_is_bit_identical_to_sequential'))
+        self.assertIsNone(v.classify(
+            'linalg::lu::lapack::c32::parallel_path_is_bit_identical_with_one_column_per_member'))
         # a self-adjoint accuracy test beside the case suite (tensor4all/faer#100): classified, not a case record
         name = 'linalg::evd::lapack::c32::lapack_self_adjoint_evd_qr_spectrum_accuracy'
         self.assertEqual(v.classify(name), 'self_adjoint_evd')
