@@ -605,13 +605,17 @@ fn svd_imp<T: ComplexField>(
 	let mut Hl = Hl.as_mat_mut();
 	let mut Hr = Hr.as_mat_mut();
 	bid.copy_from(matrix);
+	let mut bidiag_params = params.bidiag;
+	// the values-only path never reads the compact block factors, and building them is a serial
+	// pass over the matrix after the factorization
+	bidiag_params.compute_householder_factors = !(u.is_none() && v.is_none());
 	bidiag::bidiag_in_place(
 		bid.rb_mut(),
 		Hl.rb_mut(),
 		Hr.rb_mut(),
 		par.reborrow(),
 		stack,
-		params.bidiag.into(),
+		bidiag_params.into(),
 	);
 	let (mut diag, stack) = unsafe { temp_mat_uninit::<T, _, _>(n, 1, stack) };
 	let (mut subdiag, stack) =

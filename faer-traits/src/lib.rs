@@ -1635,6 +1635,15 @@ pub trait RealField:
 	fn max_positive_impl() -> Self;
 	fn sqrt_min_positive_impl() -> Self;
 	fn sqrt_max_positive_impl() -> Self;
+	/// `self * lhs + rhs`, fused when the scalar type has a fused multiply-add.
+	///
+	/// The default is the unfused expression; `f32` and `f64` override it with the
+	/// hardware operation. Callers that only care about the value are unaffected;
+	/// a latency-bound recurrence uses it to take one operation off its chain.
+	#[inline(always)]
+	fn mul_add_impl(&self, lhs: Self, rhs: Self) -> Self {
+		self.clone() * lhs + rhs
+	}
 }
 impl ComplexField for f32 {
 	type Arch = pulp::Arch;
@@ -2081,6 +2090,11 @@ impl ComplexField for f32 {
 	}
 }
 impl RealField for f32 {
+	#[inline(always)]
+	fn mul_add_impl(&self, lhs: Self, rhs: Self) -> Self {
+		f32::mul_add(*self, lhs, rhs)
+	}
+
 	#[inline(always)]
 	fn epsilon_impl() -> Self {
 		Self::EPSILON
@@ -2556,6 +2570,11 @@ impl ComplexField for f64 {
 	}
 }
 impl RealField for f64 {
+	#[inline(always)]
+	fn mul_add_impl(&self, lhs: Self, rhs: Self) -> Self {
+		f64::mul_add(*self, lhs, rhs)
+	}
+
 	#[inline(always)]
 	fn epsilon_impl() -> Self {
 		Self::EPSILON
