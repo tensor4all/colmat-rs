@@ -1,14 +1,14 @@
-name: Weekly aarch64 LAPACK numerical validation
+name: Daily aarch64 LAPACK numerical validation
 
 # The nightly validation (lapack-validation.yml) runs on x86_64 only, where the matrix product is
 # `private-gemm-x86`. On aarch64 it is the `gemm` crate, so this lane runs the same families there
-# once a week, plus the checks that are specific to that path: the per-call allocation of the
+# once a day, plus the checks that are specific to that path: the per-call allocation of the
 # `gemm` fallback (#58, to be replaced by #56) and the three strict-triangle matmul tests that the
 # first validation run recorded as failing on macOS arm64 (docs/lapack-bug-inventory.md).
 
 on:
   schedule:
-    - cron: '41 4 * * 0' # weekly, Sunday 04:41 UTC / 13:41 JST
+    - cron: '41 4 * * *' # daily, 04:41 UTC / 13:41 JST
   workflow_dispatch:
   pull_request:
     paths:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: weekly-lapack-validation-aarch64-${{ github.ref }}
+  group: daily-lapack-validation-aarch64-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -85,7 +85,7 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - name: Update the weekly aarch64 validation issue
+      - name: Update the daily aarch64 validation issue
         uses: actions/github-script@v9
         env:
           VALIDATION_RESULT: ${{ needs.validation.result }}
@@ -95,6 +95,6 @@ jobs:
             await report({
               github, context, server: process.env.GITHUB_SERVER_URL,
               result: process.env.VALIDATION_RESULT,
-              title: 'Weekly aarch64 LAPACK numerical validation is failing',
+              title: 'Daily aarch64 LAPACK numerical validation is failing',
               unexpected: 'see the per-host lapack-validation-aarch64 artifacts and the job summaries',
             });
