@@ -24,16 +24,16 @@ fn weight<T: RealField>(
 	shifts: ColRef<'_, T, usize, ContiguousFwd>,
 	n: usize,
 ) {
-	let ref di = d[i].copy();
-	let ref mu_i = mus[i].copy();
-	let ref shift_i = shifts[i].copy();
+	let di = &d[i].copy();
+	let mu_i = &mus[i].copy();
+	let shift_i = &shifts[i].copy();
 	let mut prod = mu_i + (shift_i - di);
 	(0..i).chain(i + 1..n).for_each(|k| {
-		let ref dk = d[k].copy();
-		let ref mu_k = mus[k].copy();
-		let ref shift_k = shifts[k].copy();
-		let ref numerator = mu_k + (shift_k - di);
-		let ref denominator = dk - di;
+		let dk = &d[k].copy();
+		let mu_k = &mus[k].copy();
+		let shift_k = &shifts[k].copy();
+		let numerator = &(mu_k + (shift_k - di));
+		let denominator = &(dk - di);
 		prod *= numerator / denominator;
 	});
 	let prod = prod.abs().sqrt();
@@ -71,6 +71,7 @@ pub(super) fn weights<T: RealField>(
 	unreachable!("a parallel repair requires a team");
 }
 #[inline(always)]
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 fn column<T: RealField>(
 	mut col: ColMut<'_, T, usize, ContiguousFwd>,
 	pj: usize,
@@ -86,20 +87,21 @@ fn column<T: RealField>(
 		col.rb_mut().fill(zero());
 		col[rows[pj]] = one();
 	} else {
-		let ref mu_j = mus[pj].copy();
-		let ref shift_j = shifts[pj].copy();
+		let mu_j = &mus[pj].copy();
+		let shift_j = &shifts[pj].copy();
 		for (i, &row) in rows[..nd].iter().enumerate() {
-			let ref zi = z[i].copy();
-			let ref di = d[i].copy();
+			let zi = &z[i].copy();
+			let di = &d[i].copy();
 			col[row] = zi / ((di - shift_j) - mu_j);
 		}
 		for &row in &rows[nd..nd + deflated] {
 			col[row] = zero();
 		}
-		let ref inv_norm = col.rb().norm_l2().recip();
+		let inv_norm = &col.rb().norm_l2().recip();
 		z!(col.rb_mut()).for_each(|unzip!(x)| *x *= inv_norm);
 	}
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 pub(super) fn vectors<T: RealField>(
 	mut u: MatMut<'_, T, usize, usize, ContiguousFwd>,
 	order: &[usize],
