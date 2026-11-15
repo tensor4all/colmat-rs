@@ -43,7 +43,10 @@ def classify(name):
     # the `gemm` crate, and the parallel/sequential bits differ (seen at n=129,
     # width=4 on macOS arm64). It still runs in the ordinary library tests; the
     # nightly selects the LAPACK families only.
-    if leaf == 'parallel_path_is_bit_identical_to_sequential':
+    if leaf in (
+        'parallel_path_is_bit_identical_to_sequential',
+        'parallel_path_is_bit_identical_with_one_column_per_member',
+    ):
         return None
     if leaf.startswith(('lapack_common_', 'lapack_lin_')):
         return 'common'
