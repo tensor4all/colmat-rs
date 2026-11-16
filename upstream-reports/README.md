@@ -1,6 +1,6 @@
 # Upstream reports
 
-This list is updated over time. Last updated: 2026-11-13.
+This list is updated over time. Last updated: 2026-11-16.
 
 This directory lists defects that we found while working on a port of `faer` and that also occur in the published upstream crates.
 Each entry was reproduced by running its program against the upstream release named in the table.
@@ -59,19 +59,21 @@ The program prints the expected and the actual value, and exits with status 1 wh
 | [faer-042](faer-042-lu-perf-warn-row-major/) | Partial pivoting LU warns "generic strides" on contiguous row-major input | `faer` 0.24.4 | spurious `perf-warn` message | fix for tensor4all/faer#345 | not yet | 2026-11-09 |
 | [faer-043](faer-043-fx128-simd-lanes-mix-elements/) | The `fx128` SIMD hooks mix the high and low parts of different elements | `faer` 0.24.4 | wrong value | not fixed (tensor4all/colmat-rs#173) | not yet | 2026-11-13 |
 | [faer-044](faer-044-fx128-matmul-panics/) | The dense product of `fx128` matrices panics outside `cfg(test)` | `faer` 0.24.4 | panic | not fixed (tensor4all/colmat-rs#174) | not yet | 2026-11-13 |
+| [faer-045](faer-045-self-adjoint-evd-subnormal-range/) | The dense self-adjoint EVD loses a subnormal spectrum and returns `Ok` | `faer` 0.24.4 | wrong value | tensor4all/faer#358 (`58c764d7`) | not yet | 2026-11-16 |
 | [gemm-001](gemm-001-per-call-allocation/) | Every matrix product allocates on the heap | `gemm` 0.19.0 | heap allocation per call | not fixed (tensor4all/faer#56 planned) | not yet | 2026-10-30 |
 | [gemm-x86-001](gemm-x86-001-diag-negative-stride/) | A product with a diagonal gives a wrong value when the left matrix is stored backwards | `private-gemm-x86` 0.1.22 | wrong value | tensor4all/t4a-private-gemm-x86#5 (`84ca6db`) | not yet | 2026-10-29 |
 
-"Fixed upstream" was checked against each crate's upstream `main` and its latest release on 2026-11-09: `faer` at `0ecd846` (2026-10-22) and its 0.24.4 release, `gemm` at `86102c5`, which is its 0.19.0 release, `private-gemm-x86` at `71872b9`, which is its 0.1.22 release.
-The 39 entries that predate this week (`faer-001` to `faer-038`, plus `gemm-001`) were all re-run on 2026-11-09 on the aarch64 host where this list is recorded, and they behave as their sections state (on aarch64 `faer-001` and `faer-026` do not trigger, as their sections say); no newer release existed to raise a pin to, and `gemm`'s and `private-gemm-x86`'s `main` are their release commits, so only `faer` needed a build from `main`.
-`gemm-x86-001` needs an x86 CPU and does not build on aarch64; it was run on x86_64 on 2026-11-09, where it builds and exits 1 as its section states.
-The three entries added this week (`faer-039`, `faer-040`, `faer-041`) were run from their own directories on both hosts and then against `faer`'s `main` at `0ecd846` as a path dependency, where they exit 1 with the same numbers; the one row where the two hosts disagree is marked in the `faer-039` table.
-That is 44 programs in total, and every one of them was executed on 2026-11-09 on a host where it builds and runs.
+"Fixed upstream" was checked against each crate's upstream `main` and its latest release on 2026-11-16: `faer` at `0ecd846` (2026-10-22) and its 0.24.4 release, `gemm` at `86102c5`, which is its 0.19.0 release, `private-gemm-x86` at `71872b9`, which is its 0.1.22 release. No newer release existed for any row, so no pin was raised this week.
+The 44 entries that predate the `fx128` additions (`faer-001` to `faer-042`, plus `gemm-001` and `gemm-x86-001`) were last re-run on 2026-11-09 on the aarch64 host where this list is recorded, and they behave as their sections state (on aarch64 `faer-001` and `faer-026` do not trigger, as their sections say); `gemm`'s and `private-gemm-x86`'s `main` are their release commits, so only `faer` needed a build from `main`.
+The three entries added on 2026-11-09 (`faer-039`, `faer-040`, `faer-041`) were run from their own directories on both hosts and then against `faer`'s `main` at `0ecd846` as a path dependency, where they exit 1 with the same numbers; the one row where the two hosts disagree is marked in the `faer-039` table.
 The `perf-warn` entry (`faer-042`) was added on 2026-11-09 and run on its own, `cd upstream-reports/faer-042-* && cargo run --locked`, which exits 1 on its contiguous row-major input and 0 with `-- column-major`.
+`gemm-x86-001` needs an x86 CPU and does not build on aarch64; it was run on x86_64 on 2026-11-09, where it builds and exits 1 as its section states.
 The two `fx128` entries (`faer-043`, `faer-044`) were added on 2026-11-13 and run on the aarch64 host only, each from its own directory with `cargo run --locked`. Both exit 1 against the 0.24.4 release, and again against `faer`'s `main` at `0ecd846` as a path dependency, with the same output. They were not run on x86_64.
+The entry added this week (`faer-045`) was run from its own directory on 2026-11-16, `cd upstream-reports/faer-045-* && cargo run --locked`, which exits 1, and then against `faer`'s `main` at `0ecd846` as a path dependency, where it exits 1 with the same numbers.
+The 46 earlier entries were not re-run on 2026-11-16 because no pin changed and no released code behind them changed. That is 47 programs in total: the 44 entries last executed on 2026-11-09, the two `fx128` entries on 2026-11-13, and `faer-045` on 2026-11-16.
 The sweep of the 39 is `cd upstream-reports && for d in faer-0[01][0-9]-* faer-02[0-9]-* faer-03[0-8]-* gemm-001-*; do (cd "$d" && timeout 600 cargo run --locked); echo "$d exit=$?"; done`, which selects 39 directories.
 The sweep of the three is `cd upstream-reports && for d in faer-039-* faer-040-* faer-041-*; do (cd "$d" && timeout 600 cargo run --locked); echo "$d exit=$?"; done`, which selects 3, and the x86 entry is `cd upstream-reports/gemm-x86-001-* && cargo run --locked`.
-`faer`'s `main` is the 0.24.4 release plus eleven commits, and only the `gevd` scratch layout and conjugate-pair slots among them touch the code behind an entry: `faer-009`, re-run there, still fails.
+`faer`'s `main` is the 0.24.4 release plus eleven commits, and only the `gevd` scratch layout and conjugate-pair slots among them touch the code behind an entry: `faer-009`, re-run there, still fails; the subnormal dense reduction is unchanged there, and `faer-045` fails on it as well.
 
 Each README states, in its first three lines, what goes wrong, for which input and in which version.
 It then gives the command, a table of expected and actual output, the cause with file and line in the upstream source, and how this fork fixed it.
