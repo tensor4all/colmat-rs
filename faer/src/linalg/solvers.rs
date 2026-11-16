@@ -907,10 +907,17 @@ pub struct PartialPivLu<T> {
 	/// both factors in one allocation (tensor4all/colmat-rs#191): the packed `m x n` block and
 	/// the `size x size` block, in the order [`Self::packed_at`] gives, each at the column stride
 	/// its own allocation would have, so nothing about `L`, `U` or the factorization changes
+	///
+	/// [`Self::factor_into`] keeps it and reallocates it only when a later matrix needs more
+	/// elements, which is what makes the pages it has already touched stay resident
 	factors: Mat<T>,
 	m: usize,
 	n: usize,
-	P: Perm<usize>,
+	/// the row pivoting permutation, forward and inverse: `Vec`s rather than a `Perm` because
+	/// `lu_in_place` writes them through `&mut [usize]` and a factorization into a reused buffer
+	/// must not allocate them again; [`Self::P`] builds the `PermRef` from them
+	perm_fwd: Vec<usize>,
+	perm_bwd: Vec<usize>,
 }
 /// $LU$ decomposition with full pivoting
 #[derive(Clone, Debug)]
@@ -1189,15 +1196,82 @@ fn split_LU<T: ComplexField>(LU: Mat<T>) -> (Mat<T>, Mat<T>) {
 	};
 	(L, U)
 }
+impl<T> PartialPivLu<T> {
+	/// an empty factorization: it owns no factor storage and reports `0` rows and columns, so the
+	/// first [`factor_into`](Self::factor_into) allocates it
+	///
+	/// This is the way to hold a factor buffer before there is a matrix to factor, e.g. a
+	/// per-thread working buffer that the first call fills and every later call reuses.
+	#[inline]
+	pub fn empty() -> Self {
+		Self {
+			factors: Mat::new(),
+			m: 0,
+			n: 0,
+			perm_fwd: Vec::new(),
+			perm_bwd: Vec::new(),
+		}
+	}
+}
 impl<T: ComplexField> PartialPivLu<T> {
 	/// returns the $LU$ decomposition of $A$ with partial pivoting
+	///
+	/// The convenience wrapper: it owns a fresh factor buffer. [`Self::factor_into`] is the same
+	/// factorization into a buffer that already exists.
 	#[track_caller]
 	pub fn new<C: Conjugate<Canonical = T>>(
 		A: MatRef<'_, C>,
 		par: Par<'_>,
 	) -> Self {
-		// the copy and the split in `new_imp` run on `par` (#191): at 1024 on 8 threads they were
-		// longer than the factorization while they ran on the caller
+		let mut factors = Self::empty();
+		factors.factor_into(A, par);
+		factors
+	}
+
+	/// returns the $LU$ decomposition of $A$ with partial pivoting, reusing this factorization's
+	/// factor buffer and permutation arrays
+	///
+	/// # Reuse
+	/// The factor buffer is kept, at the same address, when this factorization already holds enough
+	/// elements for an `A` of this shape:
+	///
+	/// ```text
+	/// len = col_stride(m) * n + col_stride(size) * size,  size = min(m, n)
+	/// ```
+	///
+	/// where `col_stride` is the column stride an owned matrix with that many rows has (rounded up
+	/// to the element alignment). A matrix that needs more reallocates the buffer once; one that
+	/// needs no more keeps the pages the last call touched, and not paying their first touch again
+	/// is the point (`docs/worklogs/2026-11-18-lu-factor-buffer.md`). The two permutation arrays
+	/// are `Vec`s and keep their storage while `A` has no more rows than the largest row count
+	/// factored so far, so a fixed shape allocates nothing for them either.
+	///
+	/// The result is bit for bit [`Self::new`]'s for the same `A` and the same `par`: the copy, the
+	/// factorization and the split write every element `L`, `U` and `P` can reach, padding rows
+	/// included, on every call, so nothing of the previous factorization survives. A different `A`
+	/// of the previous shape, factored into the same buffer, is the same as factoring it into a
+	/// fresh one.
+	///
+	/// The transposition scratch (`min(m, n) * size_of::<usize>()` bytes) is still allocated per
+	/// call, as it is in [`Self::new`] and in the other owning decompositions here; a caller that
+	/// must allocate nothing at all uses
+	/// [`lu_in_place`](crate::linalg::lu::partial_pivoting::factor::lu_in_place) with its own
+	/// scratch.
+	///
+	/// A conjugated `A` (`C` not canonical) is materialised first, as in [`Self::new`], so that call
+	/// allocates that copy.
+	///
+	/// # Panics
+	/// If the factorization panics, `self` is left as [`Self::empty`]: no view into half-written
+	/// factors or a half-written permutation is produced, and the buffer is kept for a retry.
+	#[track_caller]
+	pub fn factor_into<C: Conjugate<Canonical = T>>(
+		&mut self,
+		A: MatRef<'_, C>,
+		par: Par<'_>,
+	) -> &mut Self {
+		// the copy and the split run on `par` (#191): at 1024 on 8 threads they were longer than
+		// the factorization while they ran on the caller
 		let owned;
 		let A = if const { C::IS_CANONICAL } {
 			A.canonical()
@@ -1205,7 +1279,8 @@ impl<T: ComplexField> PartialPivLu<T> {
 			owned = A.to_owned();
 			owned.as_ref()
 		};
-		Self::new_imp(A, par)
+		Self::factor_imp(self, A, par);
+		self
 	}
 
 	/// a `rows x cols` block of the factor buffer, `at` elements in, with column stride `ld`
@@ -1244,11 +1319,19 @@ impl<T: ComplexField> PartialPivLu<T> {
 		}
 	}
 
-	#[track_caller]
-	fn new_imp(A: MatRef<'_, T>, mut par: Par<'_>) -> Self {
+	/// the number of elements the two blocks of an `m x n` factorization occupy
+	fn factor_len(m: usize, n: usize) -> usize {
+		let size = Ord::min(m, n);
+		linalg::padded_col_stride::<T>(m) * n
+			+ linalg::padded_col_stride::<T>(size) * size
+	}
+
+	/// the copy, the factorization and the split of [`Self::factor_into`], into `this`'s buffer
+	fn factor_imp(this: &mut Self, A: MatRef<'_, T>, mut par: Par<'_>) {
 		let par_shape = par.shape();
 		let (m, n) = A.shape();
 		let size = Ord::min(m, n);
+		let len = Self::factor_len(m, n);
 		// the two blocks keep the strides their own allocations had
 		let (ld_p, ld_s) = (
 			linalg::padded_col_stride::<T>(m),
@@ -1256,13 +1339,19 @@ impl<T: ComplexField> PartialPivLu<T> {
 		);
 		let (packed_at, square_at) =
 			(Self::packed_at(m, n), Self::square_at(m, n));
-		let mut factors = Mat::<T>::with_capacity(ld_p * n + ld_s * size, 1);
-		let base = factors.as_ptr_mut();
-		let mut row_perm_fwd = vec![0usize; m];
-		let mut row_perm_bwd = vec![0usize; m];
+		// empty first: a panic below then leaves a factorization that owns its buffer but
+		// reports no factors, instead of one whose `P` is a half-written permutation
+		this.m = 0;
+		this.n = 0;
+		if this.factors.row_capacity() < len {
+			this.factors = Mat::<T>::with_capacity(len, 1);
+		}
+		this.perm_fwd.resize(m, 0);
+		this.perm_bwd.resize(m, 0);
+		let base = this.factors.as_ptr_mut();
 		// SAFETY: neither block leaves the buffer (`packed_at + ld_p * n` and
-		// `square_at + ld_s * size` are both `<= total`), and no two of these views are alive at
-		// the same time
+		// `square_at + ld_s * size` are both `<= len <= row_capacity()`), and no two of these
+		// views are alive at the same time
 		unsafe {
 			linalg::copy_columns_into(
 				Self::block(base, packed_at, m, n, ld_p),
@@ -1271,8 +1360,8 @@ impl<T: ComplexField> PartialPivLu<T> {
 			);
 			linalg::lu::partial_pivoting::factor::lu_in_place(
 				Self::block(base, packed_at, m, n, ld_p),
-				&mut row_perm_fwd,
-				&mut row_perm_bwd,
+				&mut this.perm_fwd,
+				&mut this.perm_bwd,
 				par.reborrow(),
 				MemStack::new(&mut MemBuffer::new(
 					linalg::lu::partial_pivoting::factor::lu_in_place_scratch::<
@@ -1288,23 +1377,13 @@ impl<T: ComplexField> PartialPivLu<T> {
 				par,
 			);
 		}
-		// SAFETY: the two blocks reach `total` between them and the fills above wrote every
-		// element of them, padding rows included, so nothing that is now in bounds is
-		// uninitialised. This is last on purpose: `set_dims` promises exactly that, and a panic
-		// in a fill then leaves a matrix that owns nothing rather than one that drops memory it
-		// never wrote.
-		unsafe { factors.set_dims(ld_p * n + ld_s * size, 1) };
-		Self {
-			factors,
-			m,
-			n,
-			P: unsafe {
-				Perm::new_unchecked(
-					row_perm_fwd.into_boxed_slice(),
-					row_perm_bwd.into_boxed_slice(),
-				)
-			},
-		}
+		// SAFETY: the two blocks reach `len` between them and the fills above wrote every element
+		// of them, padding rows included, so nothing that is now in bounds is uninitialised. This
+		// is last on purpose: `set_dims` promises exactly that, and a panic in a fill then leaves a
+		// matrix that owns nothing rather than one that drops memory it never wrote.
+		unsafe { this.factors.set_dims(len, 1) };
+		this.m = m;
+		this.n = n;
 	}
 
 	/// returns the $L$ factor
@@ -1353,7 +1432,16 @@ impl<T: ComplexField> PartialPivLu<T> {
 
 	/// returns the row pivoting permutation $P$
 	pub fn P(&self) -> PermRef<'_, usize> {
-		self.P.as_ref()
+		// SAFETY: the last successful factorization wrote both arrays as mutually inverse
+		// permutations of `0..m`; `factor_imp` reports `m = 0` before it writes and after a panic,
+		// and the empty slices of a `0 x 0` factorization are the empty permutation
+		unsafe {
+			PermRef::new_unchecked(
+				&self.perm_fwd[..self.m],
+				&self.perm_bwd[..self.m],
+				self.m,
+			)
+		}
 	}
 }
 impl<T: ComplexField> FullPivLu<T> {
@@ -3406,6 +3494,22 @@ mod tests {
 		);
 	}
 
+	/// the shapes the owning `PartialPivLu` tests run: empty, degenerate, square, tall, wide, and
+	/// pairs whose two factor blocks need a different number of elements, so reuse, reallocation
+	/// and the padding of both strides are all exercised
+	const LU_SHAPES: [(usize, usize); 10] = [
+		(0, 0),
+		(1, 0),
+		(0, 1),
+		(1, 1),
+		(17, 17),
+		(100, 100),
+		(130, 70),
+		(70, 130),
+		(257, 33),
+		(33, 257),
+	];
+
 	/// `PartialPivLu::new` copies and splits on its `par` (#191): the factors and the permutation
 	/// must be the serial copy and split of the same `lu_in_place`, bit for bit, for square, tall
 	/// and wide shapes, column-major and row-major inputs, a conjugated input (the serial copy) and
@@ -3413,18 +3517,7 @@ mod tests {
 	#[test]
 	fn partial_piv_lu_new_matches_the_serial_split() {
 		let rng = &mut StdRng::seed_from_u64(0x5917);
-		for (m, n) in [
-			(0usize, 0usize),
-			(1, 0),
-			(0, 1),
-			(1, 1),
-			(17, 17),
-			(100, 100),
-			(130, 70),
-			(70, 130),
-			(257, 33),
-			(33, 257),
-		] {
+		for (m, n) in LU_SHAPES {
 			let A = CwiseMatDistribution {
 				nrows: m,
 				ncols: n,
@@ -3509,6 +3602,252 @@ mod tests {
 			});
 		}
 	}
+	/// The elements of `M` as raw bytes, in visit order: bit identity, which `PartialEq` is not
+	/// (`-0.0 == 0.0` holds and `NaN != NaN` holds, so neither would see the difference these tests
+	/// are about).
+	fn digest<T: ComplexField>(M: MatRef<'_, T>) -> Vec<u8> {
+		let mut out = Vec::with_capacity(
+			M.nrows() * M.ncols() * core::mem::size_of::<T>(),
+		);
+		for j in 0..M.ncols() {
+			for i in 0..M.nrows() {
+				let v = M[(i, j)].clone();
+				// SAFETY: `v` is an initialised `T`, so its bytes are readable
+				out.extend_from_slice(unsafe {
+					core::slice::from_raw_parts(
+						core::ptr::addr_of!(v) as *const u8,
+						core::mem::size_of::<T>(),
+					)
+				});
+			}
+		}
+		out
+	}
+
+	/// where the factor buffer and the two permutation arrays are: what a factorization that reuses
+	/// them must not move
+	fn addresses<T: ComplexField>(lu: &PartialPivLu<T>) -> [usize; 4] {
+		let (fwd, bwd) = lu.P().arrays();
+		[
+			lu.L().as_ptr() as usize,
+			lu.U().as_ptr() as usize,
+			fwd.as_ptr() as usize,
+			bwd.as_ptr() as usize,
+		]
+	}
+
+	/// a deterministic value, off the diagonal for a pivot worth choosing
+	fn lu_value(i: usize, j: usize) -> f64 {
+		((i * 7 + j * 13) % 23) as f64 / 23.0 - 0.5
+			+ if i == j { 1.5 } else { 0.0 }
+	}
+
+	/// `PartialPivLu::factor_into` keeps the factor buffer and the permutation arrays, and says
+	/// that reusing them changes no bit: for square, tall and wide shapes, column-major and
+	/// row-major input, the three element sizes `padded_col_stride` rounds differently (4, 8 and 16
+	/// bytes) and a team of three, the factors, the permutation and the solve must be
+	/// `PartialPivLu::new`'s for that matrix, at unchanged addresses. `empty()` + `factor_into` (the
+	/// buffer-first route) and `new` must agree as well, which is what one code path means.
+	#[test]
+	fn partial_piv_lu_factor_into_reuses_the_factors() {
+		fn case<T: ComplexField>(
+			make: fn(usize, usize) -> T,
+			shapes: &[(usize, usize)],
+		) {
+			for &(m, n) in shapes {
+				// two matrices of the same shape: the first sizes the buffer, the second must
+				// arrive at the bits `new` gives it
+				let A = Mat::<T>::from_fn(m, n, |i, j| make(i + 1, j + 1));
+				let B = Mat::<T>::from_fn(m, n, |i, j| make(i + 7, j * 3 + 2));
+				let rhs = Mat::<T>::from_fn(Ord::min(m, n), 3, |i, j| {
+					make(i + 2, j + 11)
+				});
+				let Bt = B.transpose().to_owned();
+				let B_row_major = Bt.transpose();
+				for (label, src) in
+					[("col-major", B.as_ref()), ("row-major", B_row_major)]
+				{
+					let want = PartialPivLu::new(src, Par::Seq);
+					crate::team::with_team(3, |mut par| {
+						let mut fresh = PartialPivLu::<T>::empty();
+						assert!(
+							all(
+								fresh.nrows() == 0,
+								fresh.ncols() == 0,
+								fresh.P().len() == 0,
+							),
+							"{label} {m}x{n}: empty"
+						);
+						fresh.factor_into(src, par.reborrow());
+						assert!(
+							digest(fresh.L()) == digest(want.L()),
+							"{label} {m}x{n} empty: L bits"
+						);
+						assert!(
+							digest(fresh.U()) == digest(want.U()),
+							"{label} {m}x{n} empty: U bits"
+						);
+						assert!(
+							fresh.P().arrays() == want.P().arrays(),
+							"{label} {m}x{n} empty: P"
+						);
+						// a factorization into storage that is already resident: same bits,
+						// same addresses
+						let mut reused =
+							PartialPivLu::new(A.as_ref(), par.reborrow());
+						let before = addresses(&reused);
+						reused.factor_into(src, par.reborrow());
+						assert!(
+							addresses(&reused) == before,
+							"{label} {m}x{n} reuse: the buffer moved"
+						);
+						assert!(
+							digest(reused.L()) == digest(want.L()),
+							"{label} {m}x{n} reuse: L bits"
+						);
+						assert!(
+							digest(reused.U()) == digest(want.U()),
+							"{label} {m}x{n} reuse: U bits"
+						);
+						assert!(
+							reused.P().arrays() == want.P().arrays(),
+							"{label} {m}x{n} reuse: P"
+						);
+						// the reused factors solve like the fresh ones
+						if m == n && m > 0 {
+							let mut got = rhs.clone();
+							reused.solve_in_place_with_conj(
+								Conj::No,
+								got.as_mut(),
+								par.reborrow(),
+							);
+							let mut expected = rhs.clone();
+							want.solve_in_place_with_conj(
+								Conj::No,
+								expected.as_mut(),
+								par.reborrow(),
+							);
+							assert!(
+								digest(got.as_ref())
+									== digest(expected.as_ref()),
+								"{label} {m}x{n} reuse: solve"
+							);
+						}
+					});
+				}
+			}
+		}
+		case::<f64>(lu_value, &LU_SHAPES);
+		case::<c64>(
+			|i, j| c64::new(lu_value(i, j), lu_value(j + 3, i + 1)),
+			&LU_SHAPES,
+		);
+		// the 4-byte element, the third padding class: a square, a tall and a wide shape
+		case::<f32>(
+			|i, j| lu_value(i, j) as f32,
+			&[(17, 17), (130, 70), (70, 130)],
+		);
+	}
+
+	/// The reuse rule of the `factor_into` doc comment in both directions: a matrix that needs no
+	/// more elements keeps the factor buffer, one whose row count does not grow keeps the
+	/// permutation arrays, and a matrix that needs more reallocates and is still exact.
+	///
+	/// A reused buffer keeps its base even when the shape changes; the `L`/`U` *blocks* sit at
+	/// offsets that a different shape moves, which is the other test's assertion (there the shape
+	/// is fixed).
+	#[test]
+	fn partial_piv_lu_factor_into_regrows_the_buffer() {
+		// `factor_len`: 100x100 = 20000, 70x130 = 14400, 130x70 = 14280, 33x257 = 10440
+		for ((fm, fn_), (tm, tn), buffer_kept, perms_kept) in [
+			((100usize, 100usize), (70usize, 130usize), true, true),
+			((70, 130), (130, 70), true, false),
+			((33, 257), (130, 70), false, false),
+		] {
+			let A = Mat::<c64>::from_fn(fm, fn_, |i, j| {
+				c64::new(lu_value(i, j), lu_value(j + 3, i + 1))
+			});
+			let B = Mat::<c64>::from_fn(tm, tn, |i, j| {
+				c64::new(lu_value(i + 1, j + 5), lu_value(j + 2, i))
+			});
+			let want = PartialPivLu::new(B.as_ref(), Par::Seq);
+			let mut lu = PartialPivLu::new(A.as_ref(), Par::Seq);
+			let before = lu.factors.row_capacity();
+			let base = lu.L().as_ptr() as usize;
+			let perms = addresses(&lu);
+			lu.factor_into(B.as_ref(), Par::Seq);
+			assert!(
+				digest(lu.L()) == digest(want.L()),
+				"{fm}x{fn_} -> {tm}x{tn}: L bits"
+			);
+			assert!(
+				digest(lu.U()) == digest(want.U()),
+				"{fm}x{fn_} -> {tm}x{tn}: U bits"
+			);
+			assert!(
+				lu.P().arrays() == want.P().arrays(),
+				"{fm}x{fn_} -> {tm}x{tn}: P"
+			);
+			// the buffer always holds the elements the new factorization needs, and it grows
+			// only when it has to
+			assert!(
+				lu.factors.row_capacity()
+					>= PartialPivLu::<c64>::factor_len(tm, tn),
+				"{fm}x{fn_} -> {tm}x{tn}: buffer too small"
+			);
+			if buffer_kept {
+				assert!(
+					all(
+						lu.factors.row_capacity() == before,
+						lu.L().as_ptr() as usize == base,
+					),
+					"{fm}x{fn_} -> {tm}x{tn}: the buffer moved"
+				);
+			} else {
+				assert!(
+					lu.factors.row_capacity() > before,
+					"{fm}x{fn_} -> {tm}x{tn}: the buffer did not grow"
+				);
+			}
+			if perms_kept {
+				assert!(
+					addresses(&lu)[2..] == perms[2..],
+					"{fm}x{fn_} -> {tm}x{tn}: the permutation moved"
+				);
+			}
+		}
+		// a chain, not just one transition: the buffer grows, the permutation arrays shrink and
+		// then have to grow again, and the factorization that follows either one is still exact
+		let (a, b, c) = (
+			Mat::<c64>::from_fn(130, 70, |i, j| {
+				c64::new(lu_value(i, j), lu_value(j, i))
+			}),
+			Mat::<c64>::from_fn(33, 257, |i, j| {
+				c64::new(lu_value(i + 2, j), lu_value(i, j + 4))
+			}),
+			Mat::<c64>::from_fn(130, 70, |i, j| {
+				c64::new(lu_value(i + 9, j + 1), lu_value(j, i + 6))
+			}),
+		);
+		let mut lu = PartialPivLu::new(a.as_ref(), Par::Seq);
+		for (label, src) in [
+			("130x70 -> 33x257", b.as_ref()),
+			("33x257 -> 130x70", c.as_ref()),
+		] {
+			let want = PartialPivLu::new(src, Par::Seq);
+			lu.factor_into(src, Par::Seq);
+			assert!(
+				digest(lu.L()) == digest(want.L()),
+				"{label} chain: L bits"
+			);
+			assert!(
+				digest(lu.U()) == digest(want.U()),
+				"{label} chain: U bits"
+			);
+			assert!(lu.P().arrays() == want.P().arrays(), "{label} chain: P");
+		}
+	}
+
 	#[track_caller]
 	fn test_solver(A: MatRef<'_, c64>, A_dec: impl SolveCore<c64>) {
 		#[track_caller]

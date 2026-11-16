@@ -15,16 +15,21 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 struct Counting;
 static COUNTING: AtomicBool = AtomicBool::new(false);
 static ALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
+/// the largest allocation made while counting: a call that recycles its output buffer still
+/// allocates small things, but nothing the size of what it recycles
+static LARGEST: AtomicUsize = AtomicUsize::new(0);
 unsafe impl GlobalAlloc for Counting {
 	unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
 		if COUNTING.load(Ordering::Relaxed) {
 			ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+			LARGEST.fetch_max(layout.size(), Ordering::Relaxed);
 		}
 		unsafe { System.alloc(layout) }
 	}
 	unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
 		if COUNTING.load(Ordering::Relaxed) {
 			ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+			LARGEST.fetch_max(layout.size(), Ordering::Relaxed);
 		}
 		unsafe { System.alloc_zeroed(layout) }
 	}
@@ -36,6 +41,7 @@ unsafe impl GlobalAlloc for Counting {
 	) -> *mut u8 {
 		if COUNTING.load(Ordering::Relaxed) {
 			ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+			LARGEST.fetch_max(new_size, Ordering::Relaxed);
 		}
 		unsafe { System.realloc(ptr, layout, new_size) }
 	}
@@ -46,20 +52,29 @@ unsafe impl GlobalAlloc for Counting {
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-/// Allocations during `f`, and the number of parallel sections and splits it dispatched.
-fn counted(mut f: impl FnMut()) -> (usize, usize) {
+/// Allocations during `f`, the largest of them, and the number of parallel sections and splits it
+/// dispatched.
+fn counted_bytes(mut f: impl FnMut()) -> (usize, usize, usize) {
 	f(); // warm-up: first-use allocations (thread locals, lazy statics) are not the region's
 	stats::enable(true);
 	let _ = stats::take();
 	ALLOCATIONS.store(0, Ordering::SeqCst);
+	LARGEST.store(0, Ordering::SeqCst);
 	COUNTING.store(true, Ordering::SeqCst);
 	f();
 	COUNTING.store(false, Ordering::SeqCst);
 	let n = ALLOCATIONS.load(Ordering::SeqCst);
+	let largest = LARGEST.load(Ordering::SeqCst);
 	stats::enable(false);
 	let s = stats::take();
 	let parallel = s.run.iter().skip(2).sum::<usize>()
 		+ s.split.iter().skip(2).sum::<usize>();
+	(n, largest, parallel)
+}
+
+/// Allocations during `f`, and the number of parallel sections and splits it dispatched.
+fn counted(f: impl FnMut()) -> (usize, usize) {
+	let (n, _, parallel) = counted_bytes(f);
 	(n, parallel)
 }
 
@@ -262,6 +277,49 @@ fn parallel_regions_allocate_nothing() {
 					"partial pivoting LU, width {width}: no parallel region"
 				);
 				assert_eq!(allocs, 0, "partial pivoting LU, width {width}");
+			}
+
+			// `PartialPivLu::factor_into` (#191): a factorization into a factor buffer that is
+			// already resident. The two factor blocks and the two permutation arrays are reused, so
+			// what a repeat call still allocates is the `min(m, n) * size_of::<usize>()`-byte
+			// transposition scratch and nothing else: the factor buffer's own bytes must never
+			// appear, which is the 4.4-4.8 ms first touch this path exists to keep off the repeat
+			// calls. The permutation arrays cannot make the count grow either.
+			{
+				use colmat::linalg::solvers::PartialPivLu;
+				let n = 256;
+				let a0 = sample(n, n, 9);
+				let a1 = sample(n, n, 11);
+				let mut lu = PartialPivLu::new(a0.as_ref(), par.reborrow());
+				let factor_bytes = 2 * n * n * core::mem::size_of::<f64>();
+				let factors = lu.L().as_ptr() as usize;
+				lu.factor_into(a1.as_ref(), par.reborrow());
+				let (allocs, largest, parallel) = counted_bytes(|| {
+					lu.factor_into(a1.as_ref(), par.reborrow());
+				});
+				assert!(
+					parallel > 0,
+					"PartialPivLu factor_into, width {width}: no parallel region"
+				);
+				assert!(
+					largest < factor_bytes,
+					"PartialPivLu factor_into, width {width}: allocated {largest} bytes, the factor buffer is {factor_bytes}"
+				);
+				assert_eq!(
+					allocs, 1,
+					"PartialPivLu factor_into, width {width}: {allocs} allocations, and the transposition scratch is the only per-call one"
+				);
+				let (again, _, _) = counted_bytes(|| {
+					lu.factor_into(a1.as_ref(), par.reborrow());
+				});
+				assert_eq!(
+					allocs, again,
+					"PartialPivLu factor_into, width {width}: the count grew on the next call"
+				);
+				assert!(
+					lu.L().as_ptr() as usize == factors,
+					"PartialPivLu factor_into, width {width}: the factor buffer moved"
+				);
 			}
 
 			// Bunch-Kaufman with full pivoting: rank-one and rank-two steps
