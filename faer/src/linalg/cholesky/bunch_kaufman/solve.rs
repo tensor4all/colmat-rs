@@ -1,3 +1,4 @@
+use super::div_complex;
 use crate::assert;
 use crate::internal_prelude::*;
 use crate::perm::permute_rows;
@@ -71,9 +72,19 @@ pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 		let i0 = i;
 		let i1 = i + 1;
 		if subdiagonal[i] == zero() {
-			let d_inv = &diagonal[i].real().recip();
-			for j in 0..k {
-				x[(i, j)] = x[(i, j)].mul_real(d_inv);
+			let d_inv = diagonal[i].real().recip();
+			if d_inv.is_finite() {
+				for j in 0..k {
+					x[(i, j)] = x[(i, j)].mul_real(&d_inv);
+				}
+			} else {
+				// A subnormal diagonal has no finite reciprocal, while
+				// x/diagonal is exact when both have the same scale
+				// (tensor4all/colmat-rs#212).
+				let d = from_real::<T>(&diagonal[i].real());
+				for j in 0..k {
+					x[(i, j)] = div_complex(&x[(i, j)], &d);
+				}
 			}
 			i += 1;
 		} else {
@@ -81,21 +92,40 @@ pub fn solve_in_place_with_conj<I: Index, T: ComplexField>(
 			if matches!(conj_A, Conj::Yes) {
 				akp1k = akp1k.conj();
 			}
-			let akp1k = &akp1k.recip();
-			let (ak, akp1) = &(
-				akp1k.conj().mul_real(diagonal[i0].real()),
-				akp1k.mul_real(diagonal[i1].real()),
-			);
-			let denom = &((ak * akp1).real() - one::<T::Real>()).recip();
-			for j in 0..k {
-				let (xk, xkp1) =
-					&(&x[(i0, j)] * akp1k.conj(), &x[(i1, j)] * akp1k);
-				let (xk, xkp1) = (
-					(akp1 * xk - xkp1).mul_real(denom),
-					(ak * xkp1 - xk).mul_real(denom),
-				);
-				x[(i, j)] = xk;
-				x[(i + 1, j)] = xkp1;
+			let r = akp1k.abs();
+			let r_inv = r.recip();
+			if r_inv.is_finite() {
+				let akp1k = &akp1k.recip();
+				let ak = akp1k.conj().mul_real(diagonal[i0].real());
+				let akp1 = akp1k.mul_real(diagonal[i1].real());
+				let denom = &((&ak * &akp1).real() - one::<T::Real>()).recip();
+				for j in 0..k {
+					let (xk, xkp1) =
+						&(&x[(i0, j)] * akp1k.conj(), &x[(i1, j)] * akp1k);
+					let (xk, xkp1) = (
+						(&akp1 * xk - xkp1).mul_real(denom),
+						(&ak * xkp1 - xk).mul_real(denom),
+					);
+					x[(i, j)] = xk;
+					x[(i + 1, j)] = xkp1;
+				}
+			} else {
+				// Factor the block entry as r*u and divide by the scale
+				// directly, so no reciprocal of a subnormal is formed.
+				let u = div_complex(&akp1k, &from_real::<T>(&r));
+				let ak = u.mul_real(&(diagonal[i0].real() / &r));
+				let akp1 = u.conj().mul_real(&(diagonal[i1].real() / &r));
+				let denom = &((&ak * &akp1).real() - one::<T::Real>()).recip();
+				for j in 0..k {
+					let xk = &div_complex(&x[(i0, j)], &akp1k.conj());
+					let xkp1 = &div_complex(&x[(i1, j)], &akp1k);
+					let (xk, xkp1) = (
+						(&akp1 * xk - xkp1).mul_real(denom),
+						(&ak * xkp1 - xk).mul_real(denom),
+					);
+					x[(i, j)] = xk;
+					x[(i + 1, j)] = xkp1;
+				}
 			}
 			i += 2;
 		}

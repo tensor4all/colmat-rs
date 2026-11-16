@@ -1,3 +1,4 @@
+use super::div_complex;
 use crate::internal_prelude::*;
 use crate::utils::cost::{ParThreshold, rate};
 use crate::utils::thread::with_width;
@@ -305,9 +306,16 @@ fn lblt_full_piv<T: ComplexField>(
 		par = Par::Seq;
 	}
 	let n = A.nrows();
-	let scale_fwd = &A.norm_max();
-	let scale_bwd = &scale_fwd.recip();
-	zip!(A.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(scale_bwd));
+	let mut scale_fwd = A.norm_max();
+	let mut scale_bwd = scale_fwd.recip();
+	// A subnormal norm has no finite reciprocal. Scale by the largest
+	// representable instead, so the factorization sees normal entries and
+	// the output is still in the input's units.
+	if !scale_bwd.is_finite() {
+		scale_bwd = max_positive::<T::Real>();
+		scale_fwd = scale_bwd.recip();
+	}
+	zip!(A.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(&scale_bwd));
 	let mut max_i = 0;
 	let mut max_j = 0;
 	let mut max_offdiag = zero();
@@ -372,12 +380,12 @@ fn lblt_full_piv<T: ComplexField>(
 		}
 		if npiv == 1 {
 			let diag = A[(0, 0)].real();
-			let diag_inv = &diag.recip();
+			let diag_inv = diag.recip();
 			subdiag[0] = zero();
 			let (_, _, L, mut A) = A.rb_mut().split_at_mut(1, 1);
 			let n = A.nrows();
 			let mut L = L.col_mut(0);
-			zip!(L.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(diag_inv));
+			zip!(L.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(&diag_inv));
 			for i in 0..n {
 				A[(i, i)] = (A[(i, i)].real() - &diag * L[i].abs2()).to_cplx();
 			}
@@ -401,12 +409,12 @@ fn lblt_full_piv<T: ComplexField>(
 			subdiag[1] = zero();
 			A[(1, 0)] = zero();
 			let d10 = a10.abs();
-			let d10_inv = &d10.recip();
-			let d00 = a00 * d10_inv;
-			let d11 = a11 * d10_inv;
+			let d10_inv = d10.recip();
+			let d00 = &a00 * &d10_inv;
+			let d11 = &a11 * &d10_inv;
 			let t = (&d00 * &d11 - one::<T::Real>()).recip();
-			let d10 = a10.mul_real(d10_inv);
-			let d = t * d10_inv;
+			let d10 = a10.mul_real(&d10_inv);
+			let d = &t * &d10_inv;
 			let (_, _, L, mut A) = A.rb_mut().split_at_mut(2, 2);
 			let (mut L0, mut L1) = L.two_cols_mut(0, 1);
 			let n = A.nrows();
@@ -471,8 +479,8 @@ fn lblt_full_piv<T: ComplexField>(
 		k += 1;
 	}
 	zip!(A.rb_mut().diagonal_mut().column_vector_mut())
-		.for_each(|unzip!(x)| *x = x.mul_real(scale_fwd));
-	zip!(subdiag.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(scale_fwd));
+		.for_each(|unzip!(x)| *x = x.mul_real(&scale_fwd));
+	zip!(subdiag.rb_mut()).for_each(|unzip!(x)| *x = x.mul_real(&scale_fwd));
 }
 #[track_caller]
 fn l1_argmax<T: ComplexField>(col: ColRef<'_, T>) -> (Option<usize>, T::Real) {
@@ -670,21 +678,30 @@ fn lblt_blocked_step<T: ComplexField>(
 			}
 			if npiv == 1 {
 				let W0 = Wr.rb_mut().col_mut(0);
-				let diag = &W0[0].real();
-				let diag_inv = &diag.recip();
+				let diag = W0[0].real();
+				let diag_inv = diag.recip();
 				subdiag[0] = zero();
 				let (_, _, L, mut A) = Ar.rb_mut().split_at_mut(1, 1);
 				let W0 = W0.rb().get(1..);
 				let n = A.nrows();
 				let mut L = L.col_mut(0);
-				zip!(W0, L.rb_mut()).for_each(
-					|unzip!(w, a): Zip!(&T, &mut T)| {
-						*a = w.mul_real(diag_inv);
-					},
-				);
+				if diag_inv.is_finite() {
+					zip!(W0, L.rb_mut()).for_each(
+						|unzip!(w, a): Zip!(&T, &mut T)| {
+							*a = w.mul_real(&diag_inv);
+						},
+					);
+				} else {
+					let diag_t = from_real::<T>(&diag);
+					zip!(W0, L.rb_mut()).for_each(
+						|unzip!(w, a): Zip!(&T, &mut T)| {
+							*a = div_complex(w, &diag_t);
+						},
+					);
+				}
 				for j in 0..n {
 					A[(j, j)] =
-						(A[(j, j)].real() - diag * &L[j].abs2()).to_cplx();
+						(A[(j, j)].real() - &diag * &L[j].abs2()).to_cplx();
 				}
 			} else {
 				let a00 = Wr[(0, 0)].real();
@@ -694,13 +711,18 @@ fn lblt_blocked_step<T: ComplexField>(
 				subdiag[1] = zero();
 				Wr[(1, 0)] = zero();
 				Ar[(1, 0)] = zero();
-				let d10 = a10.abs();
-				let d10_inv = &d10.recip();
-				let d00 = a00 * d10_inv;
-				let d11 = a11 * d10_inv;
+				let r = a10.abs();
+				let d00 = &a00 / &r;
+				let d11 = &a11 / &r;
 				let t = (&d00 * &d11 - one::<T::Real>()).recip();
-				let d10 = a10.mul_real(d10_inv);
-				let d = t * d10_inv;
+				let r_inv = r.recip();
+				let (d10, d) = if r_inv.is_finite() {
+					(a10.mul_real(&r_inv), &t * &r_inv)
+				} else {
+					(div_complex(&a10, &from_real::<T>(&r)), &t / &r)
+				};
+				let d_finite = d.is_finite();
+				let r_t = from_real::<T>(&r);
 				let (_, _, L, mut A) = Ar.rb_mut().split_at_mut(2, 2);
 				let (mut L0, mut L1) = L.two_cols_mut(0, 1);
 				let Wr = Wr.rb().get(2.., ..);
@@ -710,8 +732,22 @@ fn lblt_blocked_step<T: ComplexField>(
 				for j in 0..n {
 					let x0 = &W0[j];
 					let x1 = &W1[j];
-					let w0 = (x0.mul_real(&d11) - x1 * &d10).mul_real(&d);
-					let w1 = (x1.mul_real(&d00) - x0 * d10.conj()).mul_real(&d);
+					let w0 = if d_finite {
+						(x0.mul_real(&d11) - x1 * &d10).mul_real(&d)
+					} else {
+						div_complex(
+							&(x0.mul_real(&d11) - x1 * &d10).mul_real(&t),
+							&r_t,
+						)
+					};
+					let w1 = if d_finite {
+						(x1.mul_real(&d00) - x0 * d10.conj()).mul_real(&d)
+					} else {
+						div_complex(
+							&(x1.mul_real(&d00) - x0 * d10.conj()).mul_real(&t),
+							&r_t,
+						)
+					};
 					A[(j, j)] =
 						(&A[(j, j)] - &W0[j] * w0.conj() - &W1[j] * w1.conj())
 							.as_real();
@@ -934,8 +970,17 @@ fn lblt_unblocked<T: ComplexField>(
 				let diag_inv = diag.recip();
 				subdiag[0] = zero();
 				let (_, _, L, A) = A.rb_mut().split_at_mut(1, 1);
-				let L = L.col_mut(0);
-				rank1_update(A, L, diag_inv);
+				let mut L = L.col_mut(0);
+				if diag_inv.is_finite() {
+					rank1_update(A, L, diag_inv);
+				} else {
+					// A subnormal diagonal has no finite reciprocal
+					// (tensor4all/colmat-rs#212).
+					let diag_t = from_real::<T>(&diag);
+					zip!(L.rb_mut())
+						.for_each(|unzip!(x)| *x = div_complex(x, &diag_t));
+					rank1_update(A, L, one::<T::Real>());
+				}
 			} else {
 				let a00 = A[(0, 0)].real();
 				let a11 = A[(1, 1)].real();
@@ -943,16 +988,23 @@ fn lblt_unblocked<T: ComplexField>(
 				subdiag[0] = a10.copy();
 				subdiag[1] = zero();
 				A[(1, 0)] = zero();
-				let d10 = a10.abs();
-				let d10_inv = &d10.recip();
-				let d00 = a00 * d10_inv;
-				let d11 = a11 * d10_inv;
+				let r = a10.abs();
+				let d00 = &a00 / &r;
+				let d11 = &a11 / &r;
 				let t = (&d00 * &d11 - one::<T::Real>()).recip();
-				let d10 = a10.mul_real(d10_inv);
-				let d = t * d10_inv;
+				let r_inv = r.recip();
+				let (d10, d) = if r_inv.is_finite() {
+					(a10.mul_real(&r_inv), &t * &r_inv)
+				} else {
+					(div_complex(&a10, &from_real::<T>(&r)), &t / &r)
+				};
 				let (_, _, L, A) = A.rb_mut().split_at_mut(2, 2);
 				let (L0, L1) = L.two_cols_mut(0, 1);
-				rank2_update(A, L0, L1, d, d00, d10, d11);
+				if d.is_finite() {
+					rank2_update(A, L0, L1, d, d00, d10, d11);
+				} else {
+					rank2_update_div(A, L0, L1, t, d00, d10, d11, r);
+				}
 			}
 		}
 		let offset = A_left.ncols();
@@ -973,6 +1025,41 @@ impl<T: ComplexField> Auto<T> for LbltParams {
 			par_threshold: ParThreshold::Derived,
 			non_exhaustive: NonExhaustive(()),
 		}
+	}
+}
+/// Rank-2 update with the block scale kept separate from the inverse
+/// multiplier. Used when `t / r` overflows although every factor entry is
+/// representable, e.g. a subnormal block (tensor4all/colmat-rs#212).
+#[allow(clippy::too_many_arguments)] // mirrors rank2_update's flat signature
+fn rank2_update_div<'a, T: ComplexField>(
+	mut A: MatMut<'a, T>,
+	mut L0: ColMut<'a, T>,
+	mut L1: ColMut<'a, T>,
+	t: T::Real,
+	d00: T::Real,
+	d10: T,
+	d11: T::Real,
+	r: T::Real,
+) {
+	let r = from_real::<T>(&r);
+	let n = A.nrows();
+	for j in 0..n {
+		let x0 = L0[j].copy();
+		let x1 = L1[j].copy();
+		let w0 = div_complex(
+			&(x0.mul_real(&d11) - x1.clone() * &d10).mul_real(&t),
+			&r,
+		);
+		let w1 = div_complex(
+			&(x1.mul_real(&d00) - x0 * d10.conj()).mul_real(&t),
+			&r,
+		);
+		for i in j..n {
+			A[(i, j)] = &A[(i, j)] - &L0[i] * w0.conj() - &L1[i] * w1.conj();
+		}
+		A[(j, j)] = A[(j, j)].as_real();
+		L0[j] = w0;
+		L1[j] = w1;
 	}
 }
 pub fn rank2_update<'a, T: ComplexField>(

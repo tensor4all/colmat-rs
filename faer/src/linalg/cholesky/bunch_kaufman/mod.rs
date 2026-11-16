@@ -4,6 +4,29 @@
 //! $1\times 1$ or $2 \times 2 $ diagonal blocks, and $L$ is a unit lower
 //! triangular matrix
 #![allow(missing_docs)]
+use crate::internal_prelude::*;
+
+/// Divide by a (possibly complex) scalar without squaring its magnitude.
+/// `num_complex`'s `Div` forms `c^2 + d^2`, which underflows for a subnormal
+/// denominator; this is the Smith/LAPACK `dladiv` form (tensor4all/colmat-rs#212).
+fn div_complex<T: ComplexField>(x: &T, c: &T) -> T {
+	if T::IS_REAL {
+		return x.clone() / c;
+	}
+	let (a, b) = (x.real(), x.imag());
+	let (c, d) = (c.real(), c.imag());
+	let (p, q) = if c.abs() >= d.abs() {
+		let r = &d / &c;
+		let den = &c + &d * &r;
+		((&a + &b * &r) / &den, (&b - &a * &r) / &den)
+	} else {
+		let r = &c / &d;
+		let den = &c * &r + &d;
+		((&a * &r + &b) / &den, (&b * &r - &a) / &den)
+	};
+	from_real::<T>(&p) + from_real::<T>(&q) * from_f64::<T>(-1.0).sqrt()
+}
+
 pub mod factor;
 pub mod inverse;
 pub mod reconstruct;
@@ -12,7 +35,6 @@ pub mod solve;
 mod tests {
 	use super::factor::PivotingStrategy;
 	use super::*;
-	use crate::internal_prelude::*;
 	use crate::stats::prelude::*;
 	use crate::{assert, c64};
 	use dyn_stack::MemBuffer;
