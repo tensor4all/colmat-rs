@@ -2080,14 +2080,17 @@ fn gevd_from_schur_imp<T: ComplexField>(
 ///
 /// # range
 ///
-/// the vectors are computed from the factors as given, so they are only as
-/// accurate as the factors' scaling allows. a block whose $s_{jj}$ or $t_{jj}$
-/// underflows against the largest entry of the factors, for example
-/// $s = [[1, 1], [0, 2 \cdot 10^{-200}]]$ with $t = \mathrm{diag}(1,
+/// the vectors are computed from the factors as given, and neither factor is
+/// rescaled: the caller owns the pencil and its order. a `1 x 1` block whose
+/// $s_{jj}$ or $t_{jj}$ underflows against the largest entry of the factors, for
+/// example $s = [[1, 1], [0, 2 \cdot 10^{-200}]]$ with $t = \mathrm{diag}(1,
 /// 10^{-200})$, makes the block's pair of coefficients collapse to zero; that
 /// column is then not an eigenvector of the block although the call returns
-/// `Ok`. neither factor is rescaled, since the caller owns the pencil and its
-/// order. the same stage runs inside [`gevd_real`] and [`gevd_cplx`].
+/// `Ok`. this is a known defect of the shared conversion stage, not a limit of
+/// the factors' scaling: unlike LAPACK `?tgevc`, it does not normalize the pair
+/// with a reciprocal, so the pair carries a squared scale and underflows. it is
+/// tracked in colmat-rs#223, whose fix also covers [`gevd_real`] and
+/// [`gevd_cplx`], which run the same stage.
 ///
 /// # errors
 ///

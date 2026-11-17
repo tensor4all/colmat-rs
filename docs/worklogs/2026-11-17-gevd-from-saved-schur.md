@@ -75,11 +75,14 @@
   when a block's `s_jj` / `t_jj` is many orders below the largest entry of the
   factors: `S = [[1, 1], [0, 2e-200]]`, `T = diag(1, 1e-200)`, right side only,
   returns `e1` for the second column, the vector of `S v = 0` rather than of
-  `(S - 2T) v = 0`, with a relative residual of 0.33 and `Ok`. The defect is in
-  the shared private stage, so `gevd_real` / `gevd_cplx` inherit it; fixing it
-  changes that stage for both, which this change deliberately does not do (the
-  issue requires no change to the existing entry points). Documented under
-  "range" in `gevd_from_schur_real`; a follow-up issue is needed.
+  `(S - 2T) v = 0`, with a relative residual of 0.33 and `Ok`. The cause is not
+  the factors' scaling: unlike LAPACK `?tgevc`, the stage does not normalize the
+  coefficient pair with a reciprocal, so the pair carries `temp^2` and
+  underflows. The defect is in the shared private stage, so `gevd_real` /
+  `gevd_cplx` inherit it; fixing it changes that stage for both, which this
+  change deliberately does not do (the issue requires no change to the existing
+  entry points). Tracked in colmat-rs#223, which also corrects the "range"
+  rustdoc in `gevd_from_schur_real`.
 - **Not verified against LAPACK.** No `?tgevc` reference values were compared:
   the fork has no LAPACK oracle for a pencil in generalized Schur form, and the
   conversion is the pre-existing code that `gevd_real` / `gevd_cplx` already
