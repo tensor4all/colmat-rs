@@ -67,6 +67,12 @@ pub(crate) fn singular_values_scratch<T: RealField>(n: usize) -> StackReq {
 /// `d` must not contain a zero: the transform divides by the factors, and a rank-deficient
 /// bidiagonal has a cheaper answer than this loop. The caller checks that and keeps its own
 /// rotation-based path for it.
+///
+/// A diagonal entry whose square is below `min_positive` is rejected too (#209): a subnormal square
+/// does not carry `eps`'s relative precision, so the value released from it is not guaranteed to
+/// keep its relative accuracy. The test is conservative — a factor that happens to be a power of two
+/// squares exactly and is rejected with the rest — and a caller told about the failure can finish on
+/// the rotation path above with the bidiagonal intact.
 pub(crate) fn singular_values<T: RealField>(
 	d: &mut [T],
 	e: &mut [T],
@@ -102,7 +108,17 @@ pub(crate) fn singular_values<T: RealField>(
 	let (mut b, stack) = stack.make_with::<T>(n.saturating_sub(1), |_| zero());
 	for i in 0..n {
 		let v = d[i].clone() * inv_scale.clone();
-		a[i] = v.clone() * v.clone();
+		let v2 = v.clone() * v.clone();
+		// A subnormal square does not carry `eps`'s relative precision, so the value released from it
+		// is not guaranteed to keep its relative accuracy: report non-convergence instead, with `d`
+		// still untouched, and let the caller finish on its rotation path (#209). Testing the stored
+		// product is exact, unlike a threshold on a rounded square root of `min_positive`.
+		// Off-diagonals are left alone: this guard is about the diagonal initialization, and a
+		// subnormal square there is absorbed by the split below while its neighbours are in range.
+		if v2 < min_positive::<T>() {
+			return Err(SvdError::NoConvergence);
+		}
+		a[i] = v2;
 	}
 	for i in 0..n - 1 {
 		let v = e[i].clone() * inv_scale.clone();
@@ -628,6 +644,101 @@ mod tests {
 				(got - d1[i]).abs() <= 1e-10 * d1[0],
 				"{got} vs {}",
 				d1[i]
+			);
+		}
+	}
+
+	/// #209: the smaller singular value of `B = [[small, 0.25], [0, 1]]` came back `Ok` with 2.09 %
+	/// (f32) and 0.13 % (f64) relative error once its squared factor was subnormal
+	/// (`1e-22^2 = 1e-44` at f32, `1e-161^2 = 1e-322` at f64): a subnormal keeps fewer mantissa
+	/// bits than `eps`, so the relative accuracy is gone before the first sweep. Such an input
+	/// reports non-convergence and leaves the diagonal bit-identical, and the caller recovers on its
+	/// rotation path (#110) or with its own routine (#206's adapter). The issue's nearby
+	/// normal-range controls must keep full accuracy.
+	#[test]
+	fn a_subnormal_squared_factor_is_not_a_success() {
+		// f32: 1e-22^2 = 1e-44, below the smallest normal 1.18e-38.
+		let mut d = [1e-22f32, 1.0];
+		let original = d;
+		let mut e = [0.25f32];
+		core::assert_eq!(values(&mut d, &mut e), Err(SvdError::NoConvergence));
+		core::assert_eq!(d.map(f32::to_bits), original.map(f32::to_bits));
+
+		// f64: 1e-161^2 = 1e-322, below the smallest normal 2.2e-308.
+		let mut d = [1e-161f64, 1.0];
+		let original = d;
+		let mut e = [0.25f64];
+		core::assert_eq!(values(&mut d, &mut e), Err(SvdError::NoConvergence));
+		core::assert_eq!(d.map(f64::to_bits), original.map(f64::to_bits));
+
+		// Controls: 1e-10^2 = 1e-20 (f32) and 1e-100^2 = 1e-200 (f64) are normal. The expected
+		// small value is `small / hypot(1, 0.25)`; the constant keeps `hypot` out of the test.
+		let mut d = [1e-10f32, 1.0];
+		let mut e = [0.25f32];
+		values(&mut d, &mut e).unwrap();
+		let got = d[1] / (1e-10f32 * 0.970_142_5);
+		core::assert!(
+			(got - 1.0).abs() <= 20.0 * f32::EPSILON,
+			"f32: {:e}",
+			d[1]
+		);
+
+		let mut d = [1e-100f64, 1.0];
+		let mut e = [0.25f64];
+		values(&mut d, &mut e).unwrap();
+		let got = d[1] / (1e-100 * 0.970_142_500_145_331_9);
+		core::assert!(
+			(got - 1.0).abs() <= 20.0 * f64::EPSILON,
+			"f64: {:e}",
+			d[1]
+		);
+	}
+
+	/// The rejection above is a ratio, not a magnitude: a uniformly tiny bidiagonal normalizes to the
+	/// same factors and stays `Ok`, and a subnormal squared *off-diagonal* is not a failure while its
+	/// neighbours are in range, because the split below absorbs it.
+	#[test]
+	fn the_squared_range_check_is_a_ratio_and_spares_off_diagonals() {
+		// `[[1, 0.25], [0, 1]]` and the same matrix scaled to `1e-30` / `1e-300` answer alike, though
+		// the tiny copies sit far below `sqrt(min_positive)`. Dividing by the stride the kernel
+		// itself normalizes by keeps the comparison free of hand-computed constants.
+		let mut unit = [1.0f32, 1.0];
+		let mut unit_e = [0.25f32];
+		values(&mut unit, &mut unit_e).unwrap();
+		let mut tiny = [1e-30f32, 1e-30];
+		let mut tiny_e = [2.5e-31f32];
+		values(&mut tiny, &mut tiny_e).unwrap();
+		for (got, want) in tiny.iter().zip(unit.iter()) {
+			let got = got / 1e-30f32;
+			core::assert!(
+				(got / want - 1.0).abs() <= 20.0 * f32::EPSILON,
+				"f32: {got:e} vs {want:e}"
+			);
+		}
+
+		let mut unit = [1.0f64, 1.0];
+		let mut unit_e = [0.25f64];
+		values(&mut unit, &mut unit_e).unwrap();
+		let mut tiny = [1e-300f64, 1e-300];
+		let mut tiny_e = [2.5e-301f64];
+		values(&mut tiny, &mut tiny_e).unwrap();
+		for (got, want) in tiny.iter().zip(unit.iter()) {
+			let got = got / 1e-300f64;
+			core::assert!(
+				(got / want - 1.0).abs() <= 20.0 * f64::EPSILON,
+				"f64: {got:e} vs {want:e}"
+			);
+		}
+
+		// 1e-22^2 is subnormal at f32, but a diagonal of one never releases a smaller value than
+		// one, so nothing is lost.
+		let mut d = [1.0f32, 1.0];
+		let mut e = [1e-22f32];
+		values(&mut d, &mut e).unwrap();
+		for got in d {
+			core::assert!(
+				(got - 1.0).abs() <= 20.0 * f32::EPSILON,
+				"f32: {got:e}"
 			);
 		}
 	}
