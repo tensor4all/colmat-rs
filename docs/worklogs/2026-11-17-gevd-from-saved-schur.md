@@ -82,7 +82,10 @@
   `gevd_cplx` inherit it; fixing it changes that stage for both, which this
   change deliberately does not do (the issue requires no change to the existing
   entry points). Tracked in colmat-rs#223, which also corrects the "range"
-  rustdoc in `gevd_from_schur_real`.
+  rustdoc in `gevd_from_schur_real`. Fixed there with the reciprocal at the
+  four conversion sites (the normalization `?tgevc` uses), plus
+  `tests/gevd_223_extreme_scale.rs` for the pencil above in f64/f32, real and
+  complex.
 - **Not verified against LAPACK.** No `?tgevc` reference values were compared:
   the fork has no LAPACK oracle for a pencil in generalized Schur form, and the
   conversion is the pre-existing code that `gevd_real` / `gevd_cplx` already

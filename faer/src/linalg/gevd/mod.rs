@@ -1018,12 +1018,17 @@ fn qz_to_gevd_real<T: RealField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, nw, stack);
 			let mut rhs = rhs.as_mat_mut();
 			if !cplx_eigval {
-				let temp = &safmin.fmax(
-					(A[(je, je)].abs() * ascale)
-						.fmax(B[(je, je)].abs() * bscale),
-				);
-				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
-				let sbeta = &(B[(je, je)].real() * temp * bscale);
+				// LAPACK `?tgevc`: normalize the coefficient pair with the
+				// reciprocal of the maximum, so that it is O(1) instead of
+				// carrying `temp^2` and underflowing (colmat-rs#223).
+				let temp = safmin
+					.fmax(
+						(A[(je, je)].abs() * ascale)
+							.fmax(B[(je, je)].abs() * bscale),
+					)
+					.recip();
+				let salfar = &A[(je, je)].mul_real(&temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * &temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar * bscale;
 				bcoefi = zero();
@@ -1265,12 +1270,17 @@ fn qz_to_gevd_real<T: RealField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, nw, stack);
 			let mut rhs = rhs.as_mat_mut();
 			if !cplx_eigval {
-				let temp = &safmin.fmax(
-					(A[(je, je)].abs() * ascale)
-						.fmax(B[(je, je)].abs() * bscale),
-				);
-				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
-				let sbeta = &(B[(je, je)].real() * temp * bscale);
+				// LAPACK `?tgevc`: normalize the coefficient pair with the
+				// reciprocal of the maximum, so that it is O(1) instead of
+				// carrying `temp^2` and underflowing (colmat-rs#223).
+				let temp = safmin
+					.fmax(
+						(A[(je, je)].abs() * ascale)
+							.fmax(B[(je, je)].abs() * bscale),
+					)
+					.recip();
+				let salfar = &A[(je, je)].mul_real(&temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * &temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar * bscale;
 				bcoefi = zero();
@@ -1540,12 +1550,17 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
 			let mut rhs = rhs.as_mat_mut().col_mut(0);
 			{
-				let temp = &safmin.fmax(
-					(A[(je, je)].abs() * ascale)
-						.fmax(B[(je, je)].abs() * bscale),
-				);
-				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
-				let sbeta = &(B[(je, je)].real() * temp * bscale);
+				// LAPACK `?tgevc`: normalize the coefficient pair with the
+				// reciprocal of the maximum, so that it is O(1) instead of
+				// carrying `temp^2` and underflowing (colmat-rs#223).
+				let temp = safmin
+					.fmax(
+						(A[(je, je)].abs() * ascale)
+							.fmax(B[(je, je)].abs() * bscale),
+					)
+					.recip();
+				let salfar = &A[(je, je)].mul_real(&temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * &temp * bscale);
 				acoef = sbeta * ascale;
 				bcoef = salfar.mul_real(bscale);
 				let mut scale = one();
@@ -1649,12 +1664,17 @@ fn qz_to_gevd_cplx<T: ComplexField>(
 				linalg::temp_mat_zeroed::<T, _, _>(n, 1, stack);
 			let mut rhs = rhs.as_mat_mut().col_mut(0);
 			{
-				let temp = &safmin.fmax(
-					(A[(je, je)].abs() * ascale)
-						.fmax(B[(je, je)].abs() * bscale),
-				);
-				let salfar = &A[(je, je)].mul_real(temp).mul_real(ascale);
-				let sbeta = &(B[(je, je)].real() * temp * bscale);
+				// LAPACK `?tgevc`: normalize the coefficient pair with the
+				// reciprocal of the maximum, so that it is O(1) instead of
+				// carrying `temp^2` and underflowing (colmat-rs#223).
+				let temp = safmin
+					.fmax(
+						(A[(je, je)].abs() * ascale)
+							.fmax(B[(je, je)].abs() * bscale),
+					)
+					.recip();
+				let salfar = &A[(je, je)].mul_real(&temp).mul_real(ascale);
+				let sbeta = &(B[(je, je)].real() * &temp * bscale);
 				acoef = sbeta * ascale;
 				bcoefr = salfar.mul_real(bscale);
 				let mut scale = one();
@@ -2081,16 +2101,15 @@ fn gevd_from_schur_imp<T: ComplexField>(
 /// # range
 ///
 /// the vectors are computed from the factors as given, and neither factor is
-/// rescaled: the caller owns the pencil and its order. a `1 x 1` block whose
-/// $s_{jj}$ or $t_{jj}$ underflows against the largest entry of the factors, for
-/// example $s = [[1, 1], [0, 2 \cdot 10^{-200}]]$ with $t = \mathrm{diag}(1,
-/// 10^{-200})$, makes the block's pair of coefficients collapse to zero; that
-/// column is then not an eigenvector of the block although the call returns
-/// `Ok`. this is a known defect of the shared conversion stage, not a limit of
-/// the factors' scaling: unlike LAPACK `?tgevc`, it does not normalize the pair
-/// with a reciprocal, so the pair carries a squared scale and underflows. it is
-/// tracked in colmat-rs#223, whose fix also covers [`gevd_real`] and
-/// [`gevd_cplx`], which run the same stage.
+/// rescaled: the caller owns the pencil and its order. the coefficient pair of
+/// a `1 x 1` block is normalized the way LAPACK `?tgevc` does it, with the
+/// reciprocal of the largest scaled diagonal entry (colmat-rs#223), so a block
+/// whose $s_{jj}$ or $t_{jj}$ is tiny against the rest of the factors still
+/// yields a unit vector instead of a column of the null space: $s = [[1, 1],
+/// [0, 2 \cdot 10^{-200}]]$ with $t = \mathrm{diag}(1, 10^{-200})$ returns
+/// $(1, 1)/\sqrt{2}$ for the second block, which before the normalization came
+/// back as $(0, 1)$ with `Ok`. a pencil whose own entries have already
+/// underflowed has lost the information before the call.
 ///
 /// # errors
 ///
