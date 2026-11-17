@@ -26,3 +26,8 @@ faer-no-std-test/Cargo.lock
 !/CLAUDE.md
 !/REPOSITORY_RULES.md
 !/SUPPORT.md
+!/PATCHSET.md
+!/PERFORMANCE_TIPS.md
+!/paper.md
+!/IMPLEMENTATION-PLAN.md
+!/RUNBOOK-acceptance.md
