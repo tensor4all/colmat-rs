@@ -38,41 +38,67 @@
   squared outputs in the public `bidiagonal_dqds` wrapper. The same defect is reachable from the
   values-only SVD and from any future caller, and the wrapper's contract already promises
   `NoConvergence` for "a squared-factor range limitation", so the kernel is where the promise can be
-  kept once; the wrapper and its tests are unchanged and inherit it. Off-diagonals are deliberately
-  not checked: a subnormal squared coupling cannot limit any singular value's relative accuracy
-  (the pre-shift split deflates it), and rejecting it would turn exact answers into failures.
+  kept once; the wrapper and its tests are unchanged and inherit it.
 
 ## Verification conclusions and constraints
 
-- The regression is `dqds::tests::a_subnormal_squared_factor_is_not_a_success`: both precisions of
+- The public-API regression is `faer/tests/svd_squared_range.rs`: values-only `svd` of the MWE in
+  both precisions must be `Ok`, nonnegative and descending, with each value inside `20 eps` of
+  `hypot(1, 0.25)` and `small / hypot(1, 0.25)`; the `1e-10` / `1e-100` / `1e-30` / `1e-300`
+  controls are held to the same bars, and a third test pins a negligible value in either position,
+  either sign, and an exact zero diagonal. It fails at the first commit (`1e-22`, i.e. 258171 eps)
+  and at `origin/main` (2.09 %), and passes here.
+- The kernel regression is `dqds::tests::a_subnormal_squared_factor_is_not_a_success`: both precisions of
   the reported inputs return `NoConvergence` with the diagonal bit-identical, and the `1e-10` /
   `1e-100` controls stay `Ok` inside `20 eps` of `small / hypot(1, 0.25)`. It fails on the previous
   kernel (`Ok` where `Err` is required). `dqds::tests::the_squared_range_check_is_a_ratio_and_spares_off_diagonals`
   pins that the rejection is a ratio and not a magnitude (a matrix scaled to `1e-30` / `1e-300`
   answers like the unit-scale one) and that a subnormal squared off-diagonal stays `Ok`.
-- **What the SVD route now answers.** `compute_bidiag_real_svd` keeps its documented fallback
-  (#110), so a dense `svd(..., ComputeSvdVectors::No)` for the same two matrices still returns `Ok`
-  and now takes the rotation path: the smaller value is `1e-22` / `1e-161` instead of
-  `9.904e-23` / `9.689e-162`, i.e. 3.08 % at both precisions (f32 was 2.09 %, f64 0.13 %). That is
-  inside the SVD's own validation contract for these magnitudes: the returned values pass the
-  existing normwise and mode-agreement criteria, whose denominator floor (`sqrt(MIN_POSITIVE) *
-  largest.max(1)` with an `EPSILON * largest` term, DCHKBD test 19,
-  `faer/src/linalg/svd/tests/lapack.rs:198`) is a tolerance on agreement between output modes, not a
-  relative-accuracy guarantee for the spectrum; both reported values are below that floor. Two
-  things are worth knowing and are **not** changed here:
+- **What the SVD route answers.** `compute_bidiag_real_svd` keeps its documented fallback
+  (#110), so a dense `svd(..., ComputeSvdVectors::No)` for the same two matrices returns `Ok` on
+  the rotation path instead of the kernel's error. That path used to answer *worse* than the dqds
+  value it replaced, so the reorder below is part of the same change:
   - LAPACK's `dgesdd(jobz='N')` returns the smaller singular value exactly for both matrices (f32
-    within 1 eps, f64 to the last bit), because below n = 25 it runs the rotation path and handles
-    the final 2x2 with `DLAS2` before deflating a negligible diagonal.
-  - faer's `qr_algorithm` tests `|diag[i]| <= eps` and deflates *before* its exact two-by-two branch
-    (`faer/src/linalg/svd/bidiag_svd.rs:350-370`), so a trailing 2x2 with a negligible diagonal
-    loses the factor `diag[j] / hypot(diag[j], e)` — 3.08 % for this shape, the bound the rotation
-    path now contributes.
-    Reordering that path is a change to a different function, takes every SVD with vectors through
-    a different branch, and is left to its own change.
+    within 1 eps, f64 to the last bit), because below n = 25 it reaches `DLAS2` for the final block.
+  - faer's `qr_algorithm` tested `|diag[i]| <= eps` and deflated *before* its exact two-by-two
+    branch, so a 2x2 block with a negligible diagonal lost the factor
+    `diag[j] / hypot(diag[j], e)` — 3.08 % here (`1e-22` instead of `9.7014e-23`).
+- **The reorder (revision of the first commit).** `qr_algorithm` now evaluates the exact 2x2 branch
+  first and runs the negligible-diagonal deflation only for blocks longer than two
+  (`faer/src/linalg/svd/bidiag_svd.rs`). That is not a special case for this issue: the exact branch
+  *is* the right algorithm for a 2x2 block. The deflation releases `diag[i]` unchanged and turns the
+  pair into `diag[i]` and `hypot(diag[j], e)`, so the small value misses the rotation's cosine
+  factor `diag[j] / hypot(diag[j], e)` — an O(1) factor (`1/1.0307764` here), not a small
+  correction. The branch also updates both `U` and `V`, where the deflation rotates only `V`. Order and sign are unaffected because `qr_algorithm` ends with a
+  sign-flip pass and a selection sort that swaps the matching `U`/`V` columns. Blocks longer than
+  two keep the deflation untouched.
+  Values-only `svd` of `[[small, 0.25], [0, 1]]`, relative error of the smaller value, against
+  `small / hypot(1, 0.25)`:
+
+  | input | `origin/main` | first commit (kernel guard only) | this change |
+  | --- | --- | --- | --- |
+  | f32, `small = 1e-22` | 2.0890e-2 | 3.0776e-2 | 5.9605e-8 (0.5 eps) |
+  | f64, `small = 1e-161` | 1.3033e-3 | 3.0776e-2 | 0 (last bit) |
+  | f32, `1e-10` control | 0 | 0 | 0 |
+  | f64, `1e-100` control | 0 | 0 | 0 |
+
+  The guard is unchanged and still fires for the kernel: the values-only SVD recovers on the
+  rotation path, where the answer is now as accurate as the dqds value was at base and, for f64,
+  exact.
+- **The remaining limit, measured.** A block longer than two keeps the deflation, so the same factor
+  is still lost once per negligible interior diagonal. `B = [[1, 0.25, 0], [0, 1e-161, 0.25], [0, 0,
+  1]]` (and its f32 `1e-22` copy) through the values-only `svd`: `origin/main` returns the smaller
+  value as **0** (its square underflows: the #209 class, 100 % wrong), this change returns
+  `9.701425e-162` (`9.7014247e-23`) where `s / (1 + 0.25^2) = 9.411765e-162` is exact — 3.08 %,
+  the same dropped cosine as the 2x2 case. The three returned values then multiply to
+  `1.0308e-161` instead of `det = 1e-161`. Strictly better than base and still not relatively
+  accurate: a longer block needs the bulge propagated rather than the diagonal released, which is
+  LAPACK's structure too (`DBDSQR` reaches `DLAS2` only for the final 2x2). Left to its own change;
+  the 2x2 boundary is what this PR fixes.
 - **Scope of the behaviour change.** The kernel now also rejects a zero diagonal, which its contract
   already excludes and both callers already check (`faer/src/linalg/svd/mod.rs:378`, and the public
   wrapper on #206). What changes route is a conservative superset of the inaccurate inputs: any
   input with a squared diagonal factor below `min_positive`, including a power-of-two factor whose
   own answer was exact. Singleton input is unaffected: it normalizes to `±1`, never a subnormal.
 - Not measured: no timing. The added work is one comparison per diagonal entry on a path that is
-  already a multiply per entry, and only previously-inaccurate inputs change route.
+  already a multiply per entry.

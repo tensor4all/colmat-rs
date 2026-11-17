@@ -347,30 +347,7 @@ pub(super) fn qr_algorithm<T: RealField>(
 				start -= 1;
 			}
 			let mut deflated = false;
-			for i in start..end - 1 {
-				if diag[i].abs() <= *eps {
-					deflated = true;
-					let mut val = subdiag[i].copy();
-					subdiag[i] = zero();
-					for j in i + 1..end {
-						let rot = JacobiRotation::make_givens(
-							diag[j].copy(),
-							val.copy(),
-						);
-						diag[j] = &rot.c * &diag[j] - &rot.s * &val;
-						if j + 1 < end {
-							val = &rot.s * &subdiag[j];
-							subdiag[j] = &rot.c * &subdiag[j];
-						}
-						if let Some(v) = v.rb_mut() {
-							rot.adjoint().apply_on_the_right_in_place(
-								v.two_cols_mut(j, i),
-							);
-						}
-					}
-				}
-			}
-			if !deflated && end - start == 2 {
+			if end - start == 2 {
 				let i = start;
 				let j = i + 1;
 				let f = &diag[i].copy();
@@ -422,6 +399,31 @@ pub(super) fn qr_algorithm<T: RealField>(
 					right.apply_on_the_right_in_place(v.two_cols_mut(i, j));
 				}
 				deflated = true;
+			}
+			if !deflated {
+				for i in start..end - 1 {
+					if diag[i].abs() <= *eps {
+						deflated = true;
+						let mut val = subdiag[i].copy();
+						subdiag[i] = zero();
+						for j in i + 1..end {
+							let rot = JacobiRotation::make_givens(
+								diag[j].copy(),
+								val.copy(),
+							);
+							diag[j] = &rot.c * &diag[j] - &rot.s * &val;
+							if j + 1 < end {
+								val = &rot.s * &subdiag[j];
+								subdiag[j] = &rot.c * &subdiag[j];
+							}
+							if let Some(v) = v.rb_mut() {
+								rot.adjoint().apply_on_the_right_in_place(
+									v.two_cols_mut(j, i),
+								);
+							}
+						}
+					}
+				}
 			}
 			if deflated {
 				if iter + 1 == max_iters {
