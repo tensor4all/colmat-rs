@@ -1,5 +1,5 @@
 use crate::internal_prelude::*;
-use crate::perm::{swap_cols_idx, swap_rows_idx};
+use crate::perm::swap_cols_idx;
 use crate::utils::cost::{ParThreshold, rate};
 use crate::utils::thread::par_split_indices;
 use crate::utils::thread::with_width;
@@ -225,13 +225,16 @@ fn best_in_mat_simd<T: ComplexField>(
 fn update_and_best_in_mat_simd<T: ComplexField>(
 	data: MatMut<'_, T, usize, usize, ContiguousFwd>,
 	lhs: ColRef<'_, T, usize, ContiguousFwd>,
-	rhs: RowRef<'_, T, usize>,
+	top: RowMut<'_, T, usize>,
+	pivot: PivotRow<'_, T>,
 	align: usize,
 ) -> (usize, usize, Real<T>) {
 	struct Impl<'a, 'M, 'N, T: ComplexField> {
 		data: MatMut<'a, T, Dim<'M>, Dim<'N>, ContiguousFwd>,
 		lhs: ColRef<'a, T, Dim<'M>, ContiguousFwd>,
-		rhs: RowRef<'a, T, Dim<'N>>,
+		top: RowMut<'a, T, Dim<'N>>,
+		swap_with: Option<Idx<'M>>,
+		scale: Option<&'a T>,
 		align: usize,
 	}
 	impl<'a, 'M, 'N, T: ComplexField> pulp::WithSimd for Impl<'a, 'M, 'N, T> {
@@ -242,7 +245,9 @@ fn update_and_best_in_mat_simd<T: ComplexField>(
 			let Self {
 				data,
 				lhs,
-				rhs,
+				mut top,
+				swap_with,
+				scale,
 				align,
 			} = self;
 			let M = data.nrows();
@@ -255,9 +260,30 @@ fn update_and_best_in_mat_simd<T: ComplexField>(
 			// `ByRef` covers `T` and `&T`; the borrow is the type hint
 			let mut best_val = simd.splat_real(&zero());
 			let mut data = data;
+			// the pivot row's part of column `j`: swapped and scaled one column ahead of the
+			// column's update, while the matrix is being streamed anyway, rather than in a strided
+			// pass of its own. One column ahead, not in the same iteration: the column's vector
+			// loads would otherwise read the entry the scalar store has just written, and wait for it.
+			let prepare =
+				|top: &mut RowMut<'_, T, Dim<'N>>,
+				 data: &mut MatMut<'_, T, Dim<'M>, Dim<'N>, ContiguousFwd>,
+				 j: Idx<'N>| {
+					if let Some(p) = swap_with {
+						core::mem::swap(&mut top[j], &mut data[(p, j)]);
+					}
+					if let Some(inv) = scale {
+						top[j] *= inv;
+					}
+				};
+			if let Some(j) = N.try_check(0usize) {
+				prepare(&mut top, &mut data, j);
+			}
 			for j in N.indices() {
+				let rhs = top[j].copy();
+				if let Some(next) = N.try_check(*j + 1) {
+					prepare(&mut top, &mut data, next);
+				}
 				let data = data.rb_mut().col_mut(j);
-				let rhs = rhs[j].copy();
 				let (best_val_j, best_row_j) =
 					update_and_best_in_col_simd(simd, data, lhs, rhs);
 				(best_val, best_row, best_col) = best_score_2d(
@@ -279,7 +305,9 @@ fn update_and_best_in_mat_simd<T: ComplexField>(
 		Impl {
 			data: data.as_shape_mut(M, N),
 			lhs: lhs.as_row_shape(M),
-			rhs: rhs.as_col_shape(N),
+			top: top.as_col_shape_mut(N),
+			swap_with: pivot.swap_with.map(|p| M.idx(p)),
+			scale: pivot.scale,
 			align,
 		},
 		Impl,
@@ -318,39 +346,64 @@ fn best_in_matrix<T: ComplexField>(
 		best_in_matrix_fallback(data)
 	}
 }
+/// What happens to the pivot row (`top`, row `k` over the trailing columns) before a column of the
+/// trailing block takes its rank-one update: the swap with row `swap_with` of the trailing block
+/// (the row pivot of step `k`), then, in the transpose dual, the scaling by the pivot's inverse.
+///
+/// Swapping the whole row at once costs a strided pass over the matrix every step, two cache
+/// lines per column; with a leading dimension that is a multiple of 4 KiB those lines share a
+/// handful of cache sets and miss to memory (full-pivot LU f64 at 512: 6.4 of 20.8 ms at one
+/// thread, 0.6 ms with the leading dimension padded by one line; tensor4all/colmat-rs#234). Done
+/// per column inside the update, the two entries sit in the column that is being streamed.
+struct PivotRow<'a, T> {
+	swap_with: Option<usize>,
+	scale: Option<&'a T>,
+}
+impl<T> Copy for PivotRow<'_, T> {}
+impl<T> Clone for PivotRow<'_, T> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
 fn rank_one_update_and_best_in_matrix<T: ComplexField>(
+	mut top: RowMut<'_, T>,
 	mut dst: MatMut<'_, T>,
 	lhs: ColRef<'_, T>,
-	rhs: RowRef<'_, T>,
+	pivot: PivotRow<'_, T>,
 	align: usize,
 ) -> (usize, usize, Real<T>) {
 	if const { T::SIMD_CAPABILITIES.is_simd() } {
 		if let (Some(dst), Some(lhs)) =
 			(dst.rb_mut().try_as_col_major_mut(), lhs.try_as_col_major())
 		{
-			update_and_best_in_mat_simd(dst, lhs, rhs, align)
-		} else {
-			matmul(
-				dst.rb_mut(),
-				Accum::Add,
-				lhs.as_mat(),
-				rhs.as_mat(),
-				-one::<T>(),
-				Par::Seq,
-			);
-			best_in_matrix(dst.rb())
+			return update_and_best_in_mat_simd(dst, lhs, top, pivot, align);
 		}
-	} else {
-		matmul(
-			dst.rb_mut(),
-			Accum::Add,
-			lhs.as_mat(),
-			rhs.as_mat(),
-			-one::<T>(),
-			Par::Seq,
-		);
-		best_in_matrix(dst.rb())
 	}
+	if let Some(p) = pivot.swap_with {
+		crate::perm::swap_rows(top.rb_mut(), dst.rb_mut().row_mut(p));
+	}
+	if let Some(inv) = pivot.scale {
+		for j in 0..top.ncols() {
+			top[j] *= inv;
+		}
+	}
+	matmul(
+		dst.rb_mut(),
+		Accum::Add,
+		lhs.as_mat(),
+		top.rb().as_mat(),
+		-one::<T>(),
+		Par::Seq,
+	);
+	best_in_matrix(dst.rb())
+}
+/// Swaps entries `a` and `b` of `col`.
+#[inline]
+fn swap_two<T: ComplexField>(col: ColMut<'_, T>, a: usize, b: usize) {
+	let mut col = col;
+	let t = col[a].copy();
+	col[a] = col[b].copy();
+	col[b] = t;
 }
 fn lu_in_place_unblocked<T: ComplexField>(
 	A: MatMut<'_, T>,
@@ -380,6 +433,8 @@ fn lu_in_place_unblocked<T: ComplexField>(
 	// `max_rank` caps the steps; without it the loop runs to `size` as before
 	let max_rank = params.max_rank.map_or(size, |r| Ord::min(r, size));
 	let mut rank = max_rank;
+	// pivots taken: the columns before the last of them owe the deferred part of the row swaps
+	let mut steps = 0;
 	let mut threshold = None;
 	let mut par = par;
 	// `Never` keeps the whole call sequential (the steps decide their own width otherwise)
@@ -422,25 +477,40 @@ fn lu_in_place_unblocked<T: ComplexField>(
 		}
 		row_trans[k] = max_row;
 		col_trans[k] = max_col;
-		if max_row != k {
-			swap_rows_idx(A.rb_mut(), k, max_row);
-			n_trans += 1;
-		}
+		steps = k + 1;
+		// The row swap of step `k` is split three ways (the factors are the same as swapping the
+		// whole row here): the pivot column's two entries now; the columns past the pivot inside
+		// this step's rank-one update, column by column (`PivotRow`); the columns before it, which
+		// no later step reads, in one column-wise pass after the loop.
 		if max_col != k {
 			swap_cols_idx(A.rb_mut(), k, max_col);
 			n_trans += 1;
 		}
+		if max_row != k {
+			swap_two(A.rb_mut().col_mut(k), k, max_row);
+			n_trans += 1;
+		}
 		let inv = &A[(k, k)].recip();
-		if transpose {
-			for j in k + 1..n {
-				A[(k, j)] *= inv;
-			}
-		} else {
+		if !transpose {
 			for i in k + 1..m {
 				A[(i, k)] *= inv;
 			}
 		}
+		let pivot = PivotRow {
+			swap_with: (max_row != k).then_some(max_row - k - 1),
+			scale: transpose.then_some(inv),
+		};
 		if k + 1 == Ord::min(m, n) {
+			// no trailing block (the last step of a square or a short-side matrix): the columns
+			// past the pivot, if any, take the swap and the scaling here
+			for j in k + 1..n {
+				if max_row != k {
+					swap_two(A.rb_mut().col_mut(j), k, max_row);
+				}
+				if transpose {
+					A[(k, j)] *= inv;
+				}
+			}
 			break;
 		}
 		// One section per step (the fused rank-one update and pivot search over column
@@ -453,15 +523,16 @@ fn lu_in_place_unblocked<T: ComplexField>(
 		);
 		let (_, A01, A10, mut A11) = A.rb_mut().split_at_mut(k + 1, k + 1);
 		let lhs = A10.col(k);
-		let rhs = A01.row(k);
+		let mut top = A01.row_mut(k);
 		with_width(par.reborrow(), width, |par| {
 			match par {
 				Par::Seq => {
 					(max_row, max_col, max_score) =
 						rank_one_update_and_best_in_matrix(
+							top.rb_mut(),
 							A11.rb_mut(),
 							lhs,
-							rhs,
+							pivot,
 							simd_align(k + 1),
 						);
 				},
@@ -482,15 +553,16 @@ fn lu_in_place_unblocked<T: ComplexField>(
 							.zip_eq(
 								A11.rb_mut().par_col_partition_mut(nthreads),
 							)
-							.zip_eq(rhs.par_partition(nthreads))
+							.zip_eq(top.rb_mut().par_partition_mut(nthreads))
 							.enumerate(),
-						|(idx, (((max_row, max_col, max_score), A11), rhs))| {
+						|(idx, (((max_row, max_col, max_score), A11), top))| {
 							(*max_row, *max_col, *max_score) = {
 								let (a, mut b, c) =
 									rank_one_update_and_best_in_matrix(
+										top,
 										A11,
 										lhs,
-										rhs,
+										pivot,
 										simd_align(k + 1),
 									);
 								b +=
@@ -515,6 +587,53 @@ fn lu_in_place_unblocked<T: ComplexField>(
 		});
 		max_row += k + 1;
 		max_col += k + 1;
+	}
+	// The deferred part of the row swaps: column `j` of `L` takes the swaps of the steps after
+	// it, in order, as a column-wise pass over contiguous columns.
+	let swap_l = |mut L: MatMut<'_, T>, j0: usize| {
+		for jj in 0..L.ncols() {
+			let j = j0 + jj;
+			let mut col = L.rb_mut().col_mut(jj);
+			let trans = &row_trans[j + 1..steps];
+			if let Some(col) = col.rb_mut().try_as_col_major_mut() {
+				let col = col.as_slice_mut();
+				for (t, &p) in (j + 1..).zip(trans) {
+					col.swap(t, p);
+				}
+			} else {
+				for (t, &p) in (j + 1..).zip(trans) {
+					if p != t {
+						swap_two(col.rb_mut(), t, p);
+					}
+				}
+			}
+		}
+	};
+	if steps > 1 {
+		let L = A.rb_mut().get_mut(.., ..steps - 1);
+		let width = params.par_threshold.region_width::<T>(
+			&par,
+			steps * steps / 2,
+			rate::lu_swap(),
+			1,
+		);
+		with_width(par.reborrow(), width, |par| match par {
+			Par::Seq => swap_l(L, 0),
+			#[cfg(feature = "rayon")]
+			par => {
+				use rayon::prelude::*;
+				let nthreads = par.degree();
+				let ncols = L.ncols();
+				crate::utils::thread::for_each(
+					par,
+					nthreads,
+					L.par_col_partition_mut(nthreads).enumerate(),
+					|(idx, L)| {
+						swap_l(L, par_split_indices(ncols, idx, nthreads).0)
+					},
+				);
+			},
+		});
 	}
 	(n_trans, rank)
 }
@@ -925,6 +1044,154 @@ mod tests {
 	/// smallest row. Without that, which lane wins depends on the lane count, so an AVX2 build and
 	/// an AVX-512 build eliminate in a different order for the same matrix (and on a singular
 	/// fixture one of the two ends on an exact zero pivot, which the solve turns into `NaN`).
+	/// The row swap of a step is split three ways (pivot column at once, the columns past it inside
+	/// the rank-one sweep, the `L` columns in one pass after the loop; tensor4all/colmat-rs#234).
+	/// Every part has to land: `P^T (L U + S) Q^T = A`, with `S` the Schur complement a truncated
+	/// factorization leaves in the trailing block (zero when it runs to the end), over column-major,
+	/// row-major (the transpose dual, whose sweep also scales the pivot row), generic-stride (the
+	/// `matmul` fallback) and 4 KiB-stride views, square, wide and tall, truncated and not, on one
+	/// thread and on a team.
+	#[test]
+	fn split_row_swap_reconstructs_every_layout() {
+		fn check<T: ComplexField<Real = f64>>(
+			A: MatRef<'_, T>,
+			mut LU: MatMut<'_, T>,
+			max_rank: Option<usize>,
+			par: Par<'_>,
+		) {
+			let (m, n) = A.shape();
+			LU.copy_from(A);
+			let row_perm = &mut *vec![0usize; m];
+			let row_perm_inv = &mut *vec![0usize; m];
+			let col_perm = &mut *vec![0usize; n];
+			let col_perm_inv = &mut *vec![0usize; n];
+			let mut params: Spec<FullPivLuParams, T> = default();
+			params.config.max_rank = max_rank;
+			let shape = par.shape();
+			let (info, p, q) = lu_in_place(
+				LU.rb_mut(),
+				row_perm,
+				row_perm_inv,
+				col_perm,
+				col_perm_inv,
+				par,
+				MemStack::new(&mut MemBuffer::new(lu_in_place_scratch::<
+					usize,
+					T,
+				>(m, n, shape, params))),
+				params,
+			);
+			let r = info.rank;
+			let LU = LU.rb();
+			let L = Mat::<T>::from_fn(m, r, |i, j| {
+				if i == j {
+					one()
+				} else if i > j {
+					LU[(i, j)].copy()
+				} else {
+					zero()
+				}
+			});
+			let U = Mat::<T>::from_fn(r, n, |i, j| {
+				if i <= j { LU[(i, j)].copy() } else { zero() }
+			});
+			let mut PAQ = &L * &U;
+			for j in r..n {
+				for i in r..m {
+					PAQ[(i, j)] = &PAQ[(i, j)] + &LU[(i, j)];
+				}
+			}
+			let back = p.inverse() * &PAQ * q;
+			let tol = 1e-12 * (m.max(n) as f64);
+			for j in 0..n {
+				for i in 0..m {
+					assert!(
+						(&back[(i, j)] - &A[(i, j)]).abs() <= tol,
+						"({m}, {n}) rank {r} at ({i}, {j})"
+					);
+				}
+			}
+			// full pivoting bounds the multipliers by one: an `L` column that missed a swap of a
+			// later step would show a row of the wrong pivot here
+			for j in 0..r {
+				for i in j + 1..m {
+					assert!(LU[(i, j)].abs() <= 1.0 + 1e-14);
+				}
+			}
+		}
+		fn run<T: ComplexField<Real = f64>>(rng: &mut StdRng, par: Par<'_>) {
+			let mut par = par;
+			let shapes = [
+				(1, 1),
+				(2, 2),
+				(7, 7),
+				(9, 4),
+				(4, 9),
+				(64, 64),
+				(65, 33),
+				(33, 65),
+			];
+			for (m, n) in shapes {
+				let A = Mat::<T>::from_fn(m, n, |_, _| {
+					T::from_f64_impl(StandardNormal.sample(rng))
+				});
+				for max_rank in [None, Some(Ord::min(m, n) / 2 + 1)] {
+					// column-major
+					let mut buf = Mat::<T>::zeros(m, n);
+					check(A.as_ref(), buf.as_mut(), max_rank, par.reborrow());
+					// row-major
+					let mut buf = Mat::<T>::zeros(n, m);
+					check(
+						A.as_ref(),
+						buf.as_mut().transpose_mut(),
+						max_rank,
+						par.reborrow(),
+					);
+					// generic strides: every other row of a taller matrix
+					let mut buf = Mat::<T>::zeros(2 * m, n);
+					let view = unsafe {
+						MatMut::from_raw_parts_mut(
+							buf.as_ptr_mut(),
+							m,
+							n,
+							2,
+							buf.col_stride(),
+						)
+					};
+					check(A.as_ref(), view, max_rank, par.reborrow());
+				}
+			}
+			// a column stride of 4 KiB, where a whole-row swap shares cache sets
+			let (m, n) = (300, 300);
+			let A = Mat::<T>::from_fn(m, n, |_, _| {
+				T::from_f64_impl(StandardNormal.sample(rng))
+			});
+			let rows = m.next_multiple_of(4096 / core::mem::size_of::<T>());
+			let mut buf = Mat::<T>::zeros(rows, n);
+			assert!(buf.col_stride() as usize == rows);
+			check(
+				A.as_ref(),
+				buf.as_mut().subrows_mut(0, m),
+				None,
+				par.reborrow(),
+			);
+			check(
+				A.as_ref(),
+				buf.as_mut().subrows_mut(0, m),
+				Some(40),
+				par.reborrow(),
+			);
+		}
+		let rng = &mut StdRng::seed_from_u64(234);
+		run::<f64>(rng, Par::Seq);
+		run::<c64>(rng, Par::Seq);
+		crate::team::with_team(3, |par| {
+			let mut par = par;
+			run::<f64>(rng, par.reborrow());
+			run::<c64>(rng, par.reborrow());
+		});
+	}
+
 	#[test]
 	fn pivot_search_breaks_ties_by_column_then_row() {
 		// column 2 holds the maximum twice (rows 1 and 5): both routes must take row 1, and a
@@ -978,14 +1245,18 @@ mod tests {
 
 				// the fused update with a zero update leaves the matrix as it is
 				let lhs = crate::Col::<f64>::zeros(m);
-				let rhs = crate::Row::<f64>::zeros(3);
 				for align in [0, 1, 3] {
 					let mut b = a.clone();
+					let mut rhs = crate::Row::<f64>::zeros(3);
 					assert_eq!(
 						rank_one_update_and_best_in_matrix(
+							rhs.as_mut(),
 							b.as_mut(),
 							lhs.as_ref(),
-							rhs.as_ref(),
+							PivotRow {
+								swap_with: None,
+								scale: None
+							},
 							align
 						),
 						(r0, 1, 2.0),
