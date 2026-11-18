@@ -175,7 +175,8 @@ pub fn self_adjoint_evd_scratch<T: ComplexField>(
 		temp_mat_scratch::<T>(n, n),
 		StackReq::any_of(&[
 			if n < tridiag_evd_threshold(params.recursion_threshold, par.degree()) {
-				StackReq::empty()
+				// one QR sweep's rotations
+				temp_mat_scratch::<T::Real>(n, 2)
 			} else {
 				tridiag_evd::divide_and_conquer_scratch::<T>(n, par)
 			},
@@ -220,7 +221,8 @@ pub fn tridiagonal_self_adjoint_evd_scratch<T: ComplexField>(
 						params.recursion_threshold,
 						par.degree(),
 					) {
-						StackReq::EMPTY
+						// one QR sweep's rotations
+						temp_mat_scratch::<T::Real>(n, 2)
 					} else {
 						tridiag_evd::divide_and_conquer_scratch::<T::Real>(
 							n, par,
@@ -285,6 +287,7 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 				real_diag.rb_mut(),
 				real_offdiag.rb_mut(),
 				None,
+				None,
 			)?;
 			for i in 0..n {
 				s[i] = real_diag[i].to_cplx();
@@ -308,10 +311,17 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 	let threshold =
 		tridiag_evd_threshold(params.recursion_threshold, par.degree());
 	if n < threshold {
+		let (mut rot, _) =
+			unsafe { temp_mat_uninit::<T::Real, _, _>(n, 2, stack) };
+		let (rc, rs) = rot.as_mat_mut().two_cols_mut(0, 1);
 		tridiag_evd::qr_algorithm(
 			real_diag.rb_mut(),
 			real_offdiag.rb_mut(),
 			Some(u_evd.rb_mut()),
+			Some((
+				rc.try_as_col_major_mut().unwrap(),
+				rs.try_as_col_major_mut().unwrap(),
+			)),
 		)?;
 	} else {
 		tridiag_evd::divide_and_conquer::<T::Real>(
@@ -492,7 +502,12 @@ pub fn self_adjoint_evd<T: ComplexField>(
 	let mut caller_u = match u {
 		Some(u) => u,
 		None => {
-			tridiag_evd::qr_algorithm(diag.rb_mut(), offdiag.rb_mut(), None)?;
+			tridiag_evd::qr_algorithm(
+				diag.rb_mut(),
+				offdiag.rb_mut(),
+				None,
+				None,
+			)?;
 			for i in 0..n {
 				s[i] = (&diag[i] * unscale).to_cplx();
 			}
@@ -534,10 +549,17 @@ pub fn self_adjoint_evd<T: ComplexField>(
 	let threshold =
 		tridiag_evd_threshold(params.recursion_threshold, par.degree());
 	let solved = if n < threshold {
+		let (mut rot, _) =
+			unsafe { temp_mat_uninit::<T::Real, _, _>(n, 2, stack) };
+		let (rc, rs) = rot.as_mat_mut().two_cols_mut(0, 1);
 		tridiag_evd::qr_algorithm(
 			diag.rb_mut(),
 			offdiag.rb_mut(),
 			Some(u_evd.rb_mut()),
+			Some((
+				rc.try_as_col_major_mut().unwrap(),
+				rs.try_as_col_major_mut().unwrap(),
+			)),
 		)
 	} else {
 		tridiag_evd::divide_and_conquer::<T::Real>(

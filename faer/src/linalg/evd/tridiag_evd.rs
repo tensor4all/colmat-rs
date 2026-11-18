@@ -34,10 +34,136 @@ fn normalize_range<T: RealField>(
 	}
 	anorm.copy()
 }
+/// Applies the rotations of one implicit QR sweep to `u` from the right: rotation `j` mixes columns
+/// `j + 1` and `j` exactly as `JacobiRotation { c: c[j], s: s[j] }.apply_on_the_right_in_place(
+/// u.two_cols_mut(j + 1, j))` would, element for element (the same fused operations, and the
+/// identity rotation skipped), so the result is bit for bit the one of the rotation-at-a-time loop.
+///
+/// The loop order is what differs: a strip of rows stays in registers while the whole sequence
+/// is applied to it, so a column is loaded and stored once per sweep instead of twice, and the
+/// per-rotation call (dispatch, SIMD context, head and tail) is paid once per sweep. At f64
+/// n = 128 one thread the rotation-at-a-time loop spent about 1.2 ms of the 2.4 ms `eigh` call
+/// there (tensor4all/colmat-rs#234).
+fn apply_rotation_sequence<T: RealField>(
+	u: MatMut<'_, T, usize, usize, ContiguousFwd>,
+	c: &[T],
+	s: &[T],
+) {
+	// `ComplexField`, as `dispatch!` instantiates it for every scalar; only real ones reach it
+	struct Impl<'a, 'N, T: ComplexField> {
+		u: MatMut<'a, T, Dim<'N>, usize, ContiguousFwd>,
+		c: &'a [T],
+		s: &'a [T],
+	}
+	#[inline(always)]
+	fn strip<
+		'N,
+		T: ComplexField,
+		S: pulp::Simd,
+		I: crate::utils::simd::SimdIndex<'N, T, S> + Copy,
+		const B: usize,
+	>(
+		simd: &SimdCtx<'N, T, S>,
+		u: &mut MatMut<'_, T, Dim<'N>, usize, ContiguousFwd>,
+		c: &[T],
+		s: &[T],
+		idx: [I; B],
+	) {
+		let mut carry: [T::SimdVec<S>; B] =
+			core::array::from_fn(|b| simd.read((*u).rb().col(0), idx[b]));
+		for j in 0..c.len() {
+			let mut next: [T::SimdVec<S>; B] = core::array::from_fn(|b| {
+				simd.read((*u).rb().col(j + 1), idx[b])
+			});
+			// the rotation `apply_on_the_right_in_place` applies on the left of the transposed
+			// pair: `(c, -s)`, skipped when it is the identity
+			let (cj, sj) = (&c[j], &-&s[j]);
+			if !(*cj == one::<T>() && *sj == zero::<T>()) {
+				let cr = simd.splat_real(cj.real());
+				let sv = simd.splat(sj);
+				for b in 0..B {
+					let (xx, yy) = (next[b], carry[b]);
+					next[b] = simd.conj_mul_add(
+						simd.neg(sv),
+						yy,
+						simd.mul_real(xx, cr),
+					);
+					carry[b] = simd.mul_add(sv, xx, simd.mul_real(yy, cr));
+				}
+			}
+			for b in 0..B {
+				simd.write(u.rb_mut().col_mut(j), idx[b], carry[b]);
+			}
+			carry = next;
+		}
+		for b in 0..B {
+			simd.write(u.rb_mut().col_mut(c.len()), idx[b], carry[b]);
+		}
+	}
+	impl<T: ComplexField> pulp::WithSimd for Impl<'_, '_, T> {
+		type Output = ();
+
+		#[inline(always)]
+		fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
+			let Self { mut u, c, s } = self;
+			let simd = SimdCtx::<T, S>::new(T::simd_ctx(simd), u.nrows());
+			let (head, body, items, tail) = simd.batch_indices::<4>();
+			if let Some(i) = head {
+				strip(&simd, &mut u, c, s, [i]);
+			}
+			for i in body {
+				strip(&simd, &mut u, c, s, i);
+			}
+			for i in items {
+				strip(&simd, &mut u, c, s, [i]);
+			}
+			if let Some(i) = tail {
+				strip(&simd, &mut u, c, s, [i]);
+			}
+		}
+	}
+	let n = c.len();
+	crate::debug_assert!(all(s.len() == n, u.ncols() == n + 1));
+	with_dim!(N, u.nrows());
+	dispatch!(
+		Impl {
+			u: u.as_row_shape_mut(N),
+			c,
+			s
+		},
+		Impl,
+		T
+	)
+}
+/// Rotations of a sweep applied to `u` together by [`apply_rotation_sequence`]: a strip of rows
+/// walks `ROTATION_CHUNK + 1` columns per call. In a D&C leaf `u` is a block of the whole matrix's
+/// `u`, so those columns can be 4 KiB apart and share an L1 set; a chunk keeps the strip's column
+/// streams within the associativity of an L1 (eight ways or more) and within the streams a
+/// prefetcher follows. `eigh` f64, one thread, ms (tensor4all/colmat-rs#234, CPU 4 of the
+/// development host; the whole sweep in one call is the last column):
+///
+/// | n   | 2      | 4      | 8      | 16     | 32     | sweep  | before |
+/// |-----|--------|--------|--------|--------|--------|--------|--------|
+/// | 64  | 0.484  | 0.474  | 0.459  | 0.453  | 0.455  | 0.460  | 0.505  |
+/// | 128 | 2.374  | 2.228  | 2.180  | 2.154  | 2.163  | 2.179  | 2.378  |
+/// | 256 | 10.087 | 9.856  | 9.705  | 9.778  | 9.694  | 9.814  | 10.076 |
+/// | 512 | 49.47  | 50.12  | 48.97  | 50.21  | 54.44  | 58.02  | 50.42  |
+const ROTATION_CHUNK: usize = 8;
+/// The implicit QR iteration (DSTEQR's QR branch) on a symmetric tridiagonal matrix, with the
+/// rotations accumulated into `u` when it is given.
+///
+/// `rotations` is room for one sweep's rotations (two columns of at least `n - 1` entries). With
+/// it and a column-major `u` of a SIMD scalar, a sweep's rotations are applied to `u` together
+/// once the sweep is chased ([`apply_rotation_sequence`]); otherwise each is applied as it is
+/// made. The two give the same bits.
 pub(crate) fn qr_algorithm<T: RealField>(
 	diag: ColMut<'_, T, usize, ContiguousFwd>,
 	offdiag: ColMut<'_, T, usize, ContiguousFwd>,
 	u: Option<MatMut<'_, T, usize, usize>>,
+	rotations: Option<(
+		ColMut<'_, T, usize, ContiguousFwd>,
+		ColMut<'_, T, usize, ContiguousFwd>,
+	)>,
 ) -> Result<(), EvdError> {
 	let n = diag.nrows();
 	let mut u = u;
@@ -119,6 +245,18 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	}
 	let mut end = n - 1;
 	let mut start = 0;
+	// a sweep's rotations, applied to `u` together after the chase
+	let mut deferred = match (u.rb_mut(), rotations) {
+		(Some(u), Some((rc, rs)))
+			if const { T::SIMD_CAPABILITIES.is_simd() }
+				&& u.row_stride() == 1
+				&& rc.nrows() + 1 >= n
+				&& rs.nrows() + 1 >= n =>
+		{
+			Some((rc, rs))
+		},
+		_ => None,
+	};
 	let max_iters = Ord::max(30, nbits::<T>() / 2)
 		.saturating_mul(n)
 		.saturating_mul(n);
@@ -193,12 +331,35 @@ pub(crate) fn qr_algorithm<T: RealField>(
 				p = &s * r;
 				diag[k] = &g + &p;
 				g = &c * r - b;
-				if let Some(u) = u.rb_mut() {
+				if let Some((rc, rs)) = deferred.as_mut() {
+					rc[k - start] = rot.c.copy();
+					rs[k - start] = rot.s.copy();
+				} else if let Some(u) = u.rb_mut() {
 					rot.apply_on_the_right_in_place(u.two_cols_mut(k + 1, k));
 				}
 			}
 			diag[end] = &diag[end] - &p;
 			offdiag[end - 1] = g;
+			if let (Some((rc, rs)), Some(mut u)) =
+				(deferred.as_mut(), u.rb_mut())
+			{
+				let len = end - start;
+				let rc = &rc.rb_mut().as_slice_mut()[..len];
+				let rs = &rs.rb_mut().as_slice_mut()[..len];
+				let mut j = 0;
+				while j < len {
+					let k = Ord::min(ROTATION_CHUNK, len - j);
+					apply_rotation_sequence(
+						u.rb_mut()
+							.get_mut(.., start + j..start + j + k + 1)
+							.try_as_col_major_mut()
+							.unwrap(),
+						&rc[j..j + k],
+						&rs[j..j + k],
+					);
+					j += k;
+				}
+			}
 		}
 	}
 	for i in 0..n - 1 {
@@ -391,7 +552,8 @@ fn divide_and_conquer_recurse<T: RealField>(
 	let n = diag.nrows();
 	let qr_fallback_threshold = Ord::max(qr_fallback_threshold, 4);
 	if n <= qr_fallback_threshold {
-		return qr_algorithm(diag, offdiag, Some(u));
+		// `mus` and `shifts` are the merge's, unused below a leaf: room for a sweep's rotations
+		return qr_algorithm(diag, offdiag, Some(u), Some((mus, shifts)));
 	}
 	let n1 = n / 2;
 	let mut rho = offdiag[n1 - 1].copy();
@@ -793,6 +955,66 @@ mod evd_qr_tests {
 	use crate::utils::approx::*;
 	use crate::{ColMut, Mat, assert};
 	use dyn_stack::MemBuffer;
+	/// A sweep's rotations applied together (`apply_rotation_sequence`, in chunks) give the bits of
+	/// the rotation-at-a-time loop: sizes across the chunk and the SIMD strip boundaries, a `u`
+	/// that is a block of a larger matrix with a 4 KiB column stride (a D&C leaf's), and spectra
+	/// that deflate early (zeros on the off-diagonal) so sweeps start past column 0
+	/// (tensor4all/colmat-rs#234).
+	#[test]
+	fn rotation_sequence_matches_rotation_at_a_time() {
+		let mut x = 0x2345_u64;
+		let mut rnd = move || {
+			x = x
+				.wrapping_mul(6364136223846793005)
+				.wrapping_add(1442695040888963407);
+			(x >> 11) as f64 / (1u64 << 53) as f64 - 0.5
+		};
+		for n in [3usize, 4, 5, 8, 9, 10, 17, 31, 64, 65, 100] {
+			for split in [false, true] {
+				let diag0: Vec<f64> = (0..n).map(|_| rnd()).collect();
+				let mut offdiag0: Vec<f64> = (0..n).map(|_| rnd()).collect();
+				offdiag0[n - 1] = 0.0;
+				if split {
+					offdiag0[n / 3] = 0.0;
+				}
+				let run = |deferred: bool| {
+					let mut diag = diag0.clone();
+					let mut offdiag = offdiag0.clone();
+					let mut big = Mat::<f64>::full(512, n + 3, f64::NAN);
+					let mut rot = Mat::<f64>::zeros(n, 2);
+					let (rc, rs) = rot.as_mut().two_cols_mut(0, 1);
+					qr_algorithm(
+						ColMut::from_slice_mut(&mut diag)
+							.try_as_col_major_mut()
+							.unwrap(),
+						ColMut::from_slice_mut(&mut offdiag)
+							.try_as_col_major_mut()
+							.unwrap(),
+						Some(big.as_mut().submatrix_mut(5, 2, n, n)),
+						deferred.then(|| {
+							(
+								rc.try_as_col_major_mut().unwrap(),
+								rs.try_as_col_major_mut().unwrap(),
+							)
+						}),
+					)
+					.unwrap();
+					(diag, big.as_ref().submatrix(5, 2, n, n).to_owned())
+				};
+				let (d0, u0) = run(false);
+				let (d1, u1) = run(true);
+				for i in 0..n {
+					assert!(d0[i].to_bits() == d1[i].to_bits());
+					for j in 0..n {
+						assert!(
+							u0[(i, j)].to_bits() == u1[(i, j)].to_bits(),
+							"n {n} split {split} at ({i}, {j})"
+						);
+					}
+				}
+			}
+		}
+	}
 	#[track_caller]
 	fn test_qr(diag: &[f64], offdiag: &[f64]) {
 		let n = diag.len();
@@ -808,6 +1030,7 @@ mod evd_qr_tests {
 					.try_as_col_major_mut()
 					.unwrap(),
 				Some(u.as_mut()),
+				None,
 			)
 			.unwrap();
 			Mat::from_fn(n, n, |i, j| if i == j { diag[i] } else { 0.0 })
@@ -988,15 +1211,22 @@ mod secular_split_tests {
 	use dyn_stack::MemBuffer;
 
 	fn lcg(st: &mut u64) -> f64 {
-		*st = st.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+		*st = st
+			.wrapping_mul(6364136223846793005)
+			.wrapping_add(1442695040888963407);
 		((*st >> 11) as f64) / ((1u64 << 53) as f64)
 	}
 
 	/// The inputs of one merge: `full` sorted poles of which the first `k` are not deflated,
 	/// and a unit `z`.
-	fn merge_input(full: usize, k: usize, seed: u64) -> (Vec<f64>, Vec<f64>, f64) {
+	fn merge_input(
+		full: usize,
+		k: usize,
+		seed: u64,
+	) -> (Vec<f64>, Vec<f64>, f64) {
 		let mut st = seed;
-		let mut d: Vec<f64> = (0..full).map(|_| 4.0 * lcg(&mut st) - 2.0).collect();
+		let mut d: Vec<f64> =
+			(0..full).map(|_| 4.0 * lcg(&mut st) - 2.0).collect();
 		d[..k].sort_by(f64::total_cmp);
 		let mut z: Vec<f64> = (0..full).map(|_| lcg(&mut st) + 0.05).collect();
 		let norm = z[..k].iter().map(|x| x * x).sum::<f64>().sqrt();
@@ -1005,20 +1235,34 @@ mod secular_split_tests {
 	}
 
 	/// `(shifts, mus)` as bits.
-	fn roots(par: Par, d: &[f64], z: &[f64], rho: f64, k: usize) -> Vec<(u64, u64)> {
+	fn roots(
+		par: Par,
+		d: &[f64],
+		z: &[f64],
+		rho: f64,
+		k: usize,
+	) -> Vec<(u64, u64)> {
 		let full = d.len();
 		let mut mus = vec![f64::NAN; full];
 		let mut shifts = vec![f64::NAN; full];
 		compute_eigenvalues(
-			ColMut::from_slice_mut(&mut mus).try_as_col_major_mut().unwrap(),
-			ColMut::from_slice_mut(&mut shifts).try_as_col_major_mut().unwrap(),
+			ColMut::from_slice_mut(&mut mus)
+				.try_as_col_major_mut()
+				.unwrap(),
+			ColMut::from_slice_mut(&mut shifts)
+				.try_as_col_major_mut()
+				.unwrap(),
 			ColRef::from_slice(d).try_as_col_major().unwrap(),
 			ColRef::from_slice(z).try_as_col_major().unwrap(),
 			rho,
 			k,
 			par,
 		);
-		shifts.iter().zip(&mus).map(|(s, m)| (s.to_bits(), m.to_bits())).collect()
+		shifts
+			.iter()
+			.zip(&mus)
+			.map(|(s, m)| (s.to_bits(), m.to_bits()))
+			.collect()
 	}
 
 	#[test]
@@ -1053,17 +1297,21 @@ mod secular_split_tests {
 			let (d, z, rho) = merge_input(full, k, 0x391 + k as u64);
 			let seq = roots(Par::Seq, &d, &z, rho, k);
 			for threads in [2usize, 3, 8] {
-				let (first, second, width) = crate::team::with_team(threads, |mut par| {
-					(
-						roots(par.reborrow(), &d, &z, rho, k),
-						roots(par.reborrow(), &d, &z, rho, k),
-						secular_width::<f64>(&par, k),
-					)
-				});
+				let (first, second, width) =
+					crate::team::with_team(threads, |mut par| {
+						(
+							roots(par.reborrow(), &d, &z, rho, k),
+							roots(par.reborrow(), &d, &z, rho, k),
+							secular_width::<f64>(&par, k),
+						)
+					});
 				// same thread count, same split: same bits
 				assert!(first == second, "k = {k}, {threads} threads");
 				// the split changes nothing, so a different thread count, or none, does not either
-				assert!(first == seq, "k = {k}, {threads} threads against Par::Seq");
+				assert!(
+					first == seq,
+					"k = {k}, {threads} threads against Par::Seq"
+				);
 				// the gate is the cost model's, at most `k` participants and at most the team
 				assert!(width <= Ord::min(k, threads));
 			}
@@ -1084,20 +1332,24 @@ mod secular_split_tests {
 		let n = 128;
 		let mut st = 0x391u64;
 		let diag: Vec<f64> = (0..n).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
-		let offdiag: Vec<f64> = (0..n - 1).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
+		let offdiag: Vec<f64> =
+			(0..n - 1).map(|_| 2.0 * lcg(&mut st) - 1.0).collect();
 		let run = |par: Par| {
 			let mut d = diag.clone();
 			let mut e = offdiag.clone();
 			let mut u = Mat::<f64>::zeros(n, n);
 			divide_and_conquer(
-				ColMut::from_slice_mut(&mut d).try_as_col_major_mut().unwrap(),
-				ColMut::from_slice_mut(&mut e).try_as_col_major_mut().unwrap(),
+				ColMut::from_slice_mut(&mut d)
+					.try_as_col_major_mut()
+					.unwrap(),
+				ColMut::from_slice_mut(&mut e)
+					.try_as_col_major_mut()
+					.unwrap(),
 				u.as_mut(),
 				par,
-				MemStack::new(&mut MemBuffer::new(divide_and_conquer_scratch::<f64>(
-					n,
-					ParShape::Seq,
-				))),
+				MemStack::new(&mut MemBuffer::new(
+					divide_and_conquer_scratch::<f64>(n, ParShape::Seq),
+				)),
 				16,
 			)
 			.unwrap();
@@ -1112,7 +1364,9 @@ mod secular_split_tests {
 			}
 			v
 		};
-		let (a, b) = crate::team::with_team(8, |mut par| (run(par.reborrow()), run(par.reborrow())));
+		let (a, b) = crate::team::with_team(8, |mut par| {
+			(run(par.reborrow()), run(par.reborrow()))
+		});
 		assert!(bits(&a) == bits(&b));
 		// residual and orthogonality of the team result
 		let (s, u) = &a;

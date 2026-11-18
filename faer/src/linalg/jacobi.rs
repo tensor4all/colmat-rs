@@ -2,6 +2,22 @@ use crate::internal_prelude::*;
 /// jacobi rotation matrix
 ///
 /// $$ \begin{bmatrix} c & -\bar s \\\\ s & c \end{bmatrix} $$
+/// `t.hypot(1)` for `|t| <= 1` (or a NaN `t`), as `sqrt(1 + t * t)` for `f32` and `f64`.
+///
+/// The two are the same bits there: on that range `hypot` scales both legs by the power of two
+/// `sqrt_max_positive`, which changes neither the rounding of the square, of the sum nor of the
+/// square root of a binary IEEE type, and a `t * t` that underflows unscaled is below half an ulp
+/// of `1` either way. The direct form takes the range selection and the two scalings off the
+/// latency chain of a Givens sweep (the tridiagonal QR iteration makes one rotation after another,
+/// each from the last; tensor4all/colmat-rs#234). Other real types keep `hypot`.
+#[inline(always)]
+fn hypot_one<T: RealField>(t: &T) -> T {
+	if const { T::IS_NATIVE_F64 || T::IS_NATIVE_F32 } {
+		(one::<T>() + t * t).sqrt()
+	} else {
+		t.hypot(one::<T>())
+	}
+}
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct JacobiRotation<T> {
@@ -35,7 +51,7 @@ impl<T: ComplexField> JacobiRotation<T> {
 			Self { c, s }
 		} else if p.abs() > q.abs() {
 			let t = q / &p;
-			let mut u = t.hypot(one::<T>());
+			let mut u = hypot_one(&t);
 			if p < zero::<T>() {
 				u = -u;
 			}
@@ -44,7 +60,7 @@ impl<T: ComplexField> JacobiRotation<T> {
 			Self { c, s }
 		} else {
 			let t = p / &q;
-			let mut u = t.hypot(one::<T>());
+			let mut u = hypot_one(&t);
 			if q < zero::<T>() {
 				u = -u;
 			}
