@@ -58,22 +58,47 @@ pub struct HouseholderInfo<T: ComplexField> {
 /// $v_{1\dots}$ is stored in `essential` (when provided)
 fn make_householder_imp<T: ComplexField>(
 	head: &mut T,
-	out: ColMut<'_, T>,
-	input: Option<ColRef<'_, T>>,
+	mut out: ColMut<'_, T>,
+	mut input: Option<ColRef<'_, T>>,
 ) -> HouseholderInfo<T> {
 	let tail = input.unwrap_or(out.rb());
-	let tail_norm = tail.norm_l2();
+	let mut tail_norm = tail.norm_l2();
 	let mut head_norm = (*head).abs();
-	if head_norm < min_positive() {
-		*head = zero();
-		head_norm = zero();
-	}
+	let safmin = min_positive::<T::Real>() / eps::<T::Real>();
+	// As in LAPACK xLARFG, lift a tiny reflector before forming its ratios.
+	// Check the entries if the initial norm rounded to zero.
+	let scale = if head_norm < safmin
+		&& tail_norm < safmin
+		&& (tail_norm != zero() || tail.iter().any(|x| *x != zero()))
+	{
+		let scale = safmin.recip();
+		*head = head.mul_pow2(&scale);
+		match input.take() {
+			None => zip!(out.rb_mut()).for_each(|unzip!(x)| {
+				*x = x.mul_pow2(&scale);
+			}),
+			Some(input) => {
+				zip!(out.rb_mut(), input).for_each(|unzip!(o, x)| {
+					*o = x.mul_pow2(&scale);
+				})
+			},
+		}
+		head_norm = (*head).abs();
+		tail_norm = out.norm_l2();
+		Some(scale)
+	} else {
+		None
+	};
 	if tail_norm < min_positive() {
 		return HouseholderInfo {
 			tau: infinity(),
 			head_with_beta_inv: infinity(),
 			norm: head_norm,
 		};
+	}
+	if head_norm < min_positive() {
+		*head = zero();
+		head_norm = zero();
 	}
 	let head_norm = &head_norm;
 	let one_half = &from_f64::<T::Real>(0.5);
@@ -99,6 +124,14 @@ fn make_householder_imp<T: ComplexField>(
 	*head = -signed_norm;
 	let tau = one_half
 		* (one::<T::Real>() + (tail_norm * head_with_beta_inv.abs()).abs2());
+	if let Some(scale) = scale {
+		*head = head.mul_pow2(&safmin);
+		return HouseholderInfo {
+			tau,
+			head_with_beta_inv: head_with_beta_inv.mul_pow2(scale),
+			norm: norm * safmin,
+		};
+	}
 	HouseholderInfo {
 		tau,
 		head_with_beta_inv,
@@ -1160,6 +1193,37 @@ mod tests {
 	use crate::{Conj, Mat, Par};
 	use num_complex::ComplexFloat;
 	use reborrow::ReborrowMut;
+
+	#[test]
+	fn tiny_householder_keeps_its_reflector() {
+		use super::make_householder_out_of_place;
+		use crate::Col;
+
+		let ordinary_tail = Col::from_fn(2, |i| [4.0f64, -8.0][i]);
+		let mut expected = ordinary_tail.clone();
+		let normal = make_householder_in_place(&mut 3.0, expected.as_mut());
+		for scale in [f64::MIN_POSITIVE / 16.0, f64::from_bits(1)] {
+			let input = Col::from_fn(2, |i| ordinary_tail[i] * scale);
+			let mut out = Col::zeros(2);
+			let mut head = 3.0 * scale;
+			let info = make_householder_out_of_place(
+				&mut head,
+				out.as_mut(),
+				input.as_ref(),
+			);
+			assert!((info.tau - normal.tau).abs() < 4.0 * f64::EPSILON);
+			assert!(head < 0.0 && info.norm > 0.0);
+			for i in 0..2 {
+				assert!((out[i] - expected[i]).abs() < 4.0 * f64::EPSILON);
+				assert_eq!(input[i], ordinary_tail[i] * scale);
+			}
+		}
+		let mut head = f64::from_bits(1);
+		let mut tail = Col::<f64>::zeros(2);
+		let info = make_householder_in_place(&mut head, tail.as_mut());
+		assert_eq!(head, f64::from_bits(1));
+		assert_eq!(info.tau, f64::INFINITY);
+	}
 
 	/// The `N == 1` kernel is one sequential rank-one update per target column, and it is skipped in
 	/// favour of the generic path -- which partitions the columns and threads its products -- when

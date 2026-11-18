@@ -12,6 +12,9 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   before checking for a width below two. An `n x 1` product then kept an `n`-element partial
   buffer per thread and added it back (#168). `with_width` now maps a width or a degree below two to
   `Par::Seq` first. Covered by `team_of_one`.
+- QR now forms tiny Householder reflectors at a safe scale instead of dropping
+  subnormal heads or tails. It restores the original scale in the diagonal and
+  retains the reflector and tau (#228).
 - A dense product of `fx128` or `cx128` matrices panicked in every build except the crate's own unit
   tests. The SIMD micro-kernels that `matmul` routes non-native scalars to refused them unless
   `cfg!(test)` was set, so the in-crate tests took a path no user build takes (#174). The kernels now
