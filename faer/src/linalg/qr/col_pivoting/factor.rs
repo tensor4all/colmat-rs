@@ -290,7 +290,7 @@ fn qr_in_place_unblocked<'out, I: Index, T: ComplexField>(
 					});
 				}
 				let HouseholderInfo { tau, .. } =
-					householder::make_householder_in_place(B00, B10.rb_mut());
+					householder::make_qr_householder(B00, B10.rb_mut(), None);
 				let tau_inv = &tau.recip();
 				H[k] = tau.to_cplx();
 				// the last step of the full factorization has nothing left to update;

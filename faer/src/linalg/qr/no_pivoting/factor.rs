@@ -33,13 +33,13 @@ fn qr_in_place_unblocked<T: ComplexField>(
 
 		let (info, v) = if row == col {
 			let info =
-				householder::make_householder_in_place(A00, A10r.rb_mut());
+				householder::make_qr_householder(A00, A10r.rb_mut(), None);
 			(info, A10r.rb())
 		} else {
-			let info = householder::make_householder_out_of_place(
+			let info = householder::make_qr_householder(
 				A00,
 				A10l.rb_mut().col_mut(row),
-				A10r.rb(),
+				Some(A10r.rb()),
 			);
 			let nrows = A10r.nrows();
 			A10r.rb_mut()
