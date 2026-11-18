@@ -33,6 +33,9 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   `n x nblock`, and `nblock` exceeds `2 nsr` for small shift counts. With the exact queried
   workspace, complex QZ panicked at n = 15..20 with two shifts. The sweep now reserves `n x
   max(2 nsr, nblock)`.
+- Dense SVD now scales inputs near the floating-point range limits before QR
+  or bidiagonalization, restoring the original scale in the returned singular
+  values (#227).
 
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 

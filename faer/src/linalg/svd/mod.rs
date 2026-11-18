@@ -30,7 +30,7 @@ pub enum ComputeSvdVectors {
 /// svd error
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SvdError {
-	/// reached max iterations
+	/// the iteration failed to converge or the input or result was nonfinite
 	NoConvergence,
 }
 /// svd tuning parameters
@@ -659,11 +659,43 @@ pub fn bidiagonal_svd<T: ComplexField>(
 	}
 	Ok(())
 }
+/// LAPACK xGESVD's safe interval, using exact powers of two as in `geev_scaling`.
+/// `max` must be finite and is the largest real or imaginary component.
+fn input_scale<R: RealField>(mut max: R) -> Option<R> {
+	let small = sqrt_min_positive::<R>() / eps::<R>();
+	let big = small.recip();
+	let step = if max > big {
+		from_f64::<R>(0.5)
+	} else if max < small && max != zero() {
+		from_f64::<R>(2.0)
+	} else {
+		return None;
+	};
+	let mut scale = one::<R>();
+	while max < small || max > big {
+		max *= &step;
+		scale *= &step;
+	}
+	Some(scale)
+}
+
+fn copy_scaled<T: ComplexField>(
+	mut dst: MatMut<'_, T>,
+	src: MatRef<'_, T>,
+	scale: Option<&T::Real>,
+) {
+	dst.rb_mut().copy_from(src);
+	if let Some(scale) = scale {
+		z!(dst).for_each(|uz!(x)| *x = x.mul_pow2(scale));
+	}
+}
+
 #[allow(clippy::type_complexity)] // faer signature shape, kept explicit to match upstream
 #[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// bidiag -> divide conquer svd / qr algo
 fn svd_imp<T: ComplexField>(
 	matrix: MatRef<'_, T>,
+	scale: Option<&T::Real>,
 	s: ColMut<'_, T>,
 	u: Option<MatMut<'_, T>>,
 	v: Option<MatMut<'_, T>>,
@@ -692,7 +724,7 @@ fn svd_imp<T: ComplexField>(
 		unsafe { temp_mat_uninit::<T, _, _>(bs, n - 1, stack) };
 	let mut Hl = Hl.as_mat_mut();
 	let mut Hr = Hr.as_mat_mut();
-	bid.copy_from(matrix);
+	copy_scaled(bid.rb_mut(), matrix, scale);
 	let mut bidiag_params = params.bidiag;
 	// the values-only path never reads the compact block factors, and building them is a serial
 	// pass over the matrix after the factorization
@@ -773,9 +805,11 @@ fn svd_imp<T: ComplexField>(
 	}
 	Ok(())
 }
+#[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 #[allow(clippy::missing_transmute_annotations)] // the cast reinterprets the view scalar type in the `IS_REAL` branch; both sides spelled out would repeat the view type
 fn compute_squareish_svd<T: ComplexField>(
 	matrix: MatRef<'_, T>,
+	scale: Option<&T::Real>,
 	s: ColMut<'_, T>,
 	u: Option<MatMut<'_, T>>,
 	v: Option<MatMut<'_, T>>,
@@ -786,6 +820,7 @@ fn compute_squareish_svd<T: ComplexField>(
 	if const { T::IS_REAL } {
 		svd_imp::<T::Real>(
 			unsafe { core::mem::transmute(matrix) },
+			scale,
 			unsafe { core::mem::transmute(s) },
 			unsafe { core::mem::transmute(u) },
 			unsafe { core::mem::transmute(v) },
@@ -797,6 +832,7 @@ fn compute_squareish_svd<T: ComplexField>(
 	} else {
 		svd_imp::<T>(
 			matrix,
+			scale,
 			s,
 			u,
 			v,
@@ -872,6 +908,10 @@ pub fn svd_scratch<T: ComplexField>(
 ///
 /// the singular are stored in $S$, and the singular vectors in $U$ and $V$ such
 /// that the singular values are sorted in nonincreasing order
+///
+/// # Errors
+/// Returns [`SvdError::NoConvergence`] for nonfinite input, iteration failure,
+/// or if restoring the original scale would produce a nonfinite singular value.
 pub fn svd<T: ComplexField>(
 	A: MatRef<'_, T>,
 	s: DiagMut<'_, T>,
@@ -885,7 +925,7 @@ pub fn svd<T: ComplexField>(
 	let (m, n) = A.shape();
 	let size = Ord::min(m, n);
 	assert!(s.dim() == size);
-	let s = s.column_vector_mut();
+	let mut s = s.column_vector_mut();
 	if let Some(u) = u.rb() {
 		assert!(all(
 			u.nrows() == A.nrows(),
@@ -935,10 +975,16 @@ pub fn svd<T: ComplexField>(
 		}
 		return Ok(());
 	}
+	let max = matrix.norm_max();
+	if !max.is_finite() {
+		return Err(SvdError::NoConvergence);
+	}
+	let scale = input_scale(max);
 	if m as f64 / n as f64 <= params.qr_ratio_threshold {
 		compute_squareish_svd(
 			matrix,
-			s,
+			scale.as_ref(),
+			s.rb_mut(),
 			u.rb_mut(),
 			v.rb_mut(),
 			par,
@@ -955,7 +1001,7 @@ pub fn svd<T: ComplexField>(
 			unsafe { temp_mat_uninit::<T, _, _>(bs, n, stack) };
 		let mut householder = householder.as_mat_mut();
 		{
-			qr.copy_from(matrix.rb());
+			copy_scaled(qr.rb_mut(), matrix, scale.as_ref());
 			linalg::qr::no_pivoting::factor::qr_in_place(
 				qr.rb_mut(),
 				householder.rb_mut(),
@@ -979,7 +1025,8 @@ pub fn svd<T: ComplexField>(
 				);
 			compute_squareish_svd(
 				r.rb(),
-				s,
+				None, // R already has the input scale.
+				s.rb_mut(),
 				u.rb_mut().map(|u| u.submatrix_mut(0, 0, n, n)),
 				v.rb_mut(),
 				par.reborrow(),
@@ -1006,6 +1053,13 @@ pub fn svd<T: ComplexField>(
 				par,
 				stack,
 			);
+		}
+	}
+	if let Some(scale) = scale {
+		let inv = scale.recip();
+		z!(s.rb_mut()).for_each(|uz!(x)| *x = x.mul_pow2(&inv));
+		if !s.rb().is_all_finite() {
+			return Err(SvdError::NoConvergence);
 		}
 	}
 	if do_transpose {
