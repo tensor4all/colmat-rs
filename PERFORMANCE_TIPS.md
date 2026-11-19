@@ -187,3 +187,19 @@ arithmetic or introducing partial matrices. Count the actual non-deflated
 poles, not the original dimension, when estimating their work. The experimental
 repair-only whole-call ratio was 0.7502; portability and 64-core acceptance are
 still unverified (`docs/worklogs/2026-11-14-eigh-parallel-repair.md`).
+
+## Match the harness's leading dimension before reading a boundary cell
+
+`Mat` pads its column stride to a multiple of 8 elements, so a probe built on `Mat::from_fn`
+measures n = 511 at ld 512 and n = 513 at ld 520, while the campaign factors a dense ld = n buffer.
+At 2^k +- 1 that swaps which side aliases: the probe had 8T LU 513 5 % faster than 511, the record
+the reverse. Build boundary probes on a dense slice (`from_column_major_slice_with_stride_mut`)
+and scan the padding separately (`docs/worklogs/2026-11-19-lu-lookahead-panel.md`).
+
+## Look ahead only where the panel outlasts the leader's share
+
+Overlapping a sequential panel with the rest of a team product saves `F/p + P - max(P, F/(p-1))`,
+which is positive only when `P > F / (p (p - 1))`. An always-on look-ahead won 3-6 % at LU 256-513
+and lost 5.7 % at 4T 1024 and 3 % at 8T 1536, where the far product dwarfs the panel; the gate
+kept the wins and made the large cells level. Use it for a panel that gains nothing from the
+team (64 columns in the LU), not for one that does (`docs/worklogs/2026-11-19-lu-lookahead-panel.md`).
