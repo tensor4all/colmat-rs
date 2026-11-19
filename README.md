@@ -17,7 +17,7 @@ general-purpose library. It aims at three things:
   defects found on the way that also affect the published upstream crates are kept as reproducers in
   [`upstream-reports/`](upstream-reports/README.md).
 - **Performance on many threads.** The goal is to outperform OpenBLAS and MKL at high thread counts.
-  The [benchmarks](https://tensor4all.org/faer-benchmark/) give the current numbers, with their
+  The [benchmarks](https://tensor4all.org/colmat-benchmark/) give the current numbers, with their
   measurement conditions.
 - **Precise thread control.** Parallel work runs on a `threadteam` team that the caller owns and
   passes as `Par::Team` (or `Par::Seq` for the calling thread). There is no implicit global thread
