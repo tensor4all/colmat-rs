@@ -51,7 +51,7 @@ The important change is not the spelling of the factorization. Factorization
 and solve calls in this fork take a trailing `Par`. `Par::Seq` executes on the
 calling thread, with no hidden dispatch to a worker pool. This is an execution
 contract, not a claim of performance parity with Eigen or a BLAS library.
-Measurements are published at <https://tensor4all.org/faer-benchmark/>.
+Measurements are published at <https://tensor4all.org/colmat-benchmark/>.
 
 `Par::Team` is non-Copy and non-Clone exclusive authority to use a worker team.
 Owning that team is the primary route: build a `threadteam::Pool` once, reserve it

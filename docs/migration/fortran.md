@@ -51,7 +51,7 @@ Upstream faer exposed global parallelism settings and `Par::Rayon`; this fork re
 and requires trailing `Par` arguments on factorization and solver methods.
 Use this fork's [API reference](https://docs.rs/colmat), not upstream signatures, and the
 [API migration history](../par-team-migration.md).
-Published timing results and conditions live on the [benchmark site](https://tensor4all.org/faer-benchmark/).
+Published timing results and conditions live on the [benchmark site](https://tensor4all.org/colmat-benchmark/).
 
 ## Storage, scratch, and error conventions
 
