@@ -1528,7 +1528,6 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 									// parallelism is never handed a thread (the team runs the
 									// kernel on its members instead, or the kernel stays serial)
 								);
-								crate::utils::simd::clear_upper_vector_state();
 								return;
 							}
 						}
@@ -1848,7 +1847,6 @@ fn matmul_uninit_imp<T: ComplexField>(
 							&raw const alpha as *const (),
 							1,
 						);
-						crate::utils::simd::clear_upper_vector_state();
 						return;
 					}
 				}

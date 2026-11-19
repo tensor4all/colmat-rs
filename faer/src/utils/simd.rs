@@ -535,19 +535,21 @@ impl<'N, T: ComplexField, S: Simd> Clone for SimdTail<'N, T, S> {
 	}
 }
 
-/// Clears the upper halves of the vector registers of the calling thread. Called after every
-/// return from a `t4a-private-gemm-x86` kernel, on the thread that ran it (tensor4all/colmat-rs#238).
+/// Clears the upper halves of the vector registers of the calling thread (`vzeroupper`, when AVX
+/// is present). Called by every participant of a team region at the end of its job
+/// ([`team::end_of_job`](crate::utils::team)), never on a sequential call (tensor4all/colmat-rs#238).
 ///
-/// That crate's kernels are hand-written assembly that use `ymm`/`zmm` registers and return
-/// without `vzeroupper`, so they leave the thread with a dirty upper state. Compiled code issues
-/// `vzeroupper` when it leaves an AVX function, so a thread that goes on in such code is cleaned
-/// as a side effect. A team member is not: it returns to `threadteam`'s wait loop, which has no AVX
-/// code, and runs its next job dirty. In that state every legacy-SSE scalar instruction (the
-/// default x86-64 target compiles scalar `f64` arithmetic to them) carries a false dependency on
-/// its destination's upper bits, which serialises independent operations. The secular-equation
-/// root loop of the tridiagonal divide and conquer, independent divisions over the poles, ran
-/// 3.7 times slower on such a member than on the leader (Zen 5, f64 n = 512), while a dependent
-/// chain of divisions ran at the same speed on both (`docs/worklogs/2026-11-19-eigh-dirty-upper-state.md`).
+/// The `t4a-private-gemm-x86` kernels are hand-written assembly that use `ymm`/`zmm` registers and
+/// return without `vzeroupper`. A thread that goes on in compiled code is cleaned as a side effect,
+/// since compiled code issues `vzeroupper` when it leaves an AVX function; a team member goes back
+/// to `threadteam`'s wait loop, which has no AVX code, and runs its next job dirty. In that state
+/// every legacy-SSE scalar instruction (the default x86-64 target compiles scalar `f64` arithmetic
+/// to them) carries a false dependency on its destination's upper bits, which serialises
+/// independent operations: the secular-equation root loop of the tridiagonal divide and conquer
+/// ran 3.7 times slower on a member than on the leader (Zen 5, f64 n = 512), while a dependent
+/// chain of divisions ran at the same speed on both
+/// (`docs/worklogs/2026-11-19-eigh-dirty-upper-state.md`). Clearing after every sequential kernel
+/// call instead made sequential small factorisations up to 1.24 times slower on the same host.
 #[cfg(all(target_arch = "x86_64", feature = "std"))]
 #[inline]
 pub(crate) fn clear_upper_vector_state() {
@@ -559,18 +561,5 @@ pub(crate) fn clear_upper_vector_state() {
 	if std::arch::is_x86_feature_detected!("avx") {
 		// SAFETY: AVX was detected
 		unsafe { vzeroupper() }
-	}
-}
-
-/// Calls [`clear_upper_vector_state`] when dropped: held across a kernel call written as an
-/// expression (the `go!` macros of the products), so the value of the call is still the value of
-/// the block.
-#[cfg(all(target_arch = "x86_64", feature = "std"))]
-pub(crate) struct UpperStateGuard;
-#[cfg(all(target_arch = "x86_64", feature = "std"))]
-impl Drop for UpperStateGuard {
-	#[inline]
-	fn drop(&mut self) {
-		clear_upper_vector_state();
 	}
 }

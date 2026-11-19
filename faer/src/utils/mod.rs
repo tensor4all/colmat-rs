@@ -60,7 +60,8 @@ pub mod thread {
 							&[n_threads - half, half],
 							|c, child| {
 								// SAFETY: the split hands index `c` to one child only, and `c < 2`
-								unsafe { (ops[c].take())(Par::Team(child)) }
+								unsafe { (ops[c].take())(Par::Team(child)) };
+								super::team::end_of_job();
 							},
 						);
 					}
@@ -249,8 +250,10 @@ pub mod thread {
 			Par::Team(team) => {
 				if sizes.iter().sum::<usize>() <= team.size().get() {
 					super::team::note_split(sizes.len());
-					let _ =
-						team.split(sizes, |c, child| f(c, Par::Team(child)));
+					let _ = team.split(sizes, |c, child| {
+						f(c, Par::Team(child));
+						super::team::end_of_job();
+					});
 				} else {
 					// the team is too small for the requested widths: run the parts in turn
 					for c in 0..sizes.len() {
