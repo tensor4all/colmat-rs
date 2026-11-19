@@ -155,3 +155,13 @@ arithmetic or introducing partial matrices. Count the actual non-deflated
 poles, not the original dimension, when estimating their work. The experimental
 repair-only whole-call ratio was 0.7502; portability and 64-core acceptance are
 still unverified (`docs/worklogs/2026-11-14-eigh-parallel-repair.md`).
+
+## Include the fringe in square GEMM timings
+
+At 1024 a one-level Strassen kernel with tile-contiguous intermediate products
+beat classical GEMM on Haswell. Copying odd matrices into even-sized buffers
+and copying the result back lost at 511 and 513. Test the two neighbors
+separately. At 511, packed panels can supply the missing zeros. At 513, a
+rank-one update can be folded into the write of the 512-square core, with
+two matrix-vector products for the border. Time the public call with these
+costs included. [Measurements](docs/worklogs/2026-11-19-haswell-gemm-208.md#public-matmul-at-the-three-reported-sizes).

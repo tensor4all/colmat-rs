@@ -3,6 +3,17 @@
 The ledger of the experiments this fork runs. It records the diff against
 upstream `faer`.
 
+## Experimental Haswell f64 matrix multiplication
+
+- The opt-in Cargo feature `experimental-strassen` adds one-level Strassen to
+  sequential column-major f64 overwrite products at the three squares in
+  [#208](https://github.com/tensor4all/colmat-rs/issues/208). The public API
+  achieved paired median speedups of 1.049–1.070x over two OpenBLAS versions
+  on Haswell in 24 fresh processes per size. The separate 11/12 repeatability
+  target passed at 511 and 1024 and was missed at 513. Intermediate rounding
+  and overflow differ from classical GEMM. Local experiment, outside default
+  dispatch. [Implementation, conditions and evidence](docs/worklogs/2026-11-19-haswell-gemm-208.md#independent-results-for-the-final-feature).
+
 ## Pending EVD experiment
 
 - **EXPERIMENT**: independent divide-and-conquer EVD weight and eigenvector

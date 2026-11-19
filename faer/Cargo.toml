@@ -72,6 +72,9 @@ nano-gemm = { version = "0.2.2", default-features = false }
 t4a-private-gemm-x86 = { version = "0.1.28", default-features = false, optional = true }
 
 [features]
+# One-level Strassen on measured single-thread f64 NN squares. Quadrant sums
+# change rounding, cancellation, and intermediate overflow relative to classical GEMM.
+experimental-strassen = ["std"]
 default = [
   "std",
   "rayon",

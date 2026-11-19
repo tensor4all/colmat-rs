@@ -15,6 +15,8 @@ use pulp::Simd;
 use reborrow::*;
 const NANO_GEMM_THRESHOLD: usize = 16 * 16 * 16;
 pub(crate) mod internal;
+#[cfg(all(feature = "experimental-strassen", target_arch = "x86_64"))]
+mod strassen;
 /// triangular matrix multiplication module, where some of the operands are
 /// treated as triangular matrices
 pub mod triangular;
@@ -1565,6 +1567,41 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 			};
 		}
 		if const { T::IS_NATIVE_F64 } {
+			#[cfg(all(
+				feature = "experimental-strassen",
+				target_arch = "x86_64"
+			))]
+			if matches!(par, Par::Seq)
+				&& beta == Accum::Replace
+				&& *M == *N
+				&& *M == *K
+				&& matches!(*M, 511 | 513 | 1024)
+				&& dst.row_stride() == 1
+				&& lhs.row_stride() == 1
+				&& rhs.row_stride() == 1
+				&& [dst.col_stride(), lhs.col_stride(), rhs.col_stride()]
+					.iter()
+					.all(|&ld| ld >= *M as isize)
+				&& std::is_x86_feature_detected!("avx2")
+				&& std::is_x86_feature_detected!("fma")
+			{
+				// The native-f64 gate gives all four pointers the f64
+				// representation.
+				unsafe {
+					if *core::ptr::from_ref(alpha).cast::<f64>() == 1.0 {
+						strassen::multiply(
+							*M,
+							lhs.as_ptr().cast(),
+							lhs.col_stride() as usize,
+							rhs.as_ptr().cast(),
+							rhs.col_stride() as usize,
+							dst.as_ptr_mut().cast(),
+							dst.col_stride() as usize,
+						);
+						return;
+					}
+				}
+			}
 			gemm_call!(F64, f64, execute_f64);
 		}
 		if const { T::IS_NATIVE_C64 } {
@@ -2032,6 +2069,12 @@ fn precondition<M: Shape, N: Shape, K: Shape>(
 }
 /// computes the matrix product `[beta * acc] + alpha * lhs * rhs` and stores
 /// the result in `acc`
+///
+/// With the opt-in `experimental-strassen` feature, single-threaded f64
+/// overwrite products with unit scale and column-major operands can use one
+/// level of Strassen on AVX2/FMA for the measured 511, 513, and 1024 squares.
+/// The quadrant sums change rounding and can overflow for finite inputs.
+/// Each calling thread retains reusable scratch up to about 16 MiB.
 ///
 /// performs the operation:
 /// - `acc = alpha * lhs * rhs` if `beta` is `Accum::Replace` (in this case, the
