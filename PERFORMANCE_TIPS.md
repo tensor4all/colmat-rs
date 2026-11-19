@@ -105,6 +105,22 @@ caller granted. Rayon itself is a private pool in this fork (`threadteam` builds
 (`.for_each`, `rayon::join`) instead of handing it to `utils::thread` is what leaves the token's
 members for the calling thread's registry.
 
+## A team member must start its job with a clean upper vector state
+
+The `t4a-private-gemm-x86` kernels are assembly that return without `vzeroupper`. Compiled code
+clears the state whenever it leaves an AVX function, so the leader is cleaned as a side effect; a
+member goes back to `threadteam`'s wait loop, which has no AVX code, and starts its next job dirty.
+In that state every legacy-SSE scalar instruction carries a false dependency on its destination's
+upper bits: independent scalar work (the D&C's secular roots, divisions over the poles) ran 3.7
+times slower on a member, while a dependent chain was unaffected, so a region that scales badly
+only in its scalar part can be this rather than load imbalance. `team::end_of_job` clears it on
+every participant (`docs/worklogs/2026-11-19-eigh-dirty-upper-state.md`: `eigh` 4T n = 512
+23.8 -> 15.1 ms). `XGETBV(1)` bits 2 and 6 show the state, and a test reads them; any new path that
+hands work to a member outside `utils::team` needs the same clear. Clearing on sequential calls
+buys nothing, and a 5-7 % shift on a sequential cell after such a change is worth rebuilding with
+`-C llvm-args=-align-loops=64` before believing it: loop placement moved the c64 bidiagonalisation
+by that much with no changed code on its path.
+
 ## A region costs about 1.5 us on a team, and a threaded gemv of 512 is 6 us
 
 Measured with `probes/gemv-threads` (faer-benchmark, diagnostic): one 8-job region on a held team
