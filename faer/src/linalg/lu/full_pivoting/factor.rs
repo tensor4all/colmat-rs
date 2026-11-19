@@ -482,6 +482,10 @@ fn lu_in_place_unblocked<T: ComplexField>(
 		// whole row here): the pivot column's two entries now; the columns past the pivot inside
 		// this step's rank-one update, column by column (`PivotRow`); the columns before it, which
 		// no later step reads, in one column-wise pass after the loop.
+		// Trade-off measured in #234: applying the deferred swaps inside the update pass removes
+		// a second column stream and lifts F-order LU at n >= 512 (0.34-0.43x the old time). The
+		// final cleanup is fixed overhead, so n = 32 is 1.05-1.16x slower (f64, 1T: 10.7 -> 12.4 us)
+		// and n = 64 is 1.04x. Keep this unless a real small-n workload regresses.
 		if max_col != k {
 			swap_cols_idx(A.rb_mut(), k, max_col);
 			n_trans += 1;
