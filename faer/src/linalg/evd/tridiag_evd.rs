@@ -149,6 +149,11 @@ fn apply_rotation_sequence<T: RealField>(
 /// | 256 | 10.087 | 9.856  | 9.705  | 9.778  | 9.694  | 9.814  | 10.076 |
 /// | 512 | 49.47  | 50.12  | 48.97  | 50.21  | 54.44  | 58.02  | 50.42  |
 const ROTATION_CHUNK: usize = 8;
+/// Room for one QR sweep's rotations: the cosines and the sines, at least `n - 1` each.
+pub(crate) type SweepRotations<'a, T> = (
+	ColMut<'a, T, usize, ContiguousFwd>,
+	ColMut<'a, T, usize, ContiguousFwd>,
+);
 /// The implicit QR iteration (DSTEQR's QR branch) on a symmetric tridiagonal matrix, with the
 /// rotations accumulated into `u` when it is given.
 ///
@@ -160,10 +165,7 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	diag: ColMut<'_, T, usize, ContiguousFwd>,
 	offdiag: ColMut<'_, T, usize, ContiguousFwd>,
 	u: Option<MatMut<'_, T, usize, usize>>,
-	rotations: Option<(
-		ColMut<'_, T, usize, ContiguousFwd>,
-		ColMut<'_, T, usize, ContiguousFwd>,
-	)>,
+	rotations: Option<SweepRotations<'_, T>>,
 ) -> Result<(), EvdError> {
 	let n = diag.nrows();
 	let mut u = u;
