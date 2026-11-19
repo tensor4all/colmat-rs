@@ -174,7 +174,9 @@ pub fn spicy_matmul<I: Index, T: ComplexField>(
 				return;
 			}
 			macro_rules! go {
-				($call:path, $last:expr) => {
+				($call:path, $last:expr) => {{
+					// every kernel call leaves the thread's upper vector state cleared (#238)
+					let _guard = crate::utils::simd::UpperStateGuard;
 					$call(
 						const {
 							if T::IS_NATIVE_F64 {
@@ -244,7 +246,7 @@ pub fn spicy_matmul<I: Index, T: ComplexField>(
 						&raw const alpha as _,
 						$last,
 					)
-				};
+				}};
 			}
 			// a `Team` token runs the kernel on its own members (`Fork` of the team), gated by the
 			// kernel's two sections at the width `width_for` chooses; below the gate the kernel

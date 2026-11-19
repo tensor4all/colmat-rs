@@ -686,7 +686,9 @@ fn mat_x_mat_into_lower_impl_unchecked<'N, 'K, T: ComplexField>(
 						($call:path, $last:expr) => {
 							go!($call, $last, dst, lhs, rhs)
 						};
-						($call:path, $last:expr, $dst:ident, $lhs:ident, $rhs:ident) => {
+						($call:path, $last:expr, $dst:ident, $lhs:ident, $rhs:ident) => {{
+							// every kernel call leaves the thread's upper vector state cleared (#238)
+							let _guard = crate::utils::simd::UpperStateGuard;
 							$call(
 								const {
 									if T::IS_NATIVE_F64 {
@@ -727,7 +729,7 @@ fn mat_x_mat_into_lower_impl_unchecked<'N, 'K, T: ComplexField>(
 								alpha as *const T as *const (),
 								$last,
 							)
-						};
+						}};
 					}
 					#[cfg(feature = "threadteam")]
 					if let Par::Team(team) = par {

@@ -528,8 +528,13 @@ pub(crate) mod kernel {
 
 		fn run(&self, f: &(dyn Fn(usize) + Sync)) {
 			stats::hist(&stats::RUN, self.width);
-			// the kernel never re-enters `run`, so the borrow is never contended
-			self.team.borrow_mut().reborrow().run(|j, _| f(j));
+			// the kernel never re-enters `run`, so the borrow is never contended. Each member
+			// leaves the kernel's stage with its upper vector state cleared: it returns to the
+			// team's wait loop, where nothing else would clear it (#238)
+			self.team.borrow_mut().reborrow().run(|j, _| {
+				f(j);
+				crate::utils::simd::clear_upper_vector_state();
+			});
 		}
 	}
 
@@ -709,6 +714,7 @@ pub(crate) unsafe fn gemm_team<E: 'static + Copy + Send + Sync>(
 				}),
 				None => go!(gemm, 1),
 			}
+			crate::utils::simd::clear_upper_vector_state();
 		};
 		let estimate = crate::utils::cost::serial_time(
 			m.saturating_mul(n).saturating_mul(k),
@@ -3509,5 +3515,82 @@ mod tests {
 			all <= 5,
 			"two calls ran on {all} threads: the second pool spawned new ones"
 		);
+	}
+
+	/// A team comes back from a product on the x86 kernel with the upper halves of every member's
+	/// vector registers in their initial state (#238). The kernel is hand-written assembly that
+	/// returns without `vzeroupper`; a member then runs its next job with the state dirty, where
+	/// legacy-SSE scalar code carries a false dependency per instruction. `XGETBV(1)` reads which
+	/// state components are in use: bit 2 (`YMM_Hi128`) and bit 6 (`ZMM_Hi256`) are the two
+	/// `vzeroupper` returns to their initial state.
+	#[cfg(target_arch = "x86_64")]
+	#[test]
+	fn kernel_leaves_members_with_clean_upper_vector_state() {
+		use core::arch::x86_64::{__cpuid_count, _xgetbv};
+		// XGETBV with ECX = 1 needs CPUID.(EAX = 0DH, ECX = 1):EAX[2]
+		let xgetbv1 = (__cpuid_count(0xd, 1).eax & (1 << 2)) != 0;
+		if kernel::available::<f64>().is_none() || !xgetbv1 {
+			return;
+		}
+		#[target_feature(enable = "xsave")]
+		unsafe fn in_use() -> u64 {
+			// SAFETY: the caller checked `XGETBV(1)`
+			unsafe { _xgetbv(1) }
+		}
+		const UPPER: u64 = (1 << 2) | (1 << 6);
+		let dirty_members = |par: Par<'_>| {
+			let Par::Team(mut team) = par else {
+				unreachable!("a width of 4 is a team")
+			};
+			let dirty = AtomicUsize::new(0);
+			team.reborrow().run(|_, _| {
+				// SAFETY: `XGETBV(1)` was checked above, and it implies XSAVE
+				if unsafe { in_use() } & UPPER != 0 {
+					dirty.fetch_add(1, Ordering::Relaxed);
+				}
+			});
+			dirty.into_inner()
+		};
+		let n = 384;
+		let a = Mat::<f64>::from_fn(n, n, |i, j| ((i + 2 * j) % 7) as f64);
+		let b = a.transpose().to_owned();
+		let mut c = Mat::<f64>::zeros(n, n);
+		let (_, st) = counted(4, |mut par| {
+			for _ in 0..3 {
+				matmul(
+					c.as_mut(),
+					Accum::Replace,
+					a.as_ref(),
+					b.as_ref(),
+					1.0,
+					par.reborrow(),
+				);
+				assert_eq!(dirty_members(par.reborrow()), 0);
+			}
+			// a sequential product on every member, inside one job
+			let Par::Team(mut team) = par.reborrow() else {
+				unreachable!("a width of 4 is a team")
+			};
+			let m = 96;
+			let dirty = AtomicUsize::new(0);
+			team.reborrow().run(|_, _| {
+				let mut c = Mat::<f64>::zeros(m, m);
+				matmul(
+					c.as_mut(),
+					Accum::Replace,
+					a.as_ref().submatrix(0, 0, m, m),
+					b.as_ref().submatrix(0, 0, m, m),
+					1.0,
+					Par::Seq,
+				);
+				// SAFETY: as above
+				if unsafe { in_use() } & UPPER != 0 {
+					dirty.fetch_add(1, Ordering::Relaxed);
+				}
+				core::hint::black_box(&c);
+			});
+			assert_eq!(dirty.into_inner(), 0);
+		});
+		assert!(st.gemm_team_kernel >= 1, "{st:?}");
 	}
 }
