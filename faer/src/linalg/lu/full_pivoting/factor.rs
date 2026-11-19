@@ -497,7 +497,7 @@ fn lu_in_place_unblocked<T: ComplexField>(
 			}
 		}
 		let pivot = PivotRow {
-			swap_with: (max_row != k).then_some(max_row - k - 1),
+			swap_with: (max_row != k).then(|| max_row - k - 1),
 			scale: transpose.then_some(inv),
 		};
 		if k + 1 == Ord::min(m, n) {
