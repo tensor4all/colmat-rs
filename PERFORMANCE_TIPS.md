@@ -37,6 +37,22 @@ SVD driver pads its work copy by 64 bytes per column when the stride would be a 
 (`svd/mod.rs` `work_rows`): 18.6 -> 15.3 ms at eight threads. Benchmark shapes are powers of two,
 so this is where it shows; a vendor's `?gebrd` at 512 matches our 500.
 
+## Move a strided pass into the sweep that already streams the data
+
+A pass over one row of a column-major matrix costs a line per column, and at a 4 KiB leading
+dimension those lines share a set; done every step it can be a third of the call (full-pivot LU,
+the pivot row swap at f64 512). The columns that a later step reads are being streamed anyway by
+the step's own update, so their entries can be swapped there; the columns no later step reads can
+wait for one column-wise pass at the end. Two details decide whether it pays: make the scalar
+store one column ahead of the vector loads that read the same column (otherwise the loads wait on
+it: f64 n = 32 went 10.7 -> 17.1 us before the lag, 11.9 after), and keep every per-element
+operation as it was, so the result keeps its bits (`docs/worklogs/2026-11-19-lu-eigh-fullpiv-shapes.md`).
+
+The same reordering applies to a sequence of rotations: apply a chunk of them to a strip of rows
+held in registers instead of one rotation to two whole columns. Bound the chunk: a strip that walks
+every column of a block inside a 512-row matrix walks columns 4 KiB apart (8 rotations per chunk;
+the whole sweep at once was 16 % slower at n = 512).
+
 ## The team is the caller's, and it is held across the work
 
 `Par::Team` is the exclusive authority over the reserved members of a `threadteam` team. A reserved
