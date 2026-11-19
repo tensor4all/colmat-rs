@@ -125,3 +125,76 @@ fn parallel_path_is_bit_identical_with_one_column_per_member() {
 		}
 	}
 }
+
+/// The look-ahead (tensor4all/colmat-rs#239): a level updates its right child's first panel, the
+/// leader factors that panel alone while the other members update the rest, and the right child
+/// then skips the panel. Every region on the whole team (`ParThreshold::Fixed(0)`) so the levels
+/// look ahead on any host, at shapes whose right children reach the panel through halves that do
+/// not halve evenly (a 2^k + 1 tail, a short right child), with two, three and seven members beside
+/// the leader. Column-major and row-major (whose leaves share one buffer with the panel), square,
+/// tall and wide; the factor, the permutation and the transposition count must be the sequential
+/// ones bit for bit, and the path must have run.
+#[test]
+fn lookahead_is_bit_identical_to_sequential() {
+	use crate::utils::cost::ParThreshold;
+	use core::sync::atomic::Ordering::Relaxed;
+	fn factored(
+		a: MatMut<'_, Scalar>,
+		par: Par,
+		par_threshold: ParThreshold,
+	) -> (alloc::vec::Vec<(u64, u64)>, alloc::vec::Vec<usize>, usize) {
+		let (m, n) = a.shape();
+		let params = Spec::new(pp::factor::PartialPivLuParams {
+			par_threshold,
+			..auto!(Scalar)
+		});
+		let req = pp::factor::lu_in_place_scratch::<usize, Scalar>(m, n, par.shape(), params);
+		let mut mem = MemBuffer::new(req);
+		let (mut p, mut ip) = (alloc::vec![0usize; m], alloc::vec![0usize; m]);
+		let mut a = a;
+		let (info, _) = pp::factor::lu_in_place(
+			a.rb_mut(),
+			&mut p,
+			&mut ip,
+			par,
+			MemStack::new(&mut mem),
+			params,
+		);
+		let bits = (0..m)
+			.flat_map(|i| (0..n).map(move |j| (i, j)))
+			.map(|(i, j)| a[(i, j)].lookahead_bits())
+			.collect();
+		(bits, p, info.transposition_count)
+	}
+	for &(m, n) in &[(200usize, 200usize), (257, 257), (300, 211), (211, 300)] {
+		let col_major = lookahead_fixture(Ord::max(m, n)).get(..m, ..n).to_owned();
+		// the same values, stored row-major (`row_major.transpose()` is the `m x n` input)
+		let row_major = col_major.transpose().to_owned();
+		for is_row_major in [false, true] {
+			let run = |par: Par, threshold: ParThreshold| {
+				if is_row_major {
+					let mut t = row_major.clone();
+					factored(t.as_mut().transpose_mut(), par, threshold)
+				} else {
+					let mut a = col_major.clone();
+					factored(a.as_mut(), par, threshold)
+				}
+			};
+			let reference = run(Par::Seq, ParThreshold::Never);
+			for width in [3usize, 4, 8] {
+				crate::team::with_team(width, |par| {
+					let before = pp::factor::LOOKAHEADS.load(Relaxed);
+					let got = run(par, ParThreshold::Fixed(0));
+					let ran = pp::factor::LOOKAHEADS.load(Relaxed) - before;
+					let tag = alloc::format!("{m}x{n} row_major={is_row_major} width={width}");
+					core::assert_eq!(got.1, reference.1, "{tag}: permutation");
+					core::assert_eq!(got.2, reference.2, "{tag}: transposition count");
+					core::assert!(got.0 == reference.0, "{tag}: L/U bits");
+					if width >= 4 {
+						core::assert!(ran > 0, "{tag}: the look-ahead did not run");
+					}
+				});
+			}
+		}
+	}
+}
