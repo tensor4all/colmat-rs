@@ -280,7 +280,17 @@ pub(crate) fn copy_across_layouts<T: ComplexField>(
 /// the factorization keeps the raw sign).
 #[inline]
 pub(crate) fn positive_phase<T: ComplexField>(d: T) -> T {
-	let abs = d.abs();
+	// Near underflow `|d|^-1` overflows (or `|d|` rounds to zero for a complex
+	// entry), and the phase becomes `inf`/`NaN` or a spurious `1`. The phase is
+	// scale-free, so lift a tiny entry by an exact power of two first, as LAPACK's
+	// xLARFG does for its own tiny reflectors.
+	let safmin = min_positive::<T::Real>() / eps::<T::Real>();
+	let mut d = d;
+	let mut abs = d.abs();
+	if abs < safmin {
+		d = d.mul_pow2(safmin.recip());
+		abs = d.abs();
+	}
 	if abs == zero() {
 		one()
 	} else {
@@ -798,6 +808,62 @@ pub mod zip;
 mod tests {
 	use super::*;
 	use dyn_stack::MemBuffer;
+
+	/// The phase is scale-free, so a diagonal entry near underflow -- a rank-deficient LQ/QR
+	/// leaves such residue -- still gets its exact phase rather than `inf`/`NaN`
+	/// (tensor4all/colmat-rs#246).
+	#[test]
+	fn positive_phase_survives_underflow() {
+		fn check<T: ComplexField>(
+			phases: &[(f64, f64)],
+			make: impl Fn(f64, f64) -> T,
+		) {
+			let tiny = [1.0, 2.0f64.powi(-20), 2.0f64.powi(-40), 0.0];
+			let min = min_positive::<T::Real>();
+			for scale in
+				[one::<T::Real>(), min.copy(), &min * &eps::<T::Real>()]
+			{
+				for &(re, im) in phases {
+					for t in tiny {
+						let d = make(re * t, im * t);
+						let d = d.mul_real(&scale);
+						let phase = positive_phase(d.copy());
+						if d.abs() == zero() && t != 0.0 {
+							continue;
+						}
+						core::assert!(
+							phase.is_finite(),
+							"phase of {d:?} is {phase:?}"
+						);
+						let tol = eps::<T::Real>() * T::Real::from_f64(8.0);
+						if t == 0.0 {
+							core::assert!((phase - make(1.0, 0.0)).abs() < tol);
+						} else {
+							// unit modulus whatever the scale; the angle is checked where the
+							// entry is still a normal number (a subnormal one is quantised, so
+							// its own angle is no longer that of `make(re, im)`)
+							core::assert!(
+								(phase.abs() - one::<T::Real>()).abs() < tol,
+								"modulus of the phase of {d:?}"
+							);
+							if t == 1.0 && scale >= min {
+								core::assert!(
+									(phase - make(re, im)).abs() < tol,
+									"phase of {d:?}"
+								);
+							}
+						}
+					}
+				}
+			}
+		}
+		let real = [(1.0, 0.0), (-1.0, 0.0)];
+		let complex = [(0.6, -0.8), (-0.8, 0.6), (1.0, 0.0), (-1.0, 0.0)];
+		check(&real, |re, _| re as f32);
+		check(&real, |re, _| re);
+		check(&complex, |re, im| c32::new(re as f32, im as f32));
+		check(&complex, c64::new);
+	}
 
 	/// A scalar the fixture can build and two results can be compared with
 	/// exactly -- exact because every entry point below runs the same arithmetic
