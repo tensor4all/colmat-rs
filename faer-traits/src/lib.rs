@@ -3209,16 +3209,24 @@ impl<T: RealField<Unit: ComplexField>> ComplexField for Complex<T> {
 		mask: Self::SimdMemMask<S>,
 		ptr: *const Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
+		// `Complex` is `#[repr(C)]`, so the imaginary half starts one real-vector
+		// width in. Form both addresses with wrapping arithmetic: an enabled
+		// lane is still in bounds, but the imaginary half of a short tail may
+		// lie past the end of the allocation, and only the enabled lanes are
+		// dereferenced. `addr_of!((*ptr).im)` would make that offset UB under
+		// Miri even when its mask is empty.
+		let base = ptr.cast::<u8>();
+		let im_offset = core::mem::size_of::<T::SimdVec<S>>() as isize;
 		Complex {
 			re: T::simd_mask_load_raw(
 				ctx,
 				mask.re,
-				core::ptr::addr_of!((*ptr).re),
+				base.cast::<T::SimdVec<S>>(),
 			),
 			im: T::simd_mask_load_raw(
 				ctx,
 				mask.im,
-				core::ptr::addr_of!((*ptr).im),
+				base.wrapping_offset(im_offset).cast::<T::SimdVec<S>>(),
 			),
 		}
 	}
@@ -3230,16 +3238,19 @@ impl<T: RealField<Unit: ComplexField>> ComplexField for Complex<T> {
 		ptr: *mut Self::SimdVec<S>,
 		values: Self::SimdVec<S>,
 	) {
+		// Same layout and wrapping-address argument as `simd_mask_load_raw`.
+		let base = ptr.cast::<u8>();
+		let im_offset = core::mem::size_of::<T::SimdVec<S>>() as isize;
 		T::simd_mask_store_raw(
 			ctx,
 			mask.re,
-			core::ptr::addr_of_mut!((*ptr).re),
+			base.cast::<T::SimdVec<S>>(),
 			values.re,
 		);
 		T::simd_mask_store_raw(
 			ctx,
 			mask.im,
-			core::ptr::addr_of_mut!((*ptr).im),
+			base.wrapping_offset(im_offset).cast::<T::SimdVec<S>>(),
 			values.im,
 		);
 	}
@@ -6082,6 +6093,59 @@ mod tests {
 				re: 2.0 * s,
 				im: -s
 			}
+		);
+	}
+
+	/// Forming the imaginary half's address must not be out-of-bounds for a
+	/// short tail: `addr_of!((*ptr).im)` sits one real-vector width in, past
+	/// the allocation, and Miri rejects it even when that half's mask is
+	/// empty (`tensor4all/colmat-rs#249`). The enabled lanes stay in bounds.
+	#[test]
+	fn mask_load_store_one_element_tail() {
+		struct Load(c32);
+		impl pulp::WithSimd for Load {
+			type Output = c32;
+			#[inline(always)]
+			fn with_simd<S: pulp::Simd>(self, simd: S) -> c32 {
+				let ctx = <c32 as ComplexField>::simd_ctx(simd);
+				let mask =
+					<c32 as ComplexField>::simd_mem_mask_between(&ctx, 0, 1);
+				let ptr = &self.0 as *const c32
+					as *const <c32 as ComplexField>::SimdVec<S>;
+				let value = unsafe {
+					<c32 as ComplexField>::simd_mask_load(&ctx, mask, ptr)
+				};
+				<c32 as ComplexField>::simd_reduce_sum(&ctx, value)
+			}
+		}
+		struct Store(c32, c32);
+		impl pulp::WithSimd for Store {
+			type Output = c32;
+			#[inline(always)]
+			fn with_simd<S: pulp::Simd>(self, simd: S) -> c32 {
+				let ctx = <c32 as ComplexField>::simd_ctx(simd);
+				let mask =
+					<c32 as ComplexField>::simd_mem_mask_between(&ctx, 0, 1);
+				let value = <c32 as ComplexField>::simd_splat(&ctx, &self.1);
+				let mut dst = self.0;
+				let ptr = &mut dst as *mut c32
+					as *mut <c32 as ComplexField>::SimdVec<S>;
+				unsafe {
+					<c32 as ComplexField>::simd_mask_store(
+						&ctx, mask, ptr, value,
+					)
+				};
+				dst
+			}
+		}
+		let arch = pulp::Arch::new();
+		assert_eq!(
+			arch.dispatch(Load(c32::new(1.0, 2.0))),
+			c32::new(1.0, 2.0)
+		);
+		assert_eq!(
+			arch.dispatch(Store(c32::new(0.0, 0.0), c32::new(3.0, 4.0))),
+			c32::new(3.0, 4.0)
 		);
 	}
 }
