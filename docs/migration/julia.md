@@ -59,7 +59,7 @@ This fork makes execution authority explicit, rather than consulting a global
 BLAS thread setting. High level factorizations and solves take a trailing
 `Par`. `Par::Seq` runs on the calling thread without hidden worker dispatch.
 It is an execution contract, not a performance parity claim against Julia or
-its BLAS. See <https://tensor4all.org/faer-benchmark/> for measurements.
+its BLAS. See <https://tensor4all.org/colmat-benchmark/> for measurements.
 
 `Par::Team` is non-Copy and non-Clone exclusive authority to use a worker team.
 Owning that team is the primary route: build a `threadteam::Pool` once, reserve it

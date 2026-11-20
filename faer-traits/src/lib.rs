@@ -376,10 +376,13 @@ fn recip_impl<T: RealField>(re: T, im: T) -> (T, T) {
 	let re_abs = &abs(re);
 	let im_abs = &abs(im);
 	if re_abs > big || im_abs > big {
-		let re = re * small;
-		let im = im * small;
+		// `small` alone leaves the squares of parts near the overflow threshold
+		// overflowing; `small * eps` keeps them finite, as in `abs_impl`.
+		let scale = &(small * eps::<T>());
+		let re = re * scale;
+		let im = im * scale;
 		let inv = &(re.abs2() + im.abs2()).recip();
-		(((re * inv) * small), ((-im * inv) * small))
+		(((re * inv) * scale), ((-im * inv) * scale))
 	} else if re_abs > one || im_abs > one {
 		let inv = &(re.abs2() + im.abs2()).recip();
 		((re * inv), (-im * inv))
@@ -401,21 +404,44 @@ fn recip_impl<T: RealField>(re: T, im: T) -> (T, T) {
 }
 fn sqrt_impl<T: RealField>(re: T, im: T) -> (T, T) {
 	use ext::*;
-	let im_negative = im < zero();
-	let half = &from_f64(0.5);
-	let abs = &abs_impl(re.clone(), im);
+	if is_nan(&re) || is_nan(&im) {
+		return (nan(), nan());
+	}
 	let zero = &zero::<T>();
-	let re = &re;
-	let mut sum = re + abs;
-	if &sum < zero {
-		sum = zero.copy();
+	let im_negative = im < *zero;
+	let signed = |x: T| if im_negative { -x } else { x };
+	if !is_finite(&im) {
+		return (infinity(), signed(infinity()));
 	}
-	let out_re = sum.mul_pow2(half).sqrt();
-	let mut out_im = (abs - re).mul_pow2(half).fmax(zero).sqrt();
-	if im_negative {
-		out_im = -out_im;
+	if !is_finite(&re) {
+		return if re > *zero {
+			(infinity(), signed(zero.copy()))
+		} else {
+			(zero.copy(), signed(infinity()))
+		};
 	}
-	(out_re, out_im)
+	let half = &from_f64(0.5);
+	let abs = abs_impl(re.clone(), im.clone());
+	let re_abs = re.abs();
+	// `t = sqrt((|z| + |re|) / 2)` has no cancellation. Halve before adding
+	// when `|z|` could make the sum overflow; below 1 add first so the parts
+	// keep their subnormal bits. The smaller component is `|im| / (2 t)`
+	// (Kahan's method).
+	let sum = if abs > one() {
+		abs.mul_pow2(half) + re_abs.mul_pow2(half)
+	} else {
+		(abs + re_abs).mul_pow2(half)
+	};
+	let t = sum.sqrt();
+	if t == *zero {
+		return (zero.copy(), zero.copy());
+	}
+	let small = (im.abs() * t.recip()).mul_pow2(half);
+	if re >= *zero {
+		(t, signed(small))
+	} else {
+		(small, signed(t))
+	}
 }
 pub trait ByRef<T> {
 	fn by_ref(&self) -> &T;
@@ -3209,16 +3235,24 @@ impl<T: RealField<Unit: ComplexField>> ComplexField for Complex<T> {
 		mask: Self::SimdMemMask<S>,
 		ptr: *const Self::SimdVec<S>,
 	) -> Self::SimdVec<S> {
+		// `Complex` is `#[repr(C)]`, so the imaginary half starts one real-vector
+		// width in. Form both addresses with wrapping arithmetic: an enabled
+		// lane is still in bounds, but the imaginary half of a short tail may
+		// lie past the end of the allocation, and only the enabled lanes are
+		// dereferenced. `addr_of!((*ptr).im)` would make that offset UB under
+		// Miri even when its mask is empty.
+		let base = ptr.cast::<u8>();
+		let im_offset = core::mem::size_of::<T::SimdVec<S>>() as isize;
 		Complex {
 			re: T::simd_mask_load_raw(
 				ctx,
 				mask.re,
-				core::ptr::addr_of!((*ptr).re),
+				base.cast::<T::SimdVec<S>>(),
 			),
 			im: T::simd_mask_load_raw(
 				ctx,
 				mask.im,
-				core::ptr::addr_of!((*ptr).im),
+				base.wrapping_offset(im_offset).cast::<T::SimdVec<S>>(),
 			),
 		}
 	}
@@ -3230,16 +3264,19 @@ impl<T: RealField<Unit: ComplexField>> ComplexField for Complex<T> {
 		ptr: *mut Self::SimdVec<S>,
 		values: Self::SimdVec<S>,
 	) {
+		// Same layout and wrapping-address argument as `simd_mask_load_raw`.
+		let base = ptr.cast::<u8>();
+		let im_offset = core::mem::size_of::<T::SimdVec<S>>() as isize;
 		T::simd_mask_store_raw(
 			ctx,
 			mask.re,
-			core::ptr::addr_of_mut!((*ptr).re),
+			base.cast::<T::SimdVec<S>>(),
 			values.re,
 		);
 		T::simd_mask_store_raw(
 			ctx,
 			mask.im,
-			core::ptr::addr_of_mut!((*ptr).im),
+			base.wrapping_offset(im_offset).cast::<T::SimdVec<S>>(),
 			values.im,
 		);
 	}
@@ -5895,6 +5932,54 @@ mod tests {
 		assert_eq!(re, f64::INFINITY);
 	}
 
+	/// `sqrt` keeps the smaller component when `|im|` is far below `|re|`, and
+	/// `recip` keeps the gradual-underflow range near the overflow threshold
+	/// (`tensor4all/colmat-rs#251`, ported from colmat-next-rs#10/#11).
+	#[test]
+	fn complex_sqrt_and_recip_near_range_limits() {
+		// the lost small component was the reported 100% error
+		let (re, im) = sqrt_impl(1.0f64, 1e-8);
+		assert_eq!((re, im), (1.0, 5e-9));
+		let (re, im) = sqrt_impl(-1.0f64, 1e-8);
+		assert_eq!((re, im), (5e-9, 1.0));
+		// square the parts back in halves so that `|z|` stays finite
+		let (re, im) = sqrt_impl(4.77e299f64, 2.39e297);
+		let back_re = 2.0 * ((re / 2.0) * re - (im / 2.0) * im);
+		let back_im = 4.0 * ((re / 2.0) * im);
+		assert!((back_re - 4.77e299).abs() <= 8.0 * f64::EPSILON * 4.77e299);
+		assert!((back_im - 2.39e297).abs() <= 8.0 * f64::EPSILON * 2.39e297);
+		// the big branch used to square these and return zero
+		let expected = 1.0 / f64::MAX;
+		let (re, im) = recip_impl(f64::MAX, 0.0);
+		assert_eq!(im, 0.0);
+		assert!((re - expected).abs() <= 8.0 * f64::from_bits(1));
+		let expected = 1.0f32 / 3.0e38;
+		let (re, im) = recip_impl(0.0f32, 3.0e38);
+		assert_eq!(re, 0.0);
+		assert!((-im - expected).abs() <= 8.0 * f32::from_bits(1));
+	}
+
+	/// NaN, infinite and zero inputs of `sqrt`: C99 `csqrt` conventions,
+	/// except that `im = -0` still gives a `+0` imaginary part.
+	#[test]
+	fn complex_sqrt_special_values() {
+		let inf = f64::INFINITY;
+		for (re, im) in [(f64::NAN, 1.0), (1.0, f64::NAN), (f64::NAN, f64::NAN)]
+		{
+			let (a, b) = sqrt_impl(re, im);
+			assert!(a.is_nan() && b.is_nan(), "sqrt({re}, {im})");
+		}
+		assert_eq!(sqrt_impl(1.0, inf), (inf, inf));
+		assert_eq!(sqrt_impl(-1.0, -inf), (inf, -inf));
+		assert_eq!(sqrt_impl(inf, 1.0), (inf, 0.0));
+		assert_eq!(sqrt_impl(-inf, 1.0), (0.0, inf));
+		assert_eq!(sqrt_impl(-inf, -1.0), (0.0, -inf));
+		assert_eq!(sqrt_impl(0.0, 0.0), (0.0, 0.0));
+		assert_eq!(sqrt_impl(-0.0, 0.0), (0.0, 0.0));
+		let (re, im) = sqrt_impl(inf, -1.0);
+		assert!(re == inf && im == 0.0 && im.is_sign_negative());
+	}
+
 	/// a NaN in either part of a complex value must survive `abs_max`
 	/// (`tensor4all/faer#320`): the unordered `re > im` comparison
 	/// alone reports the finite part when the other one is NaN.
@@ -6082,6 +6167,59 @@ mod tests {
 				re: 2.0 * s,
 				im: -s
 			}
+		);
+	}
+
+	/// Forming the imaginary half's address must not be out-of-bounds for a
+	/// short tail: `addr_of!((*ptr).im)` sits one real-vector width in, past
+	/// the allocation, and Miri rejects it even when that half's mask is
+	/// empty (`tensor4all/colmat-rs#249`). The enabled lanes stay in bounds.
+	#[test]
+	fn mask_load_store_one_element_tail() {
+		struct Load(c32);
+		impl pulp::WithSimd for Load {
+			type Output = c32;
+			#[inline(always)]
+			fn with_simd<S: pulp::Simd>(self, simd: S) -> c32 {
+				let ctx = <c32 as ComplexField>::simd_ctx(simd);
+				let mask =
+					<c32 as ComplexField>::simd_mem_mask_between(&ctx, 0, 1);
+				let ptr = &self.0 as *const c32
+					as *const <c32 as ComplexField>::SimdVec<S>;
+				let value = unsafe {
+					<c32 as ComplexField>::simd_mask_load(&ctx, mask, ptr)
+				};
+				<c32 as ComplexField>::simd_reduce_sum(&ctx, value)
+			}
+		}
+		struct Store(c32, c32);
+		impl pulp::WithSimd for Store {
+			type Output = c32;
+			#[inline(always)]
+			fn with_simd<S: pulp::Simd>(self, simd: S) -> c32 {
+				let ctx = <c32 as ComplexField>::simd_ctx(simd);
+				let mask =
+					<c32 as ComplexField>::simd_mem_mask_between(&ctx, 0, 1);
+				let value = <c32 as ComplexField>::simd_splat(&ctx, &self.1);
+				let mut dst = self.0;
+				let ptr = &mut dst as *mut c32
+					as *mut <c32 as ComplexField>::SimdVec<S>;
+				unsafe {
+					<c32 as ComplexField>::simd_mask_store(
+						&ctx, mask, ptr, value,
+					)
+				};
+				dst
+			}
+		}
+		let arch = pulp::Arch::new();
+		assert_eq!(
+			arch.dispatch(Load(c32::new(1.0, 2.0))),
+			c32::new(1.0, 2.0)
+		);
+		assert_eq!(
+			arch.dispatch(Store(c32::new(0.0, 0.0), c32::new(3.0, 4.0))),
+			c32::new(3.0, 4.0)
 		);
 	}
 }

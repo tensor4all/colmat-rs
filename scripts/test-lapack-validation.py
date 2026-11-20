@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Small offline checks for selection, continuation and status accounting."""
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -123,6 +125,80 @@ class Runner(unittest.TestCase):
     def test_case_counts(self):
         row, = v.case_records('LAPACK_CASES family=lu dtype=f32 planned=2 attempted=2 call_failures=1 diagnostics=1 auxiliary_attempted=4')
         self.assertEqual((row['planned'], row['attempted'], row['auxiliary_attempted']), (2, 2, 4))
+
+
+class Summarizer(unittest.TestCase):
+    @staticmethod
+    def parse_github_output(text):
+        """The `$GITHUB_OUTPUT` grammar: `name=value` lines and `name<<DELIMITER` blocks, nothing else."""
+        out, lines = {}, iter(text.split('\n'))
+        for line in lines:
+            if not line:
+                continue
+            if '<<' in line.split('=', 1)[0]:
+                name, delimiter = line.split('<<', 1)
+                body = []
+                for inner in lines:
+                    if inner == delimiter:
+                        break
+                    body.append(inner)
+                out[name] = '\n'.join(body)
+            elif '=' in line:
+                name, value = line.split('=', 1)
+                out[name] = value
+            else:
+                raise ValueError(f'Invalid format {line!r}')
+        return out
+
+    def summarize(self, report, *flags):
+        spec = importlib.util.spec_from_file_location('summarize', Path(__file__).with_name('summarize-lapack-failures.py'))
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        with tempfile.TemporaryDirectory() as root:
+            if report is not None:
+                (Path(root) / 'summary.json').write_text(json.dumps(report))
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                old = sys.argv
+                sys.argv = ['summarize', *flags, '--output', root]
+                try:
+                    self.assertEqual(s.main(), 0)
+                finally:
+                    sys.argv = old
+            return buffer.getvalue() if flags else self.parse_github_output(buffer.getvalue())
+
+    def test_several_unexpected_failures_stay_valid_step_outputs(self):
+        # The 2026-11-20 nightly wrote one `family: test` line per failure and GitHub rejected
+        # the second line, so the summary of exactly the failing night was lost.
+        got = self.summarize({
+            'unexpected': [{'family': 'lq', 'test': 'linalg::lq::lapack::c32::lapack_lq_cases'},
+                           {'family': 'lq', 'test': 'linalg::lq::lapack::c64::lapack_lq_cases'}],
+            'stale': [{'issue': 12, 'test': 'linalg::a'}, {'issue': 13, 'test': 'linalg::b'}],
+            'unexplained': ['qr'],
+        })
+        self.assertEqual(got['unexpected'].split('\n'), [
+            'lq: linalg::lq::lapack::c32::lapack_lq_cases',
+            'lq: linalg::lq::lapack::c64::lapack_lq_cases',
+            'qr: the family failed without a listed test, see its log'])
+        self.assertEqual(got['stale'], '#12 linalg::a\n#13 linalg::b')
+
+    def test_job_summary_is_plain_text_and_delimiter_never_collides(self):
+        text = self.summarize({'unexpected': [{'family': 'lq', 'test': 't1'}], 'stale': []}, '--summary')
+        self.assertNotIn('<<', text)
+        self.assertEqual(text.split('\n')[:2], ['unexpected:', '- lq: t1'])
+        spec = importlib.util.spec_from_file_location('summarize', Path(__file__).with_name('summarize-lapack-failures.py'))
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        first = s.output('x', '')
+        delimiter = first.split('\n')[0].split('<<')[1]
+        block = s.output('x', delimiter)
+        self.assertNotEqual(block.split('\n')[0].split('<<')[1], delimiter)
+
+    def test_clean_and_unreadable_summaries(self):
+        self.assertEqual(self.summarize({'unexpected': [], 'stale': []}), {'unexpected': '', 'stale': ''})
+        got = self.summarize(None)
+        self.assertIn('could not be read', got['unexpected'])
+        self.assertEqual(got['stale'], '')
 
 
 if __name__ == '__main__':

@@ -7,6 +7,14 @@ Numbers are tensor4all/colmat-rs issues or PRs.
 - `norm_l2` no longer returns infinity or zero for representable norms at the
   ends of the floating-point range (#229). The SIMD path widens its scaling
   factors, and strided views scale entries before summing squares.
+- The positive-diagonal gauge of QR and LQ (`positive_phase`) returned `inf` or a wrong phase for a
+  diagonal entry near underflow, because `1 / |d|` overflows there. Since #228 keeps tiny
+  reflectors, a rank-deficient `f32`/`c32` LQ (and QR) with the positive gauge produced a
+  non-finite `Q` row; the nightly LAPACK `lq` family failed on its `kind=4` case (#246). The phase
+  is now formed after an exact power-of-two lift, so it is scale-free.
+- `scripts/summarize-lapack-failures.py` wrote one `family: test` line per failure to
+  `$GITHUB_OUTPUT`, which GitHub rejects past the first line, so the summary of a night with
+  several unexpected failures was lost. It now writes the multiline `name<<DELIMITER` form (#246).
 - A `Par::Team` holding a team of one participant took the kernels' parallel branches with one
   thread instead of running sequentially: `utils::thread::with_width` returned it unchanged
   before checking for a width below two. An `n x 1` product then kept an `n`-element partial

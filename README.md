@@ -11,17 +11,27 @@
 `colmat` is a pure-Rust dense and sparse linear algebra library for scientific and HPC work. It
 began as the linear algebra backend of [tenferro](https://github.com/tensor4all/tenferro-rs) and the
 other [tensor4all](https://github.com/tensor4all) libraries, and is now developed as a
-general-purpose library. It aims at three things:
+general-purpose library.
 
+Our goal is not to beat vendor LAPACK, but to build an equally performant linear algebra library
+with precise thread control. The BLAS/LAPACK interface is old and essentially Fortran: no function
+takes a thread team as an argument, and thread control lives outside the standard, in global or
+per-thread settings of each vendor library. Scientific applications already have their own
+scheduler (MPI ranks, then parallel tasks inside a rank), so they need nested parallelism: an
+outer loop and the linear algebra it calls must share the same cores without oversubscription.
+This is one real benefit of rebuilding the ecosystem in a modern language like Rust.
+
+- **Precise thread control.** Parallel work runs on a `threadteam` team that the caller owns and
+  passes as `Par::Team` (or `Par::Seq` for the calling thread). A team splits into sub-teams to any
+  depth, so a batch of small matrices can run one item per thread, and a large factorization can
+  use the whole team, with the same mechanism. There is no implicit global thread pool, and each
+  parallel region runs at the widest width that pays for its dispatch cost.
+- **Performance on par with vendor libraries.** The
+  [benchmarks](https://tensor4all.org/colmat-benchmark/) compare it with OpenBLAS and MKL, with
+  their measurement conditions.
 - **Correct results.** Its decompositions are validated against LAPACK's own test suites, and the
   defects found on the way that also affect the published upstream crates are kept as reproducers in
   [`upstream-reports/`](upstream-reports/README.md).
-- **Performance on many threads.** The goal is to outperform OpenBLAS and MKL at high thread counts.
-  The [benchmarks](https://tensor4all.org/faer-benchmark/) give the current numbers, with their
-  measurement conditions.
-- **Precise thread control.** Parallel work runs on a `threadteam` team that the caller owns and
-  passes as `Par::Team` (or `Par::Seq` for the calling thread). There is no implicit global thread
-  pool, and each parallel region runs at the widest width that pays for its dispatch cost.
 
 It changes upstream faer's API where these goals need a different shape. Published versions follow
 semver, and APIs can change in incompatible releases.
@@ -36,7 +46,7 @@ a copy here that links back to it.
 ## Links
 
 - Crate and API docs: [crates.io/crates/colmat](https://crates.io/crates/colmat), [docs.rs/colmat](https://docs.rs/colmat)
-- Benchmarks, with their measurement conditions: [tensor4all.org/faer-benchmark](https://tensor4all.org/faer-benchmark/)
+- Benchmarks, with their measurement conditions: [tensor4all.org/colmat-benchmark](https://tensor4all.org/colmat-benchmark/)
 - Migration guides: [from upstream faer, nalgebra and ndarray](docs/migration-guide.md), and
   [from Eigen, BLAS/LAPACK, Julia and NumPy/SciPy](docs/migration/README.md)
 - Issues: [github.com/tensor4all/colmat-rs/issues](https://github.com/tensor4all/colmat-rs/issues)
