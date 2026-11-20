@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Small offline checks for selection, continuation and status accounting."""
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -148,23 +150,22 @@ class Summarizer(unittest.TestCase):
                 raise ValueError(f'Invalid format {line!r}')
         return out
 
-    def summarize(self, report):
+    def summarize(self, report, *flags):
         spec = importlib.util.spec_from_file_location('summarize', Path(__file__).with_name('summarize-lapack-failures.py'))
         s = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(s)
         with tempfile.TemporaryDirectory() as root:
             if report is not None:
                 (Path(root) / 'summary.json').write_text(json.dumps(report))
-            import contextlib, io
             buffer = io.StringIO()
             with contextlib.redirect_stdout(buffer):
                 old = sys.argv
-                sys.argv = ['summarize', '--output', root]
+                sys.argv = ['summarize', *flags, '--output', root]
                 try:
                     self.assertEqual(s.main(), 0)
                 finally:
                     sys.argv = old
-            return self.parse_github_output(buffer.getvalue())
+            return buffer.getvalue() if flags else self.parse_github_output(buffer.getvalue())
 
     def test_several_unexpected_failures_stay_valid_step_outputs(self):
         # The 2026-11-20 nightly wrote one `family: test` line per failure and GitHub rejected
@@ -180,6 +181,18 @@ class Summarizer(unittest.TestCase):
             'lq: linalg::lq::lapack::c64::lapack_lq_cases',
             'qr: the family failed without a listed test, see its log'])
         self.assertEqual(got['stale'], '#12 linalg::a\n#13 linalg::b')
+
+    def test_job_summary_is_plain_text_and_delimiter_never_collides(self):
+        text = self.summarize({'unexpected': [{'family': 'lq', 'test': 't1'}], 'stale': []}, '--summary')
+        self.assertNotIn('<<', text)
+        self.assertEqual(text.split('\n')[:2], ['unexpected:', '- lq: t1'])
+        spec = importlib.util.spec_from_file_location('summarize', Path(__file__).with_name('summarize-lapack-failures.py'))
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        first = s.output('x', '')
+        delimiter = first.split('\n')[0].split('<<')[1]
+        block = s.output('x', delimiter)
+        self.assertNotEqual(block.split('\n')[0].split('<<')[1], delimiter)
 
     def test_clean_and_unreadable_summaries(self):
         self.assertEqual(self.summarize({'unexpected': [], 'stale': []}), {'unexpected': '', 'stale': ''})

@@ -23,16 +23,24 @@ def output(name, value):
     return f'{name}<<{delimiter}\n{value}\n{delimiter}'
 
 
+def render(name, value, summary):
+    if not summary:
+        return output(name, value)
+    return f'{name}:' + ''.join(f'\n- {line}' for line in value.split('\n') if line)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('target/lapack-validation'))
+    parser.add_argument('--summary', action='store_true',
+                        help='print readable text for a job summary instead of step outputs')
     args = parser.parse_args()
     summary = args.output / 'summary.json'
     try:
         report = json.loads(summary.read_text())
     except (OSError, json.JSONDecodeError) as error:
-        print(output('unexpected', f'the validation summary could not be read: {error}'))
-        print(output('stale', ''))
+        print(render('unexpected', f'the validation summary could not be read: {error}', args.summary))
+        print(render('stale', '', args.summary))
         return 0
     unexpected = report.get('unexpected') or []
     stale = report.get('stale') or []
@@ -41,8 +49,8 @@ def main():
     lines += [f'{family}: the family failed without a listed test, see its log' for family in unexplained]
     if report.get('error'):
         lines.insert(0, f'the run did not complete: {report["error"]}')
-    print(output('unexpected', '\n'.join(lines)))
-    print(output('stale', '\n'.join(f'#{entry["issue"]} {entry["test"]}' for entry in stale)))
+    print(render('unexpected', '\n'.join(lines), args.summary))
+    print(render('stale', '\n'.join(f'#{entry["issue"]} {entry["test"]}' for entry in stale), args.summary))
     return 0
 
 

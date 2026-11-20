@@ -52,7 +52,7 @@ jobs:
         run: cargo test -p colmat --test qz_scratch recursive -- --ignored 2>&1 | tee target/lapack-validation/qz-recursive.log
       - name: Summarize known and new failures
         if: always()
-        run: python3 scripts/summarize-lapack-failures.py --output target/lapack-validation | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/summarize-lapack-failures.py --summary --output target/lapack-validation | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Strict-triangle matmul tests (recorded failing on macOS arm64 in the first run)
         if: always()
         run: cargo test --locked -p colmat --lib strict_triangle
