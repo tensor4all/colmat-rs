@@ -40,6 +40,13 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   or bidiagonalization, restoring the original scale in the returned singular
   values (#227).
 
+## Added
+
+- Polar decomposition, `linalg::polar` (#60): `left_polar` (`A = W P`, `m >= n`) and
+  `right_polar` (`A = P W^H`, `m <= n`) with the conventions of MatrixAlgebraKit.jl, exact
+  scratch queries and `Par`, for f32, f64, c32 and c64. `PolarParams::method` selects the thin
+  SVD (the default) or QDWH, which uses only column-pivoted QR, Cholesky and matrix products.
+
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
 Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.

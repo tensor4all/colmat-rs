@@ -13,6 +13,17 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT: polar decomposition, `linalg::polar` (`left_polar`, `A = W P` for
+  `m >= n`; `right_polar`, `A = P W^H` for `m <= n`; MatrixAlgebraKit.jl
+  conventions; explicit outputs, exact scratch queries, `Par`; f32/f64/c32/c64)
+  ([#60](https://github.com/tensor4all/colmat-rs/issues/60), PR 2). Two methods:
+  the thin SVD (default) and QDWH from column-pivoted QR, Cholesky and matrix
+  products, written from Nakatsukasa, Bai and Gygi (2010) and Nakatsukasa and
+  Higham (2012, 2013), not from code; MatrixFactorizations.jl's `polar.jl`
+  (MIT) is the test oracle only, so `NOTICE` is unchanged. Newton-Schulz is not
+  included; no performance claim.
+  [Design and verification scope](docs/worklogs/2026-11-17-polar.md).
+
 - EXPERIMENT: `bidiagonal_dqds` and its scratch query expose the existing real
   dqds operation with immutable off-diagonal input and error rollback
   (AtelierArith/Colmat.jl#306). Existing numerical kernels and dispatch are
