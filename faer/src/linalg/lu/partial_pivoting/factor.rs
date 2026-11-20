@@ -510,9 +510,92 @@ pub(crate) fn lu_in_place_recursion<I: Index, T: ComplexField>(
 	params: Spec<PartialPivLuParams, T>,
 ) -> usize {
 	let mut buf = row_major_leaf_buffer(A.rb(), end - start, &params.config);
-	lu_in_place_recursion_imp(A, start, end, trans, par, params, &mut buf)
+	lu_in_place_recursion_imp(A, start, end, trans, par, params, &mut buf, 0)
 }
 
+/// Width of a node's left half: half of it, rounded up to a multiple of 16 (of the next power of
+/// two below 32).
+#[inline]
+fn left_width(n: usize) -> usize {
+	let half = n / 2;
+	let pow = Ord::min(16, half.next_power_of_two());
+	half.next_multiple_of(pow)
+}
+
+/// Widest panel the look-ahead factors on the leader (see [`lookahead_panel`]): a panel this
+/// narrow gains nothing from the team (at n = 512, 8 threads, the levels up to 64 columns took
+/// 546 us against 581 us on one thread), so the leader loses nothing by factoring it alone.
+/// Median ms, `f64`, column-major, dense leading dimension, evo (Ryzen AI 9 HX 470, boost off),
+/// `T` threads on one L3 domain (`taskset 0-3` / `4-11`), with the [`lookahead_pays`] gate off:
+///
+/// | panel | 4T 256 | 4T 257 | 4T 512 | 8T 511 | 8T 513 | 8T 1024 |
+/// |-------|--------|--------|--------|--------|--------|---------|
+/// | off   | 0.321  | 0.322  | 1.556  | 1.128  | 1.174  | 5.80    |
+/// | 16    | 0.339  | 0.339  | 1.671  | 1.158  | 1.208  | 5.93    |
+/// | 32    | 0.340  | 0.341  | 1.624  | 1.179  | 1.217  | 5.89    |
+/// | 64    | 0.312  | 0.310  | 1.518  | 1.094  | 1.145  | 5.80    |
+/// | 128   | 0.327  | 0.307  | 1.467  | 1.141  | 1.181  | 5.82    |
+/// | 256   | 0.323  | 0.323  | 1.551  | 1.133  | 1.183  | 6.02    |
+///
+/// A node whose right child is 64 columns or narrower does not look ahead: its half-width panel
+/// was 2-3 % slower at every 8-thread size from 255 to 1024.
+const LOOKAHEAD_PANEL: usize = 64;
+/// Narrowest team on which a level looks ahead: the far product runs on the other members, and on
+/// fewer than three of them it loses more than the panel hides.
+const LOOKAHEAD_MIN_WIDTH: usize = 4;
+/// Cost of a multiply-add of the panel factorization, in multiply-adds of the trailing product:
+/// on one thread the levels up to 64 columns of an n = 512 factorization ran at 8.1 G
+/// multiply-adds per second against the product's 15.5 G (evo, `f64`). See [`lookahead_pays`].
+const LOOKAHEAD_PANEL_COST: usize = 2;
+
+/// Whether a level of `p` participants gains by looking ahead. Without it the level spends
+/// `F / p + P` (the far product `F` on the team, then the panel `P`, sequential in effect); with
+/// it `max(P, F / (p - 1))`. The difference is positive exactly when `P > F / (p (p - 1))`: the
+/// panel must outlast what the leader's share of the far product costs the others. `P` is the
+/// panel's `rows * panel^2 / 2` multiply-adds at [`LOOKAHEAD_PANEL_COST`] times the product's
+/// rate, `F` is `rows * far_cols * b`. Without the gate the 64-column look-ahead was 5.7 % slower
+/// at 4T n = 1024 and 3 % at 8T n = 1536, where the leader waits on a long far product; with it
+/// those two are 2 % faster and level.
+fn lookahead_pays(
+	rows: usize,
+	panel: usize,
+	far_cols: usize,
+	b: usize,
+	p: usize,
+) -> bool {
+	let panel_macs = rows.saturating_mul(panel).saturating_mul(panel) / 2;
+	let far_macs = rows.saturating_mul(far_cols).saturating_mul(b);
+	LOOKAHEAD_PANEL_COST
+		.saturating_mul(panel_macs)
+		.saturating_mul(p.saturating_mul(p.saturating_sub(1)))
+		> far_macs
+}
+
+/// Levels that looked ahead, for the tests that assert the path ran.
+#[cfg(test)]
+pub(crate) static LOOKAHEADS: core::sync::atomic::AtomicUsize =
+	core::sync::atomic::AtomicUsize::new(0);
+
+/// The first panel of the right child of a node (`right` columns): the node on its leftmost chain
+/// (its left half, that one's left half, ...) of at most [`LOOKAHEAD_PANEL`] columns, the first
+/// thing the right child factors and the only part of it that needs nothing but this level's
+/// trailing update. 0 when there is no such node short of the whole right child.
+fn lookahead_panel(right: usize, recursion_threshold: usize) -> usize {
+	if right <= LOOKAHEAD_PANEL || right <= recursion_threshold {
+		return 0;
+	}
+	let mut w = right;
+	while w > LOOKAHEAD_PANEL && w > recursion_threshold {
+		let b = left_width(w);
+		if b == 0 || b >= w {
+			return 0;
+		}
+		w = b;
+	}
+	w
+}
+
+#[allow(clippy::too_many_arguments)] // the recursion's state: view, span, pivots, team, params, leaf buffer, look-ahead
 fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 	A: MatMut<'_, T>,
 	start: usize,
@@ -521,12 +604,18 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 	mut par: Par,
 	params: Spec<PartialPivLuParams, T>,
 	leaf_buf: &mut [T],
+	done: usize,
 ) -> usize {
 	let params = params.config;
 	let mut A = A;
 	let m = A.nrows();
 	let ncols = A.ncols();
 	let n = end - start;
+	// `done`: the look-ahead of the level above already factored this node's first `done` columns
+	// (a node of its leftmost chain), with its swaps and its `trans`
+	if done == n {
+		return trans[..n].iter().filter(|t| t.zx() != 0).count();
+	}
 	if n <= params.recursion_threshold {
 		if is_row_major(A.rb()) && leaf_buf.len() >= m * n {
 			return lu_in_place_unblocked_row_major(
@@ -535,9 +624,8 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 		}
 		return lu_in_place_unblocked(A, start, end, trans);
 	}
-	let half = n / 2;
-	let pow = Ord::min(16, half.next_power_of_two());
-	let block_size = half.next_multiple_of(pow);
+	let block_size = left_width(n);
+	debug_assert!(done <= block_size);
 	let mut n_trans = 0;
 	assert!(n <= m);
 	// The left half sees only its own columns: its transpositions reach the right half in the
@@ -551,12 +639,15 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 		par.reborrow(),
 		params.into(),
 		leaf_buf,
+		done,
 	);
 	{
 		let mut A = A.rb_mut().get_mut(.., start..end);
 		let (A_l, A_r) = A.rb_mut().split_at_col_mut(block_size);
 		let (A00, A10) = A_l.rb().split_at_row(block_size);
-		let left_trans = &trans[..block_size];
+		let (left_trans, right_trans) = trans.split_at_mut(block_size);
+		let left_trans = &*left_trans;
+		let mut done_right = 0;
 		// The panel solve and the trailing product below are this level's whole
 		// parallel work, and the block size halves every level of the recursion, so
 		// past a few levels they are a fork and a join around a handful of thousands
@@ -608,23 +699,90 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 			let (A01, A11) = A_r.split_at_row_mut(block_size);
 			let A01 = A01.rb();
 			let mut A11 = A11;
+			let p = par_here.degree();
+			let panel = lookahead_panel(cols1, params.recursion_threshold);
+			if panel == 0
+				|| p < LOOKAHEAD_MIN_WIDTH
+				|| !lookahead_pays(rows1, panel, cols1 - panel, b, p)
+			{
+				linalg::matmul::matmul(
+					A11.rb_mut(),
+					Accum::Add,
+					A10.rb(),
+					A01.rb(),
+					-one::<T>(),
+					par_here,
+				);
+				return;
+			}
+			// Look-ahead: the right child starts with its first panel, which needs only the
+			// columns of this product that it covers. Those are updated first; then the leader
+			// factors the panel alone while the other members update the rest, which the right
+			// child reads only after its panel. The panel is the sequential part of a team call,
+			// so the members would otherwise wait for it. Each column gets the same operations
+			// as without the split (the product's columns are independent, and the panel's
+			// factorization is the same at every width, `lu::tests::par_identity`), so the factor
+			// is the same bits.
+			#[cfg(test)]
+			LOOKAHEADS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+			let (mut near, far) = A11.split_at_col_mut(panel);
+			let (A01_near, A01_far) = A01.split_at_col(panel);
 			linalg::matmul::matmul(
-				A11.rb_mut(),
+				near.rb_mut(),
 				Accum::Add,
 				A10.rb(),
-				A01.rb(),
+				A01_near,
 				-one::<T>(),
-				par_here,
+				par_here.reborrow(),
 			);
+			let panel_trans = &mut right_trans[..panel];
+			let leaf_buf = &mut *leaf_buf;
+			let factor_panel = |_: Par| {
+				lu_in_place_recursion_imp(
+					near,
+					0,
+					panel,
+					panel_trans,
+					Par::Seq,
+					params.into(),
+					leaf_buf,
+					0,
+				);
+			};
+			let update_far = |par: Par| {
+				linalg::matmul::matmul(
+					far,
+					Accum::Add,
+					A10.rb(),
+					A01_far,
+					-one::<T>(),
+					par,
+				)
+			};
+			// the leader (child 0) takes the panel, the other members the far product
+			#[cfg(feature = "rayon")]
+			crate::utils::thread::join_sized(
+				par_here,
+				1,
+				factor_panel,
+				update_far,
+			);
+			#[cfg(not(feature = "rayon"))]
+			{
+				factor_panel(Par::Seq);
+				update_far(par_here);
+			}
+			done_right = panel;
 		});
 		n_trans += lu_in_place_recursion_imp(
 			A.rb_mut().get_mut(block_size..m, ..),
 			block_size,
 			n,
-			&mut trans[block_size..n],
+			right_trans,
 			par.reborrow(),
 			params.into(),
 			leaf_buf,
+			done_right,
 		);
 	}
 	let swap = |mat: MatMut<'_, T>| apply_transpositions(mat, &trans[..n]);
