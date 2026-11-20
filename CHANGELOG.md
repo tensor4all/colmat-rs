@@ -40,6 +40,14 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   or bidiagonalization, restoring the original scale in the returned singular
   values (#227).
 
+## Added
+
+- QL and RQ factorizations, `linalg::ql::no_pivoting` and `linalg::rq::no_pivoting` (#60): the
+  packed `ql_in_place` / `rq_in_place` kernels with the QR/LQ scratch query for the same shape, thin and full `Q`, the
+  compact and full triangular factor with an optional positive diagonal gauge, and `reconstruct`,
+  for f32, f64, c32 and c64. They are the QR and LQ kernels run on the view with reversed rows and
+  columns, so the packed layouts are those of LAPACK's `?geqlf` and `?gerqf`.
+
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
 Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
