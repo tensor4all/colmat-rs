@@ -101,6 +101,17 @@ colmat = "0.34"
 
 ## Performance
 
+- A small product on a `Par::Team` is cut into balanced tiles of the output, one sequential kernel
+  call per member, instead of being handed to the kernel's own job grid, which gives eight members
+  two jobs at `64^3` and eight ragged ones at `128^3` (#262). The split is used for at most 8 ms of
+  estimated serial work per product; above that the kernel grid wins, because the whole-product
+  route packs the shared panels once. f64 at 8 participants, per call: `64^3` 9.72 us to 3.68,
+  `96^3` 19.9 to 8.83, `128^3` 32.5 to 18.4, `192^3` 86.2 to 57.9 against 58.9 for AOCL
+  (the AOCL ratio, this fork over AOCL, moves from 2.16 to 0.82, 2.11 to 0.94 and 1.46 to 0.98),
+  and c64 `64^3` 26.7 to 10.0. Factorizations share the route: LU at `256^3` goes from 326 us to 284 us, while Cholesky,
+  QR, eigh and SVD are unchanged or up to 5% faster. `256^3` and above keep the previous route
+  within measurement error. Callers see no API change and no allocation on either route.
+  [Isolation and limits](docs/worklogs/2026-11-21-gemm-team-tile-split.md).
 - `factorize_symbolic_lu_with_column_ordering` and `factorize_symbolic_qr_with_column_ordering` no longer request the COLAMD
   workspace when the caller supplies the column ordering. COLAMD only runs in the `None` branch, but the `MemBuffer` was sized with
   `StackReq::or(colamd::order_scratch(..), ..)` either way, so the ordering was paid for twice. On the issue's reproducer (n = 2000,
