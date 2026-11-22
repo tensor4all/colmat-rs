@@ -32,16 +32,21 @@ raw-pointer index sort, and the iterators and reductions over `Col`, `Row` and `
 
 - Numeric kernels: matmul (including `linalg::mat_ops::test::test_matmul_col_row`), the
   factorizations and solvers (`linalg::{cholesky, lu, qr, lq, svd, evd, gevd, …}`), `matrix_free`,
-  the dense `sparse::linalg` factorizations, `stats` and `linalg::reductions`. They are slow under
-  Miri and their correctness is the LAPACK validation lanes' job; the indexed paths they share are
-  covered through the tests above.
+  the dense `sparse::linalg` factorizations, `stats` and `linalg::reductions`, by the selection rule
+  of #267: the set targets the crate's container and index `unsafe`, not its kernels. Exclusion is
+  not a cost necessity for all of them (`test_matmul_col_row` ran in 0.84 s under Miri on
+  2026-11-08), and the kernels' own pointer handling is **not** covered by the tests above (see the
+  gaps below).
 - Threading, partition and cost-model tests (`utils::team`, `utils::thread`, `utils::cost`,
   `utils::partition`) and `linalg::tests` (layout copies on a team, factorization bit-for-bit
   checks): they spawn worker teams or run kernels, which Miri runs slowly and which are not in the
   selection rule.
 - `io::npy`: byte reinterpretation of a file buffer, outside the selection rule.
-- Every `#[ignore]`d test (162 at the time of writing, e.g. `linalg::matmul::tests::test_matmul`,
-  `#[ignore = "takes too long"]`); the runner rejects one if it is listed.
+- Every `#[ignore]`d test: 162 test functions at the time of writing
+  (`cargo test -p colmat --lib -- --list --ignored`), from 43 `#[ignore]` attributes, most of them in
+  the per-type (`f32`/`f64`/`c32`/`c64`) LAPACK validation macros, plus e.g.
+  `linalg::matmul::tests::test_matmul` (`#[ignore = "takes too long"]`). The runner rejects one if
+  it is listed.
 
 **Gaps the set does not close.** No in-crate test currently calls `Mat::truncate` (shrinking), the
 `Array` API in `utils::bound` (`as_mut`, range indexing), `PermRef` with `N = One`, `ZipEq::new_unchecked`
@@ -49,6 +54,12 @@ or `for_each_triangular_*` on a transposed and reversed operand. These are exact
 #254, #255 and #256, which external reports found by running Miri on reproducers outside the crate.
 Their fixes are expected to bring regression tests; add those names to the list when they land, so the
 lane guards the fixes.
+
+No listed test writes through an uninitialized (`MaybeUninit`) destination either: the crate's
+uninit-destination paths are exercised by `linalg::matmul::tests::test_matmul_with_conj_uninit*`
+(`faer/src/linalg/matmul/mod.rs`), which are matmul tests and therefore outside the selection rule.
+Uninit reads in the main crate are thus not covered by this lane; widening the rule to those small
+tests is a separate decision.
 
 **Cost.** On an M5 (aarch64, 2026-11-22, `miri 0.1.0 (daf2e5e18b 2026-07-13)`) the whole set runs in
 one invocation with `test result: ok. 53 passed; 0 failed; 0 ignored; 947 filtered out; finished in
