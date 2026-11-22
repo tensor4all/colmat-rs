@@ -1,0 +1,19 @@
+date: 2026-11-22T22:37:05Z
+host: shinaoka-EVO-X1Pro
+kernel: 7.0.0-43-generic
+cpu_model: AMD Ryzen AI 9 HX 470 w/ Radeon 890M
+measured_cpu: 2 (smt siblings 2,14)
+governor: performance
+boost: 0
+scaling_max_khz: 2000000
+perf_event_paranoid: 4
+git_head: 0b94358c7311193fbbef261c9515b80535a83529
+git_dirty: 0 tracked file(s) modified
+rustc: rustc 1.96.0 (ac68faa20 2026-05-25)
+lock_private_gemm_x86: version = "0.1.28" source = "registry+https://github.com/rust-lang/crates.io-index" checksum = "90295f48b59ab213a5fa840a0342d7a16cfc71bb5905070414fd105fcc0fcba7" 
+binary: /home/shinaoka/projects/tensor4all/colmat-253-e0-evo-run2/bin/gemm_microkernel-135d89b6eba8c392
+binary_sha256: 135d89b6eba8c392c4edf59ae965e412f1ac54fb6f55262cfdfb3480ca0d6b12
+args: --cpu 2 
+sibling_cpu14 busy: 0.10%
+bench_exit: 0
+verdict: VALID
