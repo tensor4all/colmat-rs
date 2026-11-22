@@ -134,6 +134,9 @@ npy = [
 ]
 
 [dev-dependencies]
+# `examples/sme_route.rs` prints the SME size gate's own verdict (`sme_thresholds`) next to its
+# timing, so the probe has no hand-copied gate to go stale on a `t4a-gemm` bump (#180).
+gemm-common = { package = "t4a-gemm-common", version = "0.20.4", default-features = false }
 log = { version = "0.4.29", default-features = false, features = ["std"] }
 aligned-vec = "0.6.4"
 amd = "0.2.2"

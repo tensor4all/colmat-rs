@@ -404,6 +404,7 @@ dependencies = [
  "simba",
  "suitesparse_sys",
  "t4a-gemm",
+ "t4a-gemm-common",
  "t4a-private-gemm-x86",
  "tar",
  "threadteam",
