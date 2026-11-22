@@ -25,6 +25,14 @@ if [[ "$(uname -s)-$(uname -m)" != "Darwin-arm64" ]]; then
 	exit 2
 fi
 cargo build --release -p colmat --example sme_route >&2
+# The example prints `gate_seq` from its own `t4a-gemm-common` dev-dependency. That is the gate the
+# kernels use only while the lock holds one copy of the crate: a `t4a-gemm` bump to another
+# semver range would leave the dev-dependency on the old copy.
+copies=$(grep -c '^name = "t4a-gemm-common"$' Cargo.lock)
+if ((copies != 1)); then
+	echo "sme-route-probe: Cargo.lock has $copies copies of t4a-gemm-common; bump the dev-dependency in faer/Cargo.toml with t4a-gemm" >&2
+	exit 1
+fi
 bin="$PWD/target/release/examples/sme_route"
 if (($#)); then threads_list=("$@"); else threads_list=(1 6); fi
 
