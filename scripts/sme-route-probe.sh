@@ -71,6 +71,7 @@ EOF
 			done
 			sme=$(grep -E '^1: ' <<<"$out" | sed -E 's/.*hit count = ([0-9]+).*/\1/')
 			fbc=$(grep -E '^2: ' <<<"$out" | sed -E 's/.*hit count = ([0-9]+).*/\1/')
+			[[ $sme =~ ^[0-9]+$ && $fbc =~ ^[0-9]+$ ]] || fail "no hit count in lldb's breakpoint list"
 			if ((sme > 0 && fbc == 0)); then
 				route=sme
 			elif ((sme == 0 && fbc > 0)); then

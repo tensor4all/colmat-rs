@@ -220,8 +220,8 @@ fn main() {
 		.get(5)
 		.map(|s| s.parse().expect("a count"))
 		.unwrap_or(11);
-	if m == 0 || n == 0 || k == 0 || samples == 0 {
-		eprintln!("sme_route: m, n, k and samples must be at least 1");
+	if m == 0 || n == 0 || k == 0 || threads == 0 || samples == 0 {
+		eprintln!("sme_route: m, n, k, threads and samples must be at least 1");
 		std::process::exit(2);
 	}
 	match args[0].as_str() {
