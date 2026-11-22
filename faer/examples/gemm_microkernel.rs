@@ -49,8 +49,9 @@
 //!   tile.
 //! - `cstream`: as `l2`, but every call writes the next tile of a column-major
 //!   C of at least 4 x L3 bytes (leading dimension `ldc`, default 4000),
-//!   walking tiles down a column block and then to the next one, as the gemm
-//!   loop does. The hardware prefetcher can follow it.
+//!   walking tiles down a column block and then to the next one. The hardware
+//!   prefetcher can follow it. (Not verified to be the order the gemm driver
+//!   visits C in; its 1T path can traverse row-major.)
 //! - `ccold`: as `cstream`, but the tiles are visited with a stride coprime to
 //!   their count, so C comes from memory and no stream prefetcher can predict
 //!   it (the issue's E0(c)).
@@ -619,6 +620,12 @@ mod imp {
 					std::process::exit(2)
 				})
 			};
+			let flt = |i: usize| -> f64 {
+				val(i).parse().unwrap_or_else(|_| {
+					eprintln!("{}: not a number: {}", args[i], val(i));
+					std::process::exit(2)
+				})
+			};
 			match args[i].as_str() {
 				"--cpu" => o.cpu = num(i),
 				"--samples" => o.samples = num(i),
@@ -627,8 +634,8 @@ mod imp {
 				"--filter" => o.filter = Some(val(i).to_string()),
 				"--kc" => o.kc = Some(num(i)),
 				"--ldc" => o.ldc = num(i),
-				"--peak512" => o.peak512 = val(i).parse().unwrap(),
-				"--peak256" => o.peak256 = val(i).parse().unwrap(),
+				"--peak512" => o.peak512 = flt(i),
+				"--peak256" => o.peak256 = flt(i),
 				_ => {
 					eprintln!("{usage}");
 					std::process::exit(2)

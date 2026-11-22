@@ -17,8 +17,9 @@ E0 only. No library code changes.
   holds `mr` values per depth step, with `lhs_cs = m * simd bytes`, and B holds `n` values per depth
   step, with `rhs_rs = n * 8`.
 - **Shapes.** The suite runs every generated tile at four residencies, `l1`, `l2`, `cstream` and
-  `ccold` (the issue's E0(a), (b) and (c); `cstream` is the realistic C walk, which the prefetcher
-  can follow, and `ccold` defeats the prefetcher). The production tiles (48x4, 24x8, 12x4) also
+  `ccold` (the issue's E0(a), (b) and (c); `cstream` walks C down column blocks, which the prefetcher
+  can follow, and `ccold` defeats the prefetcher. Whether `cstream` matches the order
+  `private_gemm_x86` visits C is not verified: its 1T path can traverse row-major). The production tiles (48x4, 24x8, 12x4) also
   run with one row fewer, which exercises the masked load/store path, and with B passed unpacked
   at `ldb` = 4000 and 4096. Unpacked B is what `gemm` hands the kernel whenever `pack_rhs = tall`
   is false, so these rows measure the kernel side of H2/E1.
@@ -69,10 +70,13 @@ E0 only. No library code changes.
 - **Masked rows cost only the idle lanes.** 48x4 with 47 rows takes the same time per call as with
   48 (6180.8 against 6184.8 ns), so its FLOP/cycle drops by the idle lane alone (97.6% of the
   ceiling, against 47/48 = 97.9%).
-- **H2 at the kernel level.** B passed unpacked at `ldb` 4096 against 4000 differs by at most 0.2%
-  (48x4 at `l2`: 15.95 against 15.98), and the cstream pair is inside each other's IQR. At this
-  level, a power-of-two `ldb` costs nothing measurable once B is in cache. H2's TLB and set-conflict
-  costs, if they exist, belong to the whole-GEMM run of E1.
+- **H2 at the kernel level: no resolvable effect.** B passed unpacked at `ldb` 4096 against 4000
+  differs by at most 0.18% at `l2` and at most 0.42% at `cstream`. Some pairs have disjoint IQRs,
+  but the sign is not reproducible between the two runs: 12x4 at `cstream` has 4096 0.42% faster in
+  run 1 and 0.40% slower in run 2, and 48x4 at `l2` flips as well. So a power-of-two `ldb` has no
+  effect at this level that rises above the run-to-run spread, once B is in cache. H2's TLB and
+  set-conflict costs, if they exist, belong to the whole-GEMM run of E1, which needs a paired,
+  interleaved design to see effects of this size.
 - **Edge kernels.** The kernels with `n` = 1..3 and short `m` are limited by loads and broadcasts,
   not FMAs: 4.3 FLOP/cycle at 8x1 and 11.6 at 48x1, both at l2. They serve the edges of a product,
   not its bulk.
