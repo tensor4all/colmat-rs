@@ -2,6 +2,19 @@
 
 Numbers are tensor4all/colmat-rs issues or PRs.
 
+## Performance
+
+- Small QR factorizations take a level-2 path: below `128 x 128` elements (a quarter of that for a
+  complex type on a team; at most 32 columns per row) a column-major `qr_in_place` applies one
+  reflector at a time, two per sweep, with a SIMD kernel over four target columns, and forms the
+  block factors of `H` afterwards (#269). `compute_thin_Q` up to `96 x 96` and
+  `apply_block_householder_sequence_on_the_left_in_place_with_conj` on targets up to `32 x 32`
+  use the matching sweep. f64 on evo against AOCL 6.0.0: `qr_factor` 32 from 16.7 us to 8.2
+  (AOCL 7.5), 64 from 67.9 to 30.2 (40.7); `qr` (factor + thin Q) 32 from 28.2 to 16.3 (15.9).
+  Below those sizes the results are no longer bitwise identical to 0.34.0 (they remain
+  deterministic at a fixed thread count). No API change, no allocation.
+  [Isolation and limits](docs/worklogs/2026-11-22-small-qr-level2.md).
+
 ## Correctness
 
 - `norm_l2` no longer returns infinity or zero for representable norms at the
@@ -48,6 +61,19 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   or bidiagonalization, restoring the original scale in the returned singular
   values (#227).
 
+## Added
+
+- Polar decomposition, `linalg::polar` (#60): `left_polar` (`A = W P`, `m >= n`) and
+  `right_polar` (`A = P W^H`, `m <= n`) with the conventions of MatrixAlgebraKit.jl, exact
+  scratch queries and `Par`, for f32, f64, c32 and c64. `PolarParams::method` selects the thin
+  SVD (the default) or QDWH, which uses only column-pivoted QR, Cholesky and matrix products.
+- QL and RQ factorizations, `linalg::ql::no_pivoting` and `linalg::rq::no_pivoting` (#60): the
+  packed `ql_in_place` / `rq_in_place` kernels with the QR/LQ scratch query for the same shape, thin and full `Q`, the
+  compact and full triangular factor with an optional positive diagonal gauge, and `reconstruct`,
+  for f32, f64, c32 and c64. They are the QR and LQ kernels run on the view with reversed rows and
+  columns. `L` and `R` sit where LAPACK's `?geqlf` and `?gerqf` put them; `Q` is kept in faer's
+  block-reflector form, not LAPACK's `tau`, so the packed output is not an input for `?ormql`/`?unmrq`.
+
 # colmat 0.34.0 (tensor4all fork; with colmat-traits 0.25.0)
 
 Changes since `t4a-faer` 0.33.0 (tag `faer-v0.33.0`). Numbers are tensor4all/faer issues or PRs; each change has its row in `PATCHSET.md`.
@@ -81,6 +107,20 @@ colmat = "0.34"
 
 ## Performance
 
+- A small product on a `Par::Team` is cut into balanced tiles of the output, one sequential kernel
+  call per member, instead of being handed to the kernel's own job grid, which gives eight members
+  two jobs at `64^3` and eight ragged ones at `128^3` (#262). The split is used for at most 8 ms of
+  estimated serial work per product; above that the kernel grid wins, because the whole-product
+  route packs the shared panels once. f64 at 8 participants, `c` order, per call in us (before to
+  after, with AOCL's time in brackets; the ratio is this fork over AOCL): `64^3` 9.54 to 3.43
+  [4.51] (2.12 to 0.76), `96^3` 20.06 to 8.60 [9.61] (2.09 to 0.89), `128^3` 32.34 to 18.38
+  [21.20] (1.53 to 0.87), `192^3` 85.62 to 58.05 [58.92] (1.45 to 0.99); c64 `64^3` 26.7 to 10.0.
+  Factorizations share the route: LU at `256^3` goes from 326 us to 284 us, while Cholesky,
+  QR, eigh and SVD are unchanged or up to 5% faster. The split reaches up to the 8 ms ceiling, so
+  `256^3` (165.0 to 135.4 us, 0.94 of AOCL) and `480^3` (968.4 to 883.4 us) are split too; from
+  `512^3` (8.6 ms) up the kernel route is unchanged within measurement error. Callers see no API
+  change and no allocation on either route.
+  [Isolation and limits](docs/worklogs/2026-11-21-gemm-team-tile-split.md).
 - `factorize_symbolic_lu_with_column_ordering` and `factorize_symbolic_qr_with_column_ordering` no longer request the COLAMD
   workspace when the caller supplies the column ordering. COLAMD only runs in the `None` branch, but the `MemBuffer` was sized with
   `StackReq::or(colamd::order_scratch(..), ..)` either way, so the ordering was paid for twice. On the issue's reproducer (n = 2000,

@@ -1,0 +1,10 @@
+19:43  up 25 days, 14:01, 3 users, load averages: 4.48 4.26 4.47
+dtype=f64 m=2048 n=2048 k=2048 threads=1 samples=11 batch=2 calls=25 gate_seq=sme median_ms=43.9655 q1_ms=43.5349 q3_ms=44.3001 iqr_ms=0.7653 gflops=390.8
+dtype=f64 m=2048 n=2048 k=2048 threads=6 samples=11 batch=2 calls=25 gate_seq=sme median_ms=37.9683 q1_ms=37.1569 q3_ms=39.2891 iqr_ms=2.1322 gflops=452.5
+dtype=c64 m=2048 n=2048 k=2048 threads=1 samples=11 batch=1 calls=14 gate_seq=sme median_ms=271.4840 q1_ms=271.0399 q3_ms=271.7788 iqr_ms=0.7389 gflops=253.1
+dtype=c64 m=2048 n=2048 k=2048 threads=6 samples=11 batch=1 calls=14 gate_seq=sme median_ms=136.2032 q1_ms=135.6627 q3_ms=136.6520 iqr_ms=0.9892 gflops=504.5
+dtype=f32 m=2048 n=2048 k=2048 threads=1 samples=11 batch=3 calls=36 gate_seq=sme median_ms=18.2513 q1_ms=18.0816 q3_ms=18.4037 iqr_ms=0.3222 gflops=941.3
+dtype=f32 m=2048 n=2048 k=2048 threads=6 samples=11 batch=4 calls=47 gate_seq=sme median_ms=14.3449 q1_ms=14.1873 q3_ms=14.5009 iqr_ms=0.3135 gflops=1197.6
+dtype=c32 m=2048 n=2048 k=2048 threads=1 samples=11 batch=1 calls=14 gate_seq=sme median_ms=73.1726 q1_ms=72.5836 q3_ms=73.7421 iqr_ms=1.1585 gflops=939.1
+dtype=c32 m=2048 n=2048 k=2048 threads=6 samples=11 batch=2 calls=25 gate_seq=sme median_ms=42.5722 q1_ms=42.5131 q3_ms=43.0366 iqr_ms=0.5235 gflops=1614.2
+19:43  up 25 days, 14:01, 3 users, load averages: 4.57 4.28 4.48

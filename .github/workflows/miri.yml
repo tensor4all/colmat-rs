@@ -1,9 +1,16 @@
 name: Miri
 
-# UB in the traits crate (provenance, aliasing, uninit reads) is only observable under Miri, but it
-# needs its own nightly toolchain, so it stays out of the per-PR lanes and runs weekly. A failure is
-# left as an issue: an issue keeps the turn and the history, a notification does not.
-# The main crate is out of scope, see `docs/miri.md`.
+# UB (provenance, aliasing, uninit reads) is only observable under Miri, but it needs its own nightly
+# toolchain, so it stays out of the per-PR lanes and runs weekly. A failure is left as an issue: an
+# issue keeps the turn and the history, a notification does not.
+#
+# Two lanes, see `docs/miri.md`:
+# - `traits`: `colmat-traits --lib`, the whole suite, on x86_64;
+# - `colmat`: `colmat --lib`, only the tests listed in `scripts/miri-colmat-tests.txt`, on aarch64.
+#   `pulp`'s x86_64 SIMD contains unguarded `asm!`, which Miri cannot execute, while every `asm!` in
+#   its aarch64 code is `cfg(not(miri))`. Whether an x86_64 run would reach that `asm!` is untested;
+#   either way the main crate's x86_64 path stays outside Miri.
+# Each lane fails its own job on a violation; `report` files one issue for whichever lanes failed.
 on:
   schedule:
     - cron: "0 18 * * 0" # Sunday 18:00 UTC = Monday 03:00 JST
@@ -11,25 +18,23 @@ on:
 
 permissions:
   contents: read
-  issues: write # to file the failure issue
 
 env:
   CARGO_TERM_COLOR: always
+  # `rust-toolchain.toml` outranks the toolchain `dtolnay/rust-toolchain` installs, so without this
+  # every `cargo miri` here would run on the pinned 1.96.0, which has no miri component.
+  RUSTUP_TOOLCHAIN: nightly
+
+# The ref in the group keeps another branch's manual run from queueing out a main run.
+concurrency:
+  group: miri-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  miri:
+  traits:
     name: cargo miri (-p colmat-traits --lib)
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    # `rust-toolchain.toml` outranks the toolchain the step below installs, so without this every
-    # `cargo miri` here would run on the pinned 1.96.0, which has no miri component.
-    env:
-      RUSTUP_TOOLCHAIN: nightly
-    # Job level on purpose: a workflow level group cannot reference the matrix context. The ref in
-    # the group keeps another branch's manual run from queueing out a main run.
-    concurrency:
-      group: miri-${{ github.ref }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -42,30 +47,67 @@ jobs:
         run: cargo miri setup
 
       - name: cargo miri test
-        id: run
-        # Shorter than the job timeout (120) so a hung run still reaches the notification step.
         timeout-minutes: 60
-        continue-on-error: true
         run: cargo miri test -p colmat-traits --lib
 
-      # A `continue-on-error` step reports conclusion=success, so `failure()` never fires here.
-      # Reach the step with **always()** and judge `steps.run.outcome` ourselves: a failed setup or a
-      # test step killed by its timeout leaves it empty, which counts as a failure too.
-      - name: File an issue when Miri fails
-        if: always() && github.ref == 'refs/heads/main'
+  colmat:
+    name: cargo miri (-p colmat --lib, selected tests, aarch64)
+    # aarch64 on purpose: `pulp`'s aarch64 `asm!` is `cfg(not(miri))`, its x86_64 `asm!` is not
+    # (`docs/miri.md`).
+    runs-on: ubuntu-24.04-arm
+    # The whole budget of this lane (#267). The steps' own caps add up to less, so a hang is reported
+    # as that step's timeout rather than as a cancelled job.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri, rust-src
+
+      - name: cargo miri setup
+        timeout-minutes: 10
+        run: cargo miri setup
+
+      - name: cargo miri test (scripts/miri-colmat-tests.txt)
+        timeout-minutes: 45
+        run: scripts/run-miri-colmat.sh
+
+  # Runs after both lanes whatever they concluded, so one issue is filed or commented per run (two
+  # failing lanes filing in parallel could both miss the open issue and open two).
+  report:
+    name: File an issue when Miri fails
+    needs: [traits, colmat]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: File or comment on the miri-failure issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RUN_OUTCOME: ${{ steps.run.outcome }}
+          TRAITS: ${{ needs.traits.result }}
+          COLMAT: ${{ needs.colmat.result }}
         run: |
           set -euo pipefail
-          if [ "${RUN_OUTCOME}" = "success" ]; then
+          # `result` is success, failure, cancelled or skipped; anything but success counts (a
+          # timed-out job reports failure or cancelled).
+          lines=()
+          if [ "${TRAITS}" != "success" ]; then
+            lines+=("- \`cargo miri test -p colmat-traits --lib\`（x86_64）: ${TRAITS}。再現: \`cargo +nightly miri test -p colmat-traits --lib\`")
+          fi
+          if [ "${COLMAT}" != "success" ]; then
+            lines+=("- \`cargo miri test -p colmat --lib\`（\`scripts/miri-colmat-tests.txt\` の選択テスト、aarch64）: ${COLMAT}。再現: aarch64 で \`RUSTUP_TOOLCHAIN=nightly scripts/run-miri-colmat.sh\`")
+          fi
+          if [ "${#lines[@]}" -eq 0 ]; then
             echo "Miri passed; nothing to file."
             exit 0
           fi
-          # Find the existing issue by **label**. One lane, one label: no title to edit and no
-          # search-result count to depend on.
+          # Find the existing issue by **label**. One label for both lanes: no title to edit and no
+          # search-result count to depend on; the body names the lanes that failed.
           # Creating the label is idempotent (an existing one answers 422, which is fine to drop).
           gh api -X POST "repos/${GITHUB_REPOSITORY}/labels" \
             -f name=miri-failure -f color=B60205 \
@@ -74,13 +116,14 @@ jobs:
             --json number --limit 1 --jq '.[0].number // empty')
           body=$(mktemp)
           {
-            echo 'Miri (`cargo miri test -p colmat-traits --lib`) が main で失敗しました。'
+            echo 'Miri が main で失敗しました。'
+            echo
+            printf '%s\n' "${lines[@]}"
             echo
             echo "- commit: \`${SHA}\`"
             echo "- 実行: \`${RUN_URL}\`"
-            echo '- 再現: `cargo +nightly miri test -p colmat-traits --lib`'
             echo
-            echo '通常の `cargo test` では検出できない UB（provenance、aliasing、uninit）はこのレーンだけが見ます。'
+            echo '通常の `cargo test` では検出できない UB（provenance、aliasing、uninit）はこのレーンだけが見ます。対象と除外は `docs/miri.md`。'
           } > "$body"
           if [ -n "${existing}" ]; then
             gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body-file "$body"
@@ -88,12 +131,8 @@ jobs:
           else
             # Do not swallow a failure: if this cannot file the issue, the step goes red.
             gh issue create -R "$GITHUB_REPOSITORY" \
-              --title "miri: colmat-traits --lib fails on main" \
+              --title "miri: weekly Miri lane fails on main" \
               --label miri-failure \
               --body-file "$body"
           fi
           rm -f "$body"
-
-      - name: Fail the job if Miri failed
-        if: steps.run.outcome == 'failure'
-        run: exit 1

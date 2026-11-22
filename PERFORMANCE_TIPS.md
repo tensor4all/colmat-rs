@@ -203,3 +203,13 @@ which is positive only when `P > F / (p (p - 1))`. An always-on look-ahead won 3
 and lost 5.7 % at 4T 1024 and 3 % at 8T 1536, where the far product dwarfs the panel; the gate
 kept the wins and made the large cells level. Use it for a panel that gains nothing from the
 team (64 columns in the LU), not for one that does (`docs/worklogs/2026-11-19-lu-lookahead-panel.md`).
+## Below the blocking sizes, the block apply's calls are the cost
+
+A blocked factorization at `n = 32` (block width 4) is dozens of products of a few hundred
+multiply-adds; `nano_gemm` runs them at 6-8 GMAC/s on Zen 5 (AVX2) and the colmat wrapper adds
+little, so neither the team grid nor the wrapper is the lever. A level-2 sweep with one SIMD
+dispatch per reflector, several target columns per step so their reductions overlap, and two
+reflectors per sweep cut `qr_factor` by 41-55% at 32-96 (`docs/worklogs/2026-11-22-small-qr-level2.md`). Check
+whether one thread is as slow as eight before blaming the split: there it was 16.7 against 17.4 us.
+Gate such a path by work on a team (a complex multiply-add is about four real ones), and keep a
+consumer that is one wide product (a single wide block) on the team route.

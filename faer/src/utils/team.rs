@@ -198,7 +198,11 @@ pub mod stats {
 		pub split: Vec<usize>,
 		/// regions narrowed to a sub-team, index = its width (up to 256)
 		pub width: Vec<usize>,
-		/// GEMM calls decided sequential by the work floor
+		/// GEMM calls run as one sequential call because no width pays: the tile floor (small
+		/// products of `gemm_tiled`) or the kernel-grid floor (`kernel_width`). A product the
+		/// kernel grid takes, or the tile split cuts, is never counted here; a product the split
+		/// declines and the grid then runs counts in `gemm_team_kernel` only (plus
+		/// `gemm_one_tile` when the grid had a single tile), and one both decline counts once.
 		pub gemm_below_floor: usize,
 		/// GEMM calls whose tile grid had a single tile
 		pub gemm_one_tile: usize,
@@ -441,6 +445,22 @@ impl<T> SendPtr<T> {
 	}
 }
 
+/// The serial time up to which [`gemm_team`] splits a product into balanced tiles instead of
+/// handing it to the `private_gemm_x86` kernel's own job grid. The kernel's grid is
+/// `ceil(m / (mf mr))` row bands by `ceil(n / 32)` column strips with `mf >= 2`, which is two
+/// jobs for eight members at `64^3` and balances only once the shape is large; a tile split is
+/// balanced at every size but packs every panel once per tile, so it loses once the product is
+/// long enough for that duplication to matter. Eight milliseconds is where the measured window
+/// closes on this host: `512^3` (`8.6 ms` of f64 work) is 17% slower split in `f` order because a
+/// 512-wide destination row stride lands on one L1 set, and the 3% that the split still wins at
+/// `480^3` is the last of it. That window is only 7% wide, so the bound is calibrated to this
+/// host's measured rates: a host class whose rate table understates the serial f64 rate by more
+/// than that puts `512^3` back on the split route and re-exposes the cliff. A complex MAC is 4.5
+/// real ones in the rate table, so one bound in serial time covers every dtype (table:
+/// `docs/worklogs/2026-11-21-gemm-team-tile-split.md`).
+pub(crate) const TILED_CEILING: core::time::Duration =
+	core::time::Duration::from_millis(8);
+
 /// Granularity of tile edges: a multiple of the register tile of the `gemm` micro kernels
 /// (f64 on aarch64: 8 rows, 4 columns), so a tile does not end in a partial micro panel unless
 /// the matrix does.
@@ -658,13 +678,17 @@ fn job_tables<R>(
 
 /// A plain product on a team token (`dst := alpha * dst + beta * lhs * rhs`, the contract of
 /// `gemm::gemm` as [`gemm_tiled`]): on x86_64 with AVX2 the `private_gemm_x86` kernel on the
-/// team's members ([`kernel::with_fork`], width from the gate [`kernel::kernel_width`], two
-/// sections); below the gate the same kernel on the calling thread. Other targets and dtypes
-/// take [`gemm_tiled`].
+/// team's members. A product of at most [`TILED_CEILING`] serial work is cut into one tile per
+/// member, each a sequential kernel call ([`tile_split`], [`run_tiles`], one section); a longer
+/// one is handed to the kernel whole, which packs the shared panels once and runs its own job
+/// queue ([`kernel::with_fork`], width from the gate [`kernel::kernel_width`], two sections).
+/// Below both gates the same kernel runs on the calling thread. Other targets and dtypes take
+/// [`gemm_tiled`].
 ///
-/// The kernel's parallel job tables come from [`job_tables`], the calling thread's reusable
-/// workspace, so a warm product allocates nothing (faer#223); a product that finds that
-/// workspace lent out (a nested one) has the kernel allocate the tables instead.
+/// A product the kernel runs whole takes its parallel job tables from [`job_tables`], the calling
+/// thread's reusable workspace, so a warm product allocates nothing (faer#223); a product that
+/// finds that workspace lent out (a nested one) has the kernel allocate the tables instead. The
+/// tile route needs no tables.
 ///
 /// # Safety
 ///
@@ -698,28 +722,28 @@ pub(crate) unsafe fn gemm_team<E: 'static + Copy + Send + Sync>(
 		// `dst := (beta == Add ? dst : 0) + alpha * lhs * rhs`: `alpha` of the call is the
 		// identity whenever `read_dst` holds (the plain entry only passes 0 or 1)
 		macro_rules! go {
-			($call:path, $($tail:expr),* $(,)?) => {
+			($call:path, $dst:expr, $lhs:expr, $rhs:expr, $m:expr, $n:expr, $($tail:expr),* $(,)?) => {
 				$call(
 					dtype,
 					IType::U64,
 					feat,
-					m,
-					n,
+					$m,
+					$n,
 					k,
-					dst as *mut (),
+					$dst as *mut (),
 					dst_rs,
 					dst_cs,
 					core::ptr::null(),
 					core::ptr::null(),
 					DstKind::Full,
 					if read_dst { Accum::Add } else { Accum::Replace },
-					lhs as *const (),
+					$lhs as *const (),
 					lhs_rs,
 					lhs_cs,
 					conj_lhs,
 					core::ptr::null(),
 					0,
-					rhs as *const (),
+					$rhs as *const (),
 					rhs_rs,
 					rhs_cs,
 					conj_rhs,
@@ -731,16 +755,48 @@ pub(crate) unsafe fn gemm_team<E: 'static + Copy + Send + Sync>(
 		let call = |fork: Option<&dyn Fork>| unsafe {
 			match fork {
 				Some(fork) => job_tables(m, n, |tables| match tables {
-					Some(tables) => go!(gemm_with_scratch, fork, tables),
-					None => go!(gemm_with, fork),
+					Some(tables) => {
+						go!(gemm_with_scratch, dst, lhs, rhs, m, n, fork, tables)
+					},
+					None => go!(gemm_with, dst, lhs, rhs, m, n, fork),
 				}),
-				None => go!(gemm, 1),
+				None => go!(gemm, dst, lhs, rhs, m, n, 1),
 			}
+		};
+		// One sequential kernel call on a tile of the output. The operands travel as macro
+		// arguments: a `macro_rules!` body resolves a local name at its definition site, so
+		// shadowing them here would not reach it. Only scalars are captured, so this is
+		// `Sync` and can be called from a team member (the raw pointers travel as arguments,
+		// wrapped in [`SendPtr`] by the caller).
+		//
+		// # Safety
+		//
+		// The tile's destination and operands are the caller's, at the strides given to
+		// [`gemm_team`].
+		let seq = |d: *mut E, l: *const E, r: *const E, m: usize, n: usize| {
+			unsafe { go!(gemm, d, l, r, m, n, 1) }
 		};
 		let estimate = crate::utils::cost::serial_time(
 			m.saturating_mul(n).saturating_mul(k),
 			ns_per_mac,
 		);
+		// The kernel's own grid of jobs is `ceil(m / (mf * mr)) * ceil(n / (nf * nr))` with
+		// `mf >= 2` and `nf * nr = 32`, which does not follow the team's width: at 64^3 it
+		// makes two jobs for eight members. A small product instead gives every member a tile
+		// of [`tile_grid`], each a sequential kernel call, which balances both dimensions and
+		// opens one section instead of two.
+		if estimate <= TILED_CEILING {
+			if let Some(grid) = tile_split(&team, m, n, estimate) {
+				// SAFETY: `m`, `n` and the strides are the ones of this call.
+				unsafe {
+					run_tiles(
+						team, m, n, grid, dst, dst_cs, dst_rs, lhs, lhs_rs, rhs,
+						rhs_cs, &seq,
+					)
+				};
+				return;
+			}
+		}
 		match kernel::kernel_width(&team, estimate) {
 			Some(width) => {
 				kernel::with_fork(team, width, |fork| call(Some(fork)))
@@ -756,14 +812,14 @@ pub(crate) unsafe fn gemm_team<E: 'static + Copy + Send + Sync>(
 }
 
 /// `dst := alpha * dst + beta * lhs * rhs` (the contract of `gemm::gemm`) with the output cut
-/// into a `pm x pn` grid of tiles, one sequential `gemm::gemm` per team member (the route of
-/// targets without the x86 kernel, see [`gemm_team`]). The depth `k`
-/// is never split, so no reduction and no partial buffer is needed. Each member's call blocks
-/// for the caches by itself (the `gemm` crate chooses `kc`, `mc` and `nc` from the cache sizes),
-/// so a tile is the unit of work of a member and the blocking inside it is unchanged.
+/// into the tile grid [`tile_split`] picks, one sequential `gemm::gemm` per member ([`run_tiles`]):
+/// the route of targets and dtypes without the x86 kernel, and of the small products the x86
+/// route splits. The depth `k` is never split, so no reduction and no partial buffer is needed.
+/// Each member's call blocks for the caches by itself (the `gemm` crate chooses `kc`, `mc` and
+/// `nc` from the cache sizes), so a tile is the unit of work of a member and the blocking inside
+/// it is unchanged.
 ///
-/// Below the `gemm` crate's own threading floor, or on a single participant, the whole product
-/// is one sequential call.
+/// Below the floor, or on a single participant, the whole product is one sequential call.
 ///
 /// # Safety
 ///
@@ -820,51 +876,106 @@ pub(crate) unsafe fn gemm_tiled<E: 'static + Copy + Send + Sync>(
 			gemm::Parallelism::None,
 		)
 	};
-	// The floor is time, not a count: the serial time of the product (its MACs at the dtype's
-	// rate) against `PAYS` times the cost of one section, at the widest width that pays. A
-	// complex MAC is 4.5 real ones, so the floor of a complex product is that much lower in MACs.
 	let estimate = crate::utils::cost::serial_time(
 		m.saturating_mul(n).saturating_mul(k),
 		ns_per_mac,
 	);
-	let nt = crate::utils::cost::par_width_team(&team, estimate, 1, usize::MAX);
+	match tile_split(&team, m, n, estimate) {
+		// SAFETY: `m`, `n` and the strides are the ones of this call.
+		Some(grid) => unsafe {
+			run_tiles(
+				team, m, n, grid, dst, dst_cs, dst_rs, lhs, lhs_rs, rhs, rhs_cs,
+				&seq,
+			)
+		},
+		None => {
+			stats::bump(&stats::GEMM_BELOW_FLOOR);
+			seq(dst, lhs, rhs, m, n)
+		},
+	}
+}
+
+/// The grid `(pm, pn)` in which a product of serial time `estimate` is cut into one tile per
+/// member of `team`, or `None` when no grid pays and the caller should run one call instead.
+/// [`tile_grid`](self::tile_grid) picks the grid; a grid that cannot use every member of the
+/// width must still pay for the participants it does use, because `PAYS` need not be monotone in
+/// the width.
+///
+/// The floor is time, not a count: the serial time of the product (its MACs at the dtype's rate)
+/// against `PAYS` times the cost of one section, at the widest width that pays. A complex MAC is
+/// 4.5 real ones, so the floor of a complex product is that much lower in MACs.
+///
+/// A decline records [`stats::GEMM_ONE_TILE`] only: the caller decides what a product that no
+/// grid splits is, because [`gemm_team`] can still hand it to the kernel's own grid.
+fn tile_split(
+	team: &TeamExec<'_>,
+	m: usize,
+	n: usize,
+	estimate: core::time::Duration,
+) -> Option<(usize, usize)> {
+	// one section: the members pack nothing before their own call
+	let nt = crate::utils::cost::par_width_team(team, estimate, 1, usize::MAX);
 	if nt <= 1 {
-		stats::bump(&stats::GEMM_BELOW_FLOOR);
-		return seq(dst, lhs, rhs, m, n);
+		return None;
 	}
 	let (pm, pn) = tile_grid(m, n, nt);
 	if pm * pn <= 1 {
 		stats::bump(&stats::GEMM_ONE_TILE);
-		return seq(dst, lhs, rhs, m, n);
+		return None;
 	}
-	// the section runs on `pm * pn` participants, which the grid can leave below `nt`: that width
-	// must pay as well (a row need not be monotone)
 	if pm * pn < nt
 		&& !crate::utils::cost::pays_at(
 			estimate,
 			1,
 			team.dispatch_cost(core::num::NonZeroUsize::new(pm * pn).unwrap()),
-		) {
-		stats::bump(&stats::GEMM_BELOW_FLOOR);
-		return seq(dst, lhs, rhs, m, n);
+		)
+	{
+		return None;
 	}
 	if pm * pn < team.size().get() {
 		note_width(pm * pn);
 	}
+	Some((pm, pn))
+}
+
+/// Runs the grid [`tile_split`] chose: one section ([`run`]) on `pm * pn` members, each running
+/// `seq` on the tiles it is dealt, so a member narrower than the grid runs several tiles in a row.
+///
+/// # Safety
+///
+/// `dst`, `lhs` and `rhs` address `m x n`, `m x k` and `k x n` matrices at the given strides,
+/// `seq` implements `dst := alpha * dst + beta * lhs * rhs` on a sub-rectangle, and the tiles are
+/// disjoint parts of the destination that no other thread touches.
+#[allow(clippy::too_many_arguments)]
+unsafe fn run_tiles<E: Copy + Send + Sync>(
+	team: TeamExec<'_>,
+	m: usize,
+	n: usize,
+	(pm, pn): (usize, usize),
+	dst: *mut E,
+	dst_cs: isize,
+	dst_rs: isize,
+	lhs: *const E,
+	lhs_rs: isize,
+	rhs: *const E,
+	rhs_cs: isize,
+	seq: &(dyn Fn(*mut E, *const E, *const E, usize, usize) + Sync),
+) {
 	stats::bump(&stats::GEMM_TILED);
 	let (dst, lhs, rhs) =
 		(SendPtr(dst), SendPtr(lhs as *mut E), SendPtr(rhs as *mut E));
 	run(team, pm * pn, &|i, parts| {
-		// `parts == pm * pn` unless the team is narrower, then the tiles are dealt round robin
+		// `parts == pm * pn` for every grid `tile_split` returns, since `nt` is clamped to the
+		// team's size; round robin keeps a narrower section correct rather than skipping tiles
 		let mut t = i;
 		while t < pm * pn {
 			let (ti, tj) = (t % pm, t / pm);
 			let (i0, i1) = grain_range(m, pm, ti, ROW_GRAIN);
 			let (j0, j1) = grain_range(n, pn, tj, COL_GRAIN);
 			if i1 > i0 && j1 > j0 {
-				let d = dst.get().wrapping_offset(
-					i0 as isize * dst_rs + j0 as isize * dst_cs,
-				);
+				let d = dst
+					.get()
+					.wrapping_offset(i0 as isize * dst_rs + j0 as isize * dst_cs);
 				let l =
 					lhs.get().wrapping_offset(i0 as isize * lhs_rs) as *const E;
 				let r =
@@ -3107,8 +3218,9 @@ mod tests {
 		.expect("a team token");
 	}
 
-	/// Every route that reaches the kernel on a team agrees with sequential, and the counters
-	/// show the kernel ran on the team (not `gemm_tiled`, not an outside runtime).
+	/// Every route that reaches the kernel on a team agrees with sequential: below
+	/// [`TILED_CEILING`] the team cuts the product into tiles and above it the kernel runs its
+	/// own job grid (not an outside runtime, not a silent sequential call).
 	#[cfg(all(target_arch = "x86_64", feature = "std"))]
 	#[test]
 	fn team_kernel_products_match_sequential_for_every_dtype() {
@@ -3120,51 +3232,79 @@ mod tests {
 			from: impl Fn(f64, f64) -> T,
 			err: impl Fn(T, T) -> f64,
 		) {
-			let (m, n, k) = (333usize, 287usize, 211usize);
-			let gen = |r: usize, c: usize, seed: u64| {
-				let mut x = seed
-					.wrapping_mul(6364136223846793005)
-					.wrapping_add(1442695040888963407);
-				Mat::<T>::from_fn(r, c, |_, _| {
-					x = x
+			// the long shape is 1.5 times the ceiling of this dtype's own rate, so the
+			// kernel's grid is covered for the cheap (f32) and the expensive (c64) MAC too
+			let rate = crate::utils::cost::gemm_ns_per_mac::<T>();
+			let side = (1.5e9 * TILED_CEILING.as_secs_f64() / rate).cbrt()
+				as usize
+				+ 8;
+			// `333 x 287 x 211` must stay below the ceiling for every dtype, or the
+			// tile route this case asserts is not the one that runs
+			assert!(
+				crate::utils::cost::serial_time(333 * 287 * 211, rate)
+					<= TILED_CEILING
+			);
+			for (m, n, k, kernel_grid) in [
+				(333usize, 287usize, 211usize, false),
+				(side, side, side, true),
+			] {
+				let gen = |r: usize, c: usize, seed: u64| {
+					let mut x = seed
 						.wrapping_mul(6364136223846793005)
 						.wrapping_add(1442695040888963407);
-					let u = (x >> 11) as f64 / (1u64 << 53) as f64 - 0.5;
-					from(u, 0.25 - u)
-				})
-			};
-			let (a, b) = (gen(m, k, 1), gen(k, n, 2));
-			let alpha = from(0.75, -0.25);
-			for beta in [Accum::Replace, Accum::Add] {
-				let base = gen(m, n, 3);
-				let (mut want, mut got) = (base.clone(), base);
-				matmul(
-					want.as_mut(),
-					beta,
-					a.as_ref(),
-					b.as_ref(),
-					alpha,
-					Par::Seq,
-				);
-				let ((), st) = counted(6, |par| {
+					Mat::<T>::from_fn(r, c, |_, _| {
+						x = x
+							.wrapping_mul(6364136223846793005)
+							.wrapping_add(1442695040888963407);
+						let u =
+							(x >> 11) as f64 / (1u64 << 53) as f64 - 0.5;
+						from(u, 0.25 - u)
+					})
+				};
+				let (a, b) = (gen(m, k, 1), gen(k, n, 2));
+				let alpha = from(0.75, -0.25);
+				for beta in [Accum::Replace, Accum::Add] {
+					let base = gen(m, n, 3);
+					let (mut want, mut got) = (base.clone(), base);
 					matmul(
-						got.as_mut(),
+						want.as_mut(),
 						beta,
 						a.as_ref(),
 						b.as_ref(),
 						alpha,
-						par,
-					)
-				});
-				let mut d = 0.0f64;
-				for j in 0..n {
-					for i in 0..m {
-						d = max_finite(d, err(want[(i, j)], got[(i, j)]));
+						Par::Seq,
+					);
+					let ((), st) = counted(6, |par| {
+						matmul(
+							got.as_mut(),
+							beta,
+							a.as_ref(),
+							b.as_ref(),
+							alpha,
+							par,
+						)
+					});
+					let mut d = 0.0f64;
+					for j in 0..n {
+						for i in 0..m {
+							d = max_finite(
+								d,
+								err(want[(i, j)], got[(i, j)]),
+							);
+						}
+					}
+					assert!(d < 1e-3, "{beta:?} {m}x{k}x{n}: {d}");
+					if kernel_grid {
+						assert_eq!(st.gemm_team_kernel, 1, "{st:?}");
+						assert_eq!(st.gemm_tiled, 0, "{st:?}");
+					} else {
+						assert_eq!(
+							st.gemm_tiled, 1,
+							"{m}x{k}x{n}: {st:?}"
+						);
+						assert_eq!(st.gemm_team_kernel, 0, "{st:?}");
 					}
 				}
-				assert!(d < 1e-3, "{beta:?}: {d}");
-				assert_eq!(st.gemm_team_kernel, 1, "{st:?}");
-				assert_eq!(st.gemm_tiled, 0, "{st:?}");
 			}
 		}
 		check::<f64>(|x, _| x, |w, g| (w - g).abs());
@@ -3178,7 +3318,8 @@ mod tests {
 
 	/// `spicy_matmul` and the triangular product on a team (kernel, lower and upper, indexed
 	/// destination) and the factorizations built on them: Cholesky (both), LDLT, QR and LU on a
-	/// team equal their sequential results, and the kernel ran on the team.
+	/// team equal their sequential results, and their products ran on the team (the tile split
+	/// for the blocked trailing updates, the kernel's own grid where a product is long enough).
 	#[cfg(all(target_arch = "x86_64", feature = "std"))]
 	#[test]
 	fn team_kernel_triangular_indexed_and_factorizations_match_sequential() {
@@ -3353,7 +3494,8 @@ mod tests {
 			lower_diff(&llt_with(Par::Seq, wide), &got) < 1e-8,
 			"llt 128"
 		);
-		assert!(st.gemm_team_kernel > 0, "llt 128: {st:?}");
+		// the 128-wide trailing products are below `TILED_CEILING`: the split route carries them
+		assert!(st.gemm_team_kernel + st.gemm_tiled > 0, "llt 128: {st:?}");
 		let ldlt = |par: Par| {
 			let mut f = spd.clone();
 			let mut mem = dyn_stack::MemBuffer::new(crate::linalg::cholesky::ldlt::factor::cholesky_in_place_scratch::<f64>(n, par.shape(), Default::default()));
@@ -3373,7 +3515,7 @@ mod tests {
 		};
 		let (got, st) = counted(6, ldlt);
 		assert!(lower_diff(&ldlt(Par::Seq), &got) < 1e-8, "ldlt");
-		assert!(st.gemm_team_kernel > 0, "ldlt: {st:?}");
+		assert!(st.gemm_team_kernel + st.gemm_tiled > 0, "ldlt: {st:?}");
 		let qr = |par: Par| {
 			let mut f = g.clone();
 			let bs =
@@ -3415,10 +3557,10 @@ mod tests {
 		};
 		let (got, st) = counted(6, lu);
 		assert!(max_diff(lu(Par::Seq).as_ref(), got.as_ref()) < 1e-8, "lu");
-		assert!(st.gemm_team_kernel > 0, "lu: {st:?}");
+		assert!(st.gemm_team_kernel + st.gemm_tiled > 0, "lu: {st:?}");
 	}
 
-	/// QR at a size whose block-reflector products are above the gate: they run on the kernel.
+	/// QR at a size whose block-reflector products are above the floor: they run on the team.
 	#[cfg(all(target_arch = "x86_64", feature = "std"))]
 	#[test]
 	fn team_kernel_qr_matches_sequential() {
@@ -3450,7 +3592,7 @@ mod tests {
 		};
 		let (got, st) = counted(6, qr);
 		assert!(max_diff(qr(Par::Seq).as_ref(), got.as_ref()) < 1e-7, "qr");
-		assert!(st.gemm_team_kernel > 0, "qr: {st:?}");
+		assert!(st.gemm_team_kernel + st.gemm_tiled > 0, "qr: {st:?}");
 	}
 
 	/// The high level methods take the parallelism as an argument (there is no process wide
@@ -3608,6 +3750,6 @@ mod tests {
 			});
 			assert_eq!(dirty_members(par.reborrow()), 0);
 		});
-		assert!(st.gemm_team_kernel >= 1, "{st:?}");
+		assert!(st.gemm_team_kernel + st.gemm_tiled >= 1, "{st:?}");
 	}
 }

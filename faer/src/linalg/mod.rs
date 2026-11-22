@@ -793,8 +793,11 @@ pub mod lu;
 mod mat_ops;
 pub mod matmul;
 pub mod pfaffian;
+pub mod polar;
+pub mod ql;
 pub mod qr;
 pub(crate) mod reductions;
+pub mod rq;
 /// high level solvers
 pub mod solvers;
 pub mod svd;

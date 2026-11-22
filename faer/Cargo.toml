@@ -134,6 +134,11 @@ npy = [
 ]
 
 [dev-dependencies]
+# `examples/sme_route.rs` prints the SME size gate's own verdict (`sme_thresholds`) next to its
+# timing (#180). It is the kernels' gate only while `Cargo.lock` holds one copy of the crate, which
+# `scripts/sme-route-probe.sh` checks; bump this with `gemm` when that moves to another range.
+# The floor stays at the facade's 0.20.1; the 0.20.4 floor of the library lives in `Cargo.lock`.
+gemm-common = { package = "t4a-gemm-common", version = "0.20.1", default-features = false }
 log = { version = "0.4.29", default-features = false, features = ["std"] }
 aligned-vec = "0.6.4"
 amd = "0.2.2"

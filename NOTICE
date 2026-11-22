@@ -27,6 +27,15 @@ are faer's own and the decomposition is faer's blocked QR on the transposed view
 so no MatrixAlgebraKit expression is translated; MIT is the same license as this
 repository's LICENSE and no additional COPYING file is required.
 
+QL and RQ factorizations follow the output conventions of MatrixFactorizations.jl
+(MIT, Copyright (c) 2019 JuliaLinearAlgebra,
+https://github.com/JuliaLinearAlgebra/MatrixFactorizations.jl, commit
+a38f07fbbcb8abebb203bf67fc745b8c262d6d19): the factor shapes and the
+real-nonnegative-diagonal gauge. The decomposition is faer's blocked QR and LQ on
+the view with reversed rows and columns, so no MatrixFactorizations.jl expression
+is translated; MIT is the same license as this repository's LICENSE and no
+additional COPYING file is required.
+
 faer also contains code ported from other projects. Those files keep their own
 terms and their notices ship alongside the crate:
 

@@ -24,6 +24,13 @@ pub(crate) fn apply_to_identity<T: ComplexField>(
 		block_size > 0,
 		Q_coeff.ncols() == Ord::min(Q_basis.nrows(), Q_basis.ncols())
 	));
+	if T::SIMD_CAPABILITIES.is_simd()
+		&& out.row_stride() == 1
+		&& Q_basis.row_stride() == 1
+		&& out.nrows().saturating_mul(out.ncols()) <= SMALL_UNITARY_MAX_AREA
+	{
+		return apply_to_identity_small(out, offset, Q_basis, Q_coeff);
+	}
 	let mut end = Q_coeff.ncols();
 	while end > 0 {
 		let start = (end - 1) / block_size * block_size;
@@ -37,6 +44,81 @@ pub(crate) fn apply_to_identity<T: ComplexField>(
 			stack.rb_mut(),
 		);
 		end = start;
+	}
+}
+/// Largest target (`nrows * ncols`) for [`apply_to_identity_small`]: f64 at one thread,
+/// `compute_thin_Q` of a `64 x 64` factorization takes 34.0 us against 39.6 for the blocked
+/// sequence, `96 x 96` 77.8 against 81.0, and `128 x 128` 171 against 162.
+const SMALL_UNITARY_MAX_AREA: usize = 96 * 96;
+/// [`apply_to_identity`] for a small column-major target, one reflector at a time from the last
+/// (LAPACK's `org2r`), two at a time where two remain (`householder::apply_reflector_pair_small` in
+/// its `reverse` order): the blocked sequence is a block apply of a few columns per block, whose fixed
+/// cost is the call at these sizes (tensor4all/colmat-rs#269), the same reason as the factorization's
+/// small path. Only the diagonal of each block factor of `Q_coeff` is read: reflector `k`'s `tau`.
+/// Reflector `k` meets the target from column `k - offset` (clamped), as in the blocked sequence; a
+/// pair starts at the earlier reflector's column, which the later one leaves unchanged.
+fn apply_to_identity_small<T: ComplexField>(
+	out: MatMut<'_, T>,
+	offset: usize,
+	Q_basis: MatRef<'_, T>,
+	Q_coeff: MatRef<'_, T>,
+) {
+	use linalg::householder::{
+		apply_reflector_pair_small, apply_reflector_small,
+	};
+	let mut out = out;
+	let block_size = Q_coeff.nrows();
+	let m = Q_basis.nrows();
+	let ncols = out.ncols();
+	let tau_inv = |k: usize| -> T {
+		Q_coeff[(k % block_size, k)].real().recip().to_cplx()
+	};
+	let first_col = |k: usize| k.saturating_sub(offset).min(ncols);
+	let mut end = Q_coeff.ncols();
+	while end > 0 {
+		let k = end - 1;
+		if k >= 1 && k + 1 < m {
+			let r = k - 1;
+			let (t1, t2) = (tau_inv(r), tau_inv(k));
+			let e10 = Q_basis[(k, r)].clone();
+			with_dim!(TAIL, m - k - 1);
+			let e1 = Q_basis.col(r).subrows(k + 1, m - k - 1);
+			let e2 = Q_basis.col(k).subrows(k + 1, m - k - 1);
+			let s = e10.conj()
+				+ linalg::matmul::dot::inner_prod(
+					e1.transpose(),
+					Conj::Yes,
+					e2,
+					Conj::No,
+				);
+			let target = out.rb_mut().get_mut(r.., first_col(r)..);
+			let (rows01, rhs) = target.split_at_row_mut(2);
+			let (r0, r1) = rows01.split_at_row_mut(1);
+			apply_reflector_pair_small::<_, true>(
+				[&t1, &t2],
+				&s,
+				&e10,
+				e1.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				e2.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				r0.row_mut(0),
+				r1.row_mut(0),
+				rhs.as_row_shape_mut(TAIL).try_as_col_major_mut().unwrap(),
+			);
+			end -= 2;
+		} else {
+			let t = tau_inv(k);
+			with_dim!(TAIL, m - k - 1);
+			let essential = Q_basis.col(k).subrows(k + 1, m - k - 1);
+			let target = out.rb_mut().get_mut(k.., first_col(k)..);
+			let (rhs0, rhs) = target.split_at_row_mut(1);
+			apply_reflector_small(
+				&t,
+				essential.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				rhs0.row_mut(0),
+				rhs.as_row_shape_mut(TAIL).try_as_col_major_mut().unwrap(),
+			);
+			end -= 1;
+		}
 	}
 }
 /// starts `out` as the identity block at rows `offset..offset + q` and applies

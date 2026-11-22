@@ -17,7 +17,9 @@ type, so one Rust function serves all four where the algorithm applies to comple
 | `?geqrf` | QR factorization | `MatRef::qr(par)`, or `qr_in_place` | `faer/src/linalg/solvers.rs:420`, `faer/src/linalg/qr/no_pivoting/factor.rs:407` |
 | `?orgqr`, `?ungqr`, `?ormqr` | Form or apply `Q` | `Qr::compute_Q`, `Qr::compute_thin_Q` | `faer/src/linalg/solvers.rs:1382`, `:1403` |
 | `?geqp3` | Column-pivoted QR, `A P^T = Q R` | `MatRef::col_piv_qr(par)`, or `qr_in_place` (column pivoting) | `faer/src/linalg/solvers.rs:426`, `faer/src/linalg/qr/col_pivoting/factor.rs:372` |
-| `?gelqf` | LQ factorization | `lq_in_place` | `faer/src/linalg/lq/no_pivoting/factor.rs:40` |
+| `?gelqf` | LQ factorization | `lq_in_place` | `faer/src/linalg/lq/no_pivoting/factor.rs:47` |
+| `?geqlf`, `?orgql`, `?ungql` | QL factorization, form `Q` | `ql_in_place`, `ql::no_pivoting::unitary::unitary` | `faer/src/linalg/ql/no_pivoting/factor.rs:40`, `faer/src/linalg/ql/no_pivoting/unitary.rs:28` |
+| `?gerqf`, `?orgrq`, `?ungrq` | RQ factorization, form `Q` | `rq_in_place`, `rq::no_pivoting::unitary::unitary` | `faer/src/linalg/rq/no_pivoting/factor.rs:41`, `faer/src/linalg/rq/no_pivoting/unitary.rs:28` |
 | `?gels` | Least squares through QR | `Qr::solve_lstsq` (`SolveLstsq`) | `faer/src/linalg/solvers.rs:851` |
 | `?gelsd`, `?gelss` | Least squares / minimum norm through SVD | `Svd::solve_lstsq` (`SolveLstsq`) | `faer/src/linalg/solvers.rs:851` |
 | `?potrf` | Cholesky, `A = L L^H` | `MatRef::llt(side, par)`, or `cholesky_in_place` | `faer/src/linalg/solvers.rs:451`, `faer/src/linalg/cholesky/llt/factor.rs:67` |

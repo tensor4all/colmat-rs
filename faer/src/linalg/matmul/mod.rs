@@ -2218,13 +2218,26 @@ mod tests {
 	use crate::{assert, c32, c64, fx128};
 	use core::mem::MaybeUninit;
 	/// Below the flop floor `matmul` runs the sequential kernel whatever budget
-	/// the caller passes, and above it the kernel threads: both must compute the
-	/// same product, at the sizes on each side of the floor.
+	/// the caller passes, above it the team splits the product into tiles, and above
+	/// `TILED_CEILING` it hands it to the kernel's own job grid: all three must compute
+	/// the same product, at a size in each regime.
 	#[test]
 	fn thread_budget_does_not_change_the_product() {
-		for (m, k, n) in
-			[(32, 32, 32), (64, 64, 64), (17, 23, 31), (128, 128, 128)]
-		{
+		// the last shape is the one above the tile ceiling: if it ever falls below, the
+		// kernel's own grid loses its only coverage
+		assert!(
+			crate::utils::cost::serial_time(
+				640 * 640 * 640,
+				crate::utils::cost::gemm_ns_per_mac::<f64>(),
+			) > crate::utils::team::TILED_CEILING
+		);
+		for (m, k, n) in [
+			(32, 32, 32),
+			(64, 64, 64),
+			(17, 23, 31),
+			(128, 128, 128),
+			(640, 640, 640),
+		] {
 			let lhs = Mat::<f64>::from_fn(m, k, |i, j| {
 				((i * 7 + j * 13) % 11) as f64 * 0.5 - 2.5
 			});

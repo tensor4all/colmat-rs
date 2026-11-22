@@ -50,6 +50,7 @@ That is about 57 GFLOP/s (f64) and 112 GFLOP/s (f32) on one M5 Max performance c
 `faer` 0.24.4's `matmul` calls `gemm::gemm` on every target other than x86_64 with AVX2 and FMA (`src/linalg/matmul/mod.rs:1416`), which includes every Apple chip.
 Every blocked factorization that reaches `matmul` through its trailing update gets the same kernel.
 This program does not measure that path through faer.
+For the fork, a direct `matmul` call (sequential and on a team) is measured in `docs/worklogs/2026-11-22-sme-route-180.md` (tensor4all/colmat-rs#180): colmat's `matmul` reaches the `t4a-gemm` SME kernel for f32, f64, c32 and c64 at one thread wherever the size gate allows it, and on a team the gate judges each member's tile. The factorizations' trailing updates are not measured there.
 
 ## How the fork fixed it
 

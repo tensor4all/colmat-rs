@@ -1,0 +1,20 @@
+2026年 11月22日 日曜日 19時29分14秒 JST
+19:29  up 25 days, 13:47, 3 users, load averages: 7.26 5.63 4.61
+26.7.2
+Apple M5 Max
+rustc 1.96.0 (ac68faa20 2026-05-25)
+c82d2b8f4a5399fab5dbe434c26df90daa2211b3
+hw.optional.arm.FEAT_SME: 1
+hw.optional.arm.FEAT_SME2: 1
+hw.optional.arm.FEAT_SME2p1: 1
+hw.optional.arm.SME_F32F32: 1
+hw.optional.arm.SME_BI32I32: 1
+hw.optional.arm.SME_B16F32: 1
+hw.optional.arm.SME_F16F32: 1
+hw.optional.arm.SME_I8I32: 1
+hw.optional.arm.SME_I16I32: 1
+hw.optional.arm.FEAT_SME_F64F64: 1
+hw.optional.arm.FEAT_SME_I16I64: 1
+hw.optional.arm.FEAT_SME_F16F16: 1
+hw.optional.arm.FEAT_SME_B16B16: 1
+hw.optional.arm.sme_max_svl_b: 64

@@ -79,6 +79,223 @@ fn qr_in_place_unblocked<T: ComplexField>(
 	row
 }
 
+/// Largest `m * n` factored by [`qr_in_place_small`] instead of the blocked recursion (see
+/// [`small_path`]); a complex type on a team counts each element four times.
+const SMALL_QR_MAX_AREA: usize = 128 * 128;
+/// Widest `n / m` factored by [`qr_in_place_small`] (see [`small_path`]).
+const SMALL_QR_MAX_ASPECT: usize = 32;
+/// Whether `qr_in_place_packed` factors `A` on the small path: a SIMD scalar type, contiguous
+/// columns (the reflector kernel reads them as slices), at most [`SMALL_QR_MAX_AREA`] elements
+/// (a quarter of that for a complex type on a team) and at most [`SMALL_QR_MAX_ASPECT`] columns
+/// per row. Below that area the blocked recursion is a sequence of products of a few columns
+/// each, and their fixed cost, not their arithmetic, is the factorization: `32 x 32` f64 at block
+/// width 4 spends half its time in the trailing block applies and a fifth each in the panels and
+/// the factor merges (tensor4all/colmat-rs#269).
+///
+/// The bounds are the measured crossovers (f64, evo, median of 5): square, the small path wins
+/// at one thread up to 192 (527 us against 656), but from 160 the blocked route's team products
+/// win at four and eight participants, while `128 x 128` still takes 159 us against 193-250 at
+/// every count. Tall shapes win throughout (`256 x 64` 122 against 180 us); very wide ones lose
+/// (`16 x 1024` 81.2 against 76.4, `8 x 1024` 37.5 against 33.0) and `16 x 512` still wins (40.7
+/// against 42.8).
+fn small_path<T: ComplexField>(A: MatRef<'_, T>, par: &Par) -> bool {
+	// On a team the blocked route's products can run in parallel, and a complex multiply-add is
+	// about four real ones (the cost model's GEMM rates, 0.165 against 0.037 ns), so it pays from a
+	// quarter of the real area: c64 `128 x 128` at four and eight participants took 500 us on the
+	// small path against 433 and 375 on the blocked route, while `64 x 64` took 76 us against
+	// 117-120. The small path itself is sequential and wins at every listed size on one thread.
+	let weight =
+		if !T::IS_REAL && crate::utils::thread::parallelism_degree(par) > 1 {
+			4
+		} else {
+			1
+		};
+	T::SIMD_CAPABILITIES.is_simd()
+		&& A.row_stride() == 1
+		&& A.nrows().saturating_mul(A.ncols()).saturating_mul(weight)
+			<= SMALL_QR_MAX_AREA
+		&& A.ncols() <= SMALL_QR_MAX_ASPECT.saturating_mul(A.nrows())
+}
+/// The $QR$ factorization of a small column-major matrix, one reflector at a time (LAPACK's
+/// `geqr2`), with the block factors of `H` formed afterwards from the reflectors.
+///
+/// Each column is reduced by `make_qr_householder`, exactly as in [`qr_in_place_unblocked`],
+/// and its reflector is applied to all the trailing columns in one SIMD dispatch
+/// (`householder::apply_reflector_small`): an inner product and an FMA update per column, four columns
+/// at a time, where the unblocked panel makes one inner product call and one element-wise pass
+/// per column pair. Rank-deficient columns are handled as
+/// there (a skipped column leaves `row` behind `col`, and the reflector is stored at column `row`).
+///
+/// `H` then receives, for each block of `block_size = H.nrows()` reflectors, the factor the
+/// block applies expect (`upgrade_householder_factor`'s): `tau` on the diagonal and
+/// `H[i, j] = v_i^H v_j` above it, formed directly as one inner product per pair. Returns the rank.
+fn qr_in_place_small<T: ComplexField>(
+	A: MatMut<'_, T>,
+	H: MatMut<'_, T>,
+) -> usize {
+	let mut A = A;
+	let mut H = H;
+	let (m, n) = A.shape();
+	let size = H.ncols();
+	let block_size = H.nrows();
+	let mut col = 0;
+	let mut row = 0;
+	while row < Ord::min(size, m) && col < n {
+		let (left, right) = A.rb_mut().split_at_col_mut(col + 1);
+		let (mut left, mut right) =
+			(left.get_mut(row.., ..), right.get_mut(row.., ..));
+		let info = {
+			let (mut head_rows, tail_rows) = left.rb_mut().split_at_row_mut(1);
+			let (mut tail_l, tail_r) = tail_rows.split_at_col_mut(col);
+			let mut tail_r = tail_r.col_mut(0);
+			let head = &mut head_rows[(0, col)];
+			if row == col {
+				householder::make_qr_householder(head, tail_r.rb_mut(), None)
+			} else {
+				let info = householder::make_qr_householder(
+					head,
+					tail_l.rb_mut().col_mut(row),
+					Some(tail_r.rb()),
+				);
+				let nrows = tail_r.nrows();
+				tail_r.get_mut(..Ord::min(nrows, col - row)).fill(zero());
+				info
+			}
+		};
+		H[(0, row)] = info.tau.to_cplx();
+		let tau_inv = info.tau.recip();
+		if tau_inv < min_positive() {
+			if info.norm > zero() {
+				row += 1;
+			}
+		} else if info.norm > zero() {
+			let tau_inv = tau_inv.to_cplx();
+			let essential = left.rb().col(row).subrows(1, m - row - 1);
+			with_dim!(TAIL, m - row - 1);
+			let essential =
+				essential.as_row_shape(TAIL).try_as_col_major().unwrap();
+			// the full-rank step takes two reflectors: the first is applied to the next column, which
+			// makes the second, and the pair then sweeps the rest of the trailing columns once
+			if row == col && row + 2 < Ord::min(size, m) && col + 2 < n {
+				{
+					let (rhs0, rhs) =
+						right.rb_mut().get_mut(.., ..1).split_at_row_mut(1);
+					householder::apply_reflector_small(
+						&tau_inv,
+						essential,
+						rhs0.row_mut(0),
+						rhs.as_row_shape_mut(TAIL)
+							.try_as_col_major_mut()
+							.unwrap(),
+					);
+				}
+				let info2 = {
+					let (mut top, bot) = right.rb_mut().split_at_row_mut(2);
+					let head = &mut top[(1, 0)];
+					householder::make_qr_householder(head, bot.col_mut(0), None)
+				};
+				H[(0, row + 1)] = info2.tau.to_cplx();
+				let tau_inv2 = info2.tau.recip();
+				let (next, rest) = right.rb_mut().split_at_col_mut(1);
+				// the unblocked loop's test: a reflector is skipped only when `1 / tau` is below
+				// the smallest positive value
+				let skip2 = tau_inv2 < min_positive();
+				if !skip2 && info2.norm > zero() {
+					let tau_inv2 = tau_inv2.to_cplx();
+					with_dim!(TAIL2, m - row - 2);
+					let e1 = essential
+						.as_dyn_rows()
+						.subrows(1, m - row - 2)
+						.as_row_shape(TAIL2)
+						.try_as_col_major()
+						.unwrap();
+					let e2 = next
+						.rb()
+						.col(0)
+						.subrows(2, m - row - 2)
+						.as_row_shape(TAIL2)
+						.try_as_col_major()
+						.unwrap();
+					let e10 = essential.as_dyn_rows()[0].clone();
+					let s = &e10
+						+ linalg::matmul::dot::inner_prod(
+							e2.as_dyn_rows().as_dyn_stride().transpose(),
+							Conj::Yes,
+							e1.as_dyn_rows().as_dyn_stride(),
+							Conj::No,
+						);
+					let (rows01, rhs) = rest.split_at_row_mut(2);
+					let (r0, r1) = rows01.split_at_row_mut(1);
+					householder::apply_reflector_pair_small::<_, false>(
+						[&tau_inv, &tau_inv2],
+						&s,
+						&e10,
+						e1,
+						e2,
+						r0.row_mut(0),
+						r1.row_mut(0),
+						rhs.as_row_shape_mut(TAIL2)
+							.try_as_col_major_mut()
+							.unwrap(),
+					);
+					row += 2;
+				} else {
+					let (rhs0, rhs) = rest.split_at_row_mut(1);
+					householder::apply_reflector_small(
+						&tau_inv,
+						essential,
+						rhs0.row_mut(0),
+						rhs.as_row_shape_mut(TAIL)
+							.try_as_col_major_mut()
+							.unwrap(),
+					);
+					row += 1;
+					if info2.norm > zero() {
+						row += 1;
+					}
+				}
+				col += 2;
+				continue;
+			}
+			if right.ncols() > 0 {
+				let (rhs0, rhs) = right.rb_mut().split_at_row_mut(1);
+				householder::apply_reflector_small(
+					&tau_inv,
+					essential,
+					rhs0.row_mut(0),
+					rhs.as_row_shape_mut(TAIL).try_as_col_major_mut().unwrap(),
+				);
+			}
+			row += 1;
+		}
+		col += 1;
+	}
+	let rank = row;
+	let mut start = 0;
+	while start < rank {
+		let local = Ord::min(block_size, rank - start);
+		for j in 1..local {
+			H[(j, start + j)] = H[(0, start + j)].clone();
+		}
+		for j in 1..local {
+			let s = start + j;
+			let vs = A.rb().col(s).subrows(s + 1, m - s - 1);
+			for i in 0..j {
+				let r = start + i;
+				let vr = A.rb().col(r).subrows(s + 1, m - s - 1);
+				H[(i, s)] = A[(s, r)].conj()
+					+ linalg::matmul::dot::inner_prod(
+						vr.transpose(),
+						Conj::Yes,
+						vs,
+						Conj::No,
+					);
+			}
+		}
+		start += block_size;
+	}
+	rank
+}
 /// the recommended block size to use for a $QR$ decomposition of a matrix with
 /// the given shape.
 #[inline]
@@ -755,17 +972,21 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 		Q_coeff.ncols() == Ord::min(A.nrows(), A.ncols()),
 	));
 	let mut Q_coeff = Q_coeff;
-	let rank = qr_in_place_blocked(
-		A,
-		Q_coeff.rb_mut(),
-		0,
-		0,
-		par,
-		stack,
-		params,
-		true,
-		stage_panels,
-	);
+	let rank = if small_path(A.rb(), &par) {
+		qr_in_place_small(A, Q_coeff.rb_mut())
+	} else {
+		qr_in_place_blocked(
+			A,
+			Q_coeff.rb_mut(),
+			0,
+			0,
+			par,
+			stack,
+			params,
+			true,
+			stage_panels,
+		)
+	};
 	Q_coeff.rb_mut().get_mut(.., rank..).fill(zero());
 	let mut col = rank / block_size * block_size;
 	let n = Q_coeff.ncols();
@@ -1436,6 +1657,152 @@ mod tests {
 			)),
 		);
 		(A - &Q * &R).norm_l2() / A.norm_l2()
+	}
+
+	/// The small path (tensor4all/colmat-rs#269) against the blocked recursion, on shapes on both
+	/// sides of its gates (`128 x 128` in, `129 x 128` out; `16 x 512` in, `16 x 513` out), one and
+	/// two reflector tails, low rank, and both dtypes. The routed factor must reconstruct `A` through
+	/// the routed `Q` (the sequence and `compute_thin_Q` small paths at these sizes), its block
+	/// factors must be the ones a blocked consumer expects (`Q^H A` through the transpose sequence,
+	/// which reads every entry of `H`, gives back `R`), and a full-rank `R` must agree with the
+	/// blocked route's to rounding.
+	#[test]
+	fn small_path_matches_the_blocked_route() {
+		fn check<T: ComplexField<Real = f64>>(
+			A: MatRef<'_, T>,
+			rank: usize,
+			tol: f64,
+		) {
+			let (m, n) = A.shape();
+			let k = Ord::min(m, n);
+			let bs = recommended_block_size::<T>(m, n);
+			let req =
+				qr_in_place_scratch::<T>(m, n, bs, ParShape::Seq, default());
+			let mut QR = A.cloned();
+			let mut H = Mat::<T>::zeros(bs, k);
+			let info = qr_in_place(
+				QR.as_mut(),
+				H.as_mut(),
+				Par::Seq,
+				MemStack::new(&mut MemBuffer::new(req)),
+				default(),
+			);
+			assert!(info.rank >= rank);
+			let mut R = Mat::<T>::zeros(k, n);
+			R.as_mut().copy_from_triangular_upper(QR.get(..k, ..));
+			let scale = A.norm_l2().max(1.0);
+			// reconstruction through the routed thin Q
+			let mut Q = Mat::<T>::identity(m, k);
+			householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+				QR.get(.., ..k),
+				H.as_ref(),
+				Conj::No,
+				Q.as_mut(),
+				Par::Seq,
+				MemStack::new(&mut MemBuffer::new(
+					householder::apply_block_householder_sequence_on_the_left_in_place_scratch::<T>(m, bs, k),
+				)),
+			);
+			assert!(
+				(A - &Q * &R).norm_l2() / scale < tol,
+				"{m}x{n} rank {rank}: QR"
+			);
+			let thin = crate::linalg::solvers::Qr::new(A, Par::Seq)
+				.compute_thin_Q(Par::Seq);
+			let R_api = crate::linalg::solvers::Qr::new(A, Par::Seq)
+				.thin_R()
+				.to_owned();
+			assert!(
+				(A - &thin * &R_api).norm_l2() / scale < tol,
+				"{m}x{n} rank {rank}: thin Q"
+			);
+			// the block factors as a blocked consumer reads them: Q^H A = [R; 0]
+			let mut QhA = A.cloned();
+			householder::apply_block_householder_sequence_transpose_on_the_left_in_place_with_conj(
+				QR.get(.., ..k),
+				H.as_ref(),
+				Conj::Yes,
+				QhA.as_mut(),
+				Par::Seq,
+				MemStack::new(&mut MemBuffer::new(
+					householder::apply_block_householder_sequence_transpose_on_the_left_in_place_scratch::<T>(m, bs, n),
+				)),
+			);
+			let mut err = (QhA.get(..k, ..) - &R).norm_l2();
+			if m > k {
+				err = err.max(QhA.get(k.., ..).norm_l2());
+			}
+			assert!(err / scale < tol, "{m}x{n} rank {rank}: block factors");
+			if rank == k {
+				let mut QRb = A.cloned();
+				let mut Hb = Mat::<T>::zeros(bs, k);
+				let rank_b = qr_in_place_blocked(
+					QRb.as_mut(),
+					Hb.as_mut(),
+					0,
+					0,
+					Par::Seq,
+					MemStack::new(&mut MemBuffer::new(req)),
+					default(),
+					true,
+					false,
+				);
+				assert!(rank_b == info.rank);
+				let mut Rb = Mat::<T>::zeros(k, n);
+				Rb.as_mut().copy_from_triangular_upper(QRb.get(..k, ..));
+				assert!(
+					(&R - &Rb).norm_l2() / scale < tol,
+					"{m}x{n}: R against blocked"
+				);
+			}
+		}
+		let rng = &mut StdRng::seed_from_u64(269);
+		for (m, n, rank) in [
+			(1, 3, 1),
+			(3, 1, 1),
+			(2, 2, 2),
+			(5, 17, 5),
+			(17, 5, 5),
+			(32, 32, 32),
+			(33, 33, 33),
+			(32, 32, 7),
+			(48, 48, 1),
+			(96, 96, 40),
+			(128, 128, 128),
+			(129, 128, 128),
+			(16, 512, 16),
+			(16, 513, 16),
+			(256, 64, 64),
+		] {
+			let dist = ComplexDistribution::new(StandardNormal, StandardNormal);
+			let A0 = CwiseMatDistribution {
+				nrows: m,
+				ncols: rank,
+				dist,
+			}
+			.rand::<Mat<c64>>(rng);
+			let A1 = CwiseMatDistribution {
+				nrows: rank,
+				ncols: n,
+				dist,
+			}
+			.rand::<Mat<c64>>(rng);
+			let A = &A0 * &A1;
+			check::<c64>(A.as_ref(), rank, 1e-12);
+			let A = Mat::<f64>::from_fn(m, n, |i, j| A[(i, j)].re);
+			check::<f64>(A.as_ref(), Ord::min(rank, Ord::min(m, n)), 1e-12);
+		}
+		// a zero column inside a block and a repeated column: skipped reflectors (`row < col`)
+		let mut A = CwiseMatDistribution {
+			nrows: 24,
+			ncols: 24,
+			dist: StandardNormal,
+		}
+		.rand::<Mat<f64>>(rng);
+		A.col_mut(3).fill(0.0);
+		let c = A.col(5).to_owned();
+		A.col_mut(6).copy_from(&c);
+		check::<f64>(A.as_ref(), 22, 1e-12);
 	}
 
 	/// `A = [a, a + 1e-10 e_0, a + 1e-6 e_1]`, `a = (1, ..., 1)`, tall `m x 3`.

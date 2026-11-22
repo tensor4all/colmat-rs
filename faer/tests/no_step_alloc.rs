@@ -54,7 +54,13 @@ static GLOBAL: Counting = Counting;
 
 /// Allocations during `f`, the largest of them, and the number of parallel sections and splits it
 /// dispatched.
-fn counted_bytes(mut f: impl FnMut()) -> (usize, usize, usize) {
+fn counted_bytes(f: impl FnMut()) -> (usize, usize, usize) {
+	let (n, largest, parallel, _) = counted_stats(f);
+	(n, largest, parallel)
+}
+
+/// As [`counted_bytes`], and the team counters of the counted call (which route a product took).
+fn counted_stats(mut f: impl FnMut()) -> (usize, usize, usize, stats::Stats) {
 	f(); // warm-up: first-use allocations (thread locals, lazy statics) are not the region's
 	stats::enable(true);
 	let _ = stats::take();
@@ -69,7 +75,7 @@ fn counted_bytes(mut f: impl FnMut()) -> (usize, usize, usize) {
 	let s = stats::take();
 	let parallel = s.run.iter().skip(2).sum::<usize>()
 		+ s.split.iter().skip(2).sum::<usize>();
-	(n, largest, parallel)
+	(n, largest, parallel, s)
 }
 
 /// Allocations during `f`, and the number of parallel sections and splits it dispatched.
@@ -154,6 +160,61 @@ fn parallel_regions_allocate_nothing() {
 					"QR thin Q, width {width}: no parallel region"
 				);
 				assert_eq!(allocs, 0, "QR thin Q, width {width}");
+				// The small paths (tensor4all/colmat-rs#269): the factor, the thin Q and the
+				// sequence apply below their gates, on the held team and sequentially. They run on
+				// the calling thread, so only the allocation count is asserted.
+				use colmat::linalg::householder;
+				for (m, n) in [(32usize, 32usize), (96, 96), (256, 64)] {
+					let block = factor::recommended_block_size::<f64>(m, n);
+					let k = Ord::min(m, n);
+					let a0 = sample(m, n, 269);
+					let mut packed = a0.clone();
+					let mut coeff = Mat::<f64>::zeros(block, k);
+					let mut q = Mat::<f64>::zeros(m, k);
+					let mut mem = MemBuffer::new(colmat::dyn_stack::StackReq::all_of(&[
+						factor::qr_in_place_scratch::<f64>(m, n, block, par.shape(), Default::default()),
+						unitary::unitary_scratch::<f64>(m, n, k, block, par.shape()),
+						householder::apply_block_householder_sequence_on_the_left_in_place_scratch::<f64>(m, block, k),
+					]));
+					for seq in [false, true] {
+						let (allocs, _) = counted(|| {
+							let mut p =
+								if seq { Par::Seq } else { par.reborrow() };
+							packed.copy_from(&a0);
+							factor::qr_in_place(
+								packed.as_mut(),
+								coeff.as_mut(),
+								p.reborrow(),
+								MemStack::new(&mut mem),
+								Default::default(),
+							);
+							unitary::unitary(
+								q.as_mut(),
+								packed.as_ref(),
+								coeff.as_ref(),
+								false,
+								p.reborrow(),
+								MemStack::new(&mut mem),
+							);
+							q.fill(0.0);
+							for i in 0..k {
+								q[(i, i)] = 1.0;
+							}
+							householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+								packed.get(.., ..k),
+								coeff.as_ref(),
+								colmat::Conj::No,
+								q.as_mut(),
+								p,
+								MemStack::new(&mut mem),
+							);
+						});
+						assert_eq!(
+							allocs, 0,
+							"small QR {m}x{n}, width {width}, seq {seq}"
+						);
+					}
+				}
 				// The tridiagonal EVD solver, including its independent merge repairs.
 				use colmat::linalg::evd::{
 					ComputeEigenvectors, tridiagonal_self_adjoint_evd,
@@ -381,24 +442,33 @@ fn parallel_regions_allocate_nothing() {
 			);
 			assert_eq!(allocs, 0, "Pfaffian, width {width}");
 
-			// a plain product on the team: the x86 kernel's parallel job tables come from the
-			// calling thread's workspace (faer#223), so the same shape again allocates nothing,
-			// and so does a larger shape once the workspace has grown to it
+			// a plain product on the team takes one of two x86 routes, and both must stay
+			// allocation free: a product of at most `TILED_CEILING` serial work is cut into
+			// tiles (no job tables), a larger one goes to the kernel's own job grid, whose
+			// parallel tables come from the calling thread's workspace (faer#223)
 			#[cfg(target_arch = "x86_64")]
 			if std::arch::is_x86_feature_detected!("avx2")
 				&& std::arch::is_x86_feature_detected!("fma")
 			{
-				// the same shape again, a larger one (the workspace grows), then one below the
-				// grown size
-				for &(m, n, k) in &[
-					(384usize, 320usize, 448usize),
-					(768, 320, 448),
-					(384, 320, 448),
+				// a side 1.5 times past the ceiling at this host's own f64 rate (the same
+				// derivation as `team_kernel_products_match_sequential_for_every_dtype`), so
+				// the kernel-grid shapes stay above it whatever the rate table says
+				let rate = colmat::utils::cost::ns_per_mac::f64();
+				let side = (1.5 * 8.0e6 / rate).cbrt() as usize + 8;
+				// (shape, kernel grid?): tile route below the ceiling; above it the same shape
+				// again, a larger one (the job tables grow, `tables.resize`), then the first
+				// again (the grown tables are reused)
+				for &(m, n, k, grid) in &[
+					(384usize, 320usize, 448usize, false),
+					(768, 320, 448, false),
+					(side, side, side, true),
+					(2 * side, side, side, true),
+					(side, side, side, true),
 				] {
 					let a = sample(m, k, 31);
 					let b = sample(k, n, 32);
 					let mut c = sample(m, n, 33);
-					let (allocs, parallel) = counted(|| {
+					let (allocs, _, parallel, st) = counted_stats(|| {
 						colmat::linalg::matmul::matmul(
 							c.as_mut(),
 							colmat::Accum::Replace,
@@ -412,6 +482,17 @@ fn parallel_regions_allocate_nothing() {
 						parallel > 0,
 						"matmul {m}x{n}x{k}, width {width}: no parallel region"
 					);
+					if grid {
+						assert!(
+							st.gemm_team_kernel > 0 && st.gemm_tiled == 0,
+							"matmul {m}x{n}x{k}, width {width}: not the kernel grid: {st:?}"
+						);
+					} else {
+						assert!(
+							st.gemm_tiled > 0 && st.gemm_team_kernel == 0,
+							"matmul {m}x{n}x{k}, width {width}: not the tile route: {st:?}"
+						);
+					}
 					assert_eq!(allocs, 0, "matmul {m}x{n}x{k}, width {width}");
 				}
 			}
