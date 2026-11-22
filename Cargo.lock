@@ -381,6 +381,7 @@ dependencies = [
  "itertools 0.14.0",
  "lapack-src",
  "lapack-sys",
+ "libc",
  "libm",
  "log",
  "matrix-market-rs",
