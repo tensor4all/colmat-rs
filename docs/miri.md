@@ -48,7 +48,12 @@ raw-pointer index sort, and the iterators and reductions over `Col`, `Row` and `
   `linalg::matmul::tests::test_matmul` (`#[ignore = "takes too long"]`). The runner rejects one if
   it is listed.
 
-**Gaps the set does not close.** No in-crate test currently calls `Mat::truncate` (shrinking), the
+**Gaps the set does not close.** The lane runs `--lib` only, as #267 specifies, so the integration
+tests in `faer/tests/` are outside it. One of them, `faer/tests/owned_capacity.rs`, calls
+`Mat::truncate` and was Miri-clean when run by hand
+([worklog](worklogs/2026-11-07-zst-reservation-division.md); now
+`cargo +nightly miri test -p colmat --test owned_capacity`); adding it to this lane is a separate
+decision. Within `--lib`, no test calls `Mat::truncate` (shrinking), the
 `Array` API in `utils::bound` (`as_mut`, range indexing), `PermRef` with `N = One`, `ZipEq::new_unchecked`
 or `for_each_triangular_*` on a transposed and reversed operand. These are exactly the paths of
 #254, #255 and #256, which external reports found by running Miri on reproducers outside the crate.
@@ -79,7 +84,7 @@ replacement (e.g. `vcmlaq_0_f64` at `:7-30`), so a Miri build has no `asm!` to r
 above runs there. The `colmat` lane therefore runs on an aarch64 runner, and **the main crate's x86_64
 code paths (`pulp`'s x86 SIMD arms and the crate's x86-specific dispatch) are not covered by Miri**.
 Whether an x86_64 run would reach those `asm!` blocks at all (`Arch::new()` falls back to
-`Arch::Scalar` when it detects neither AVX2 nor AVX-512, `pulp-0.22.2/src/x86.rs:313-334`) has not
+`Arch::Scalar` when it detects neither AVX2 nor AVX-512, `pulp-0.22.2/src/x86.rs:313-323`) has not
 been tested; the lane does not depend on the answer.
 
 The aarch64 lane runs `pulp`'s `#[cfg(miri)]` replacements, not the NEON `asm!` the release build

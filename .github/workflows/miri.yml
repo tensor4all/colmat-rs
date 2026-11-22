@@ -7,8 +7,9 @@ name: Miri
 # Two lanes, see `docs/miri.md`:
 # - `traits`: `colmat-traits --lib`, the whole suite, on x86_64;
 # - `colmat`: `colmat --lib`, only the tests listed in `scripts/miri-colmat-tests.txt`, on aarch64.
-#   `pulp` implements part of its x86_64 SIMD with `asm!`, which Miri cannot execute, so the main
-#   crate's x86_64 path stays outside Miri.
+#   `pulp`'s x86_64 SIMD contains unguarded `asm!`, which Miri cannot execute, while every `asm!` in
+#   its aarch64 code is `cfg(not(miri))`. Whether an x86_64 run would reach that `asm!` is untested;
+#   either way the main crate's x86_64 path stays outside Miri.
 # Each lane fails its own job on a violation; `report` files one issue for whichever lanes failed.
 on:
   schedule:
@@ -51,7 +52,8 @@ jobs:
 
   colmat:
     name: cargo miri (-p colmat --lib, selected tests, aarch64)
-    # aarch64 on purpose: on x86_64 `pulp` reaches `asm!`, which Miri cannot execute (`docs/miri.md`).
+    # aarch64 on purpose: `pulp`'s aarch64 `asm!` is `cfg(not(miri))`, its x86_64 `asm!` is not
+    # (`docs/miri.md`).
     runs-on: ubuntu-24.04-arm
     # The whole budget of this lane (#267). The steps' own caps add up to less, so a hang is reported
     # as that step's timeout rather than as a cancelled job.
@@ -78,6 +80,7 @@ jobs:
     needs: [traits, colmat]
     if: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:
