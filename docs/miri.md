@@ -66,14 +66,19 @@ matmul tests and therefore outside the selection rule. The lane does reach `sort
 offset scratch through `sort::tests::test_quicksort_big`, but not `Mat`'s uninit destinations;
 widening the rule to those small tests is a separate decision.
 
-**Cost.** On an M5 (aarch64, 2026-11-22, `miri 0.1.0 (daf2e5e18b 2026-07-13)`) the whole set runs in
-one invocation with `test result: ok. 53 passed; 0 failed; 0 ignored; 947 filtered out; finished in
-184.79s`, plus about 15 s to start. Most of it is two tests:
-`mat::matref::tests::test_cloned_from_a_strided_source` (about 135 s alone) and
-`sort::tests::test_quicksort_big` (about 21 s). On `ubuntu-24.04-arm` (run 44965688890, 2026-11-22)
-the same set reported `53 passed … finished in 180.74s` and the whole job, toolchain install and build
-included, took 5 min 36 s. The 60-minute cap leaves room for the regression tests above and for
-slower runner days.
+**Cost.** The `finished in …s` that libtest prints under Miri is **not** wall-clock time: with
+isolation on, Miri gives the program a virtual clock, so the figure is deterministic (`184.79s` on
+every M5 run, `180.74s` on both CI runs) and says nothing about the budget. Wall-clock times:
+
+- M5 (aarch64, 2026-11-22, `miri 0.1.0 (daf2e5e18b 2026-07-13)`), crate already built for Miri:
+  `scripts/run-miri-colmat.sh` takes 70 s for all 53 tests. The heaviest single test,
+  `mat::matref::tests::test_cloned_from_a_strided_source`, takes 54 s as its own invocation, against
+  14 s for a trivial one (`sort::tests::test_quicksort`), so about 40 s of the set is that test.
+- `ubuntu-24.04-arm` (runs 44965688890 and 44972192686, 2026-11-22): the whole job, toolchain
+  install, `cargo miri setup` and the Miri build of the crate included, took 5 min 36 s and
+  5 min 20 s; the test step (build plus run) took 4 min 50 s in the second run.
+
+The 60-minute cap leaves room for the regression tests above and for slower runner days.
 
 ## Why aarch64: x86_64 is not Miri-covered
 
