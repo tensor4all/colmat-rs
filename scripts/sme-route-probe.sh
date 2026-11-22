@@ -28,12 +28,12 @@ cargo build --release -p colmat --example sme_route >&2
 # The example prints `gate_seq` from its own `t4a-gemm-common` dev-dependency. That is the gate the
 # kernels use only while the lock holds one copy of the crate: a `t4a-gemm` bump to another
 # semver range would leave the dev-dependency on the old copy.
-copies=$(grep -c '^name = "t4a-gemm-common"$' Cargo.lock)
+copies=$(grep -c '^name = "t4a-gemm-common"$' Cargo.lock || true)
 if ((copies != 1)); then
 	echo "sme-route-probe: Cargo.lock has $copies copies of t4a-gemm-common; bump the dev-dependency in faer/Cargo.toml with t4a-gemm" >&2
 	exit 1
 fi
-bin="$PWD/target/release/examples/sme_route"
+bin="${CARGO_TARGET_DIR:-$PWD/target}/release/examples/sme_route"
 if (($#)); then threads_list=("$@"); else threads_list=(1 6); fi
 
 # Crossover shapes named in t4a-gemm-common's sme_thresholds.rs, then the #87 size.
