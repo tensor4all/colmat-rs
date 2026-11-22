@@ -198,7 +198,11 @@ pub mod stats {
 		pub split: Vec<usize>,
 		/// regions narrowed to a sub-team, index = its width (up to 256)
 		pub width: Vec<usize>,
-		/// GEMM calls decided sequential by the work floor
+		/// GEMM calls run as one sequential call because no width pays: the tile floor (small
+		/// products of `gemm_tiled`) or the kernel-grid floor (`kernel_width`). A product the
+		/// kernel grid takes, or the tile split cuts, is never counted here; a product the split
+		/// declines and the grid then runs counts in `gemm_team_kernel` only (plus
+		/// `gemm_one_tile` when the grid had a single tile), and one both decline counts once.
 		pub gemm_below_floor: usize,
 		/// GEMM calls whose tile grid had a single tile
 		pub gemm_one_tile: usize,
