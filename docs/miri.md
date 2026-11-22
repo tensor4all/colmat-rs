@@ -55,11 +55,11 @@ or `for_each_triangular_*` on a transposed and reversed operand. These are exact
 Their fixes are expected to bring regression tests; add those names to the list when they land, so the
 lane guards the fixes.
 
-No listed test writes through an uninitialized (`MaybeUninit`) destination either: the crate's
-uninit-destination paths are exercised by `linalg::matmul::tests::test_matmul_with_conj_uninit*`
-(`faer/src/linalg/matmul/mod.rs`), which are matmul tests and therefore outside the selection rule.
-Uninit reads in the main crate are thus not covered by this lane; widening the rule to those small
-tests is a separate decision.
+No listed test writes through an uninitialized matrix destination: those paths are exercised by
+`linalg::matmul::tests::test_matmul_with_conj_uninit*` (`faer/src/linalg/matmul/mod.rs`), which are
+matmul tests and therefore outside the selection rule. The lane does reach `sort`'s uninitialized
+offset scratch through `sort::tests::test_quicksort_big`, but not `Mat`'s uninit destinations;
+widening the rule to those small tests is a separate decision.
 
 **Cost.** On an M5 (aarch64, 2026-11-22, `miri 0.1.0 (daf2e5e18b 2026-07-13)`) the whole set runs in
 one invocation with `test result: ok. 53 passed; 0 failed; 0 ignored; 947 filtered out; finished in
