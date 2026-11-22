@@ -1055,6 +1055,326 @@ pub(crate) fn apply_block_householder_transpose_on_the_left_in_place_with_conj_r
 		stack,
 	)
 }
+/// `[rhs0; rhs] <- (I - v v^H / tau) [rhs0; rhs]` for one reflector whose implicit unit head
+/// meets `rhs0` and whose `essential` part meets the rows of `rhs`, in one SIMD dispatch. Four
+/// target columns at a time share every load of `essential` and run four independent reduction
+/// chains, so a short column is not one dependent dot, reduce and update after another.
+#[allow(clippy::int_plus_one)] // `block!(1)`: one macro serves every column width
+pub(crate) fn apply_reflector_small<'TAIL, T: ComplexField>(
+	tau_inv: &T,
+	essential: ColRef<'_, T, Dim<'TAIL>, ContiguousFwd>,
+	rhs0: RowMut<'_, T>,
+	rhs: MatMut<'_, T, Dim<'TAIL>, usize, ContiguousFwd>,
+) {
+	struct Impl<'a, 'TAIL, T: ComplexField> {
+		tau_inv: &'a T,
+		essential: ColRef<'a, T, Dim<'TAIL>, ContiguousFwd>,
+		rhs0: RowMut<'a, T>,
+		rhs: MatMut<'a, T, Dim<'TAIL>, usize, ContiguousFwd>,
+	}
+	impl<'TAIL, T: ComplexField> pulp::WithSimd for Impl<'_, 'TAIL, T> {
+		type Output = ();
+
+		#[inline(always)]
+		fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
+			let Self {
+				tau_inv,
+				essential,
+				mut rhs0,
+				mut rhs,
+			} = self;
+			let simd = SimdCtx::<T, S>::new(T::simd_ctx(simd), rhs.nrows());
+			let indices = simd.indices();
+			let ncols = rhs.ncols();
+			let mut j = 0;
+			while j + 4 <= ncols {
+				let (c0, rest) =
+					rhs.rb_mut().get_mut(.., j..j + 4).split_at_col_mut(1);
+				let (c1, rest) = rest.split_at_col_mut(1);
+				let (c2, c3) = rest.split_at_col_mut(1);
+				let (mut c0, mut c1, mut c2, mut c3) = (
+					c0.col_mut(0),
+					c1.col_mut(0),
+					c2.col_mut(0),
+					c3.col_mut(0),
+				);
+				let mut acc = [simd.zero(); 4];
+				simd_iter!(for i in [indices] {
+					let e = simd.read(essential, i);
+					acc[0] =
+						simd.conj_mul_add(e, simd.read(c0.rb(), i), acc[0]);
+					acc[1] =
+						simd.conj_mul_add(e, simd.read(c1.rb(), i), acc[1]);
+					acc[2] =
+						simd.conj_mul_add(e, simd.read(c2.rb(), i), acc[2]);
+					acc[3] =
+						simd.conj_mul_add(e, simd.read(c3.rb(), i), acc[3]);
+				});
+				let mut k = [simd.zero(); 4];
+				for t in 0..4 {
+					let dot = &rhs0[j + t] + simd.reduce_sum(acc[t]);
+					let kt = -dot * tau_inv;
+					rhs0[j + t] += &kt;
+					k[t] = simd.splat(&kt);
+				}
+				simd_iter!(for i in [indices] {
+					let e = simd.read(essential, i);
+					let a = simd.mul_add(e, k[0], simd.read(c0.rb(), i));
+					simd.write(c0.rb_mut(), i, a);
+					let a = simd.mul_add(e, k[1], simd.read(c1.rb(), i));
+					simd.write(c1.rb_mut(), i, a);
+					let a = simd.mul_add(e, k[2], simd.read(c2.rb(), i));
+					simd.write(c2.rb_mut(), i, a);
+					let a = simd.mul_add(e, k[3], simd.read(c3.rb(), i));
+					simd.write(c3.rb_mut(), i, a);
+				});
+				j += 4;
+			}
+			while j < ncols {
+				let mut c = rhs.rb_mut().col_mut(j);
+				let mut acc = simd.zero();
+				simd_iter!(for i in [indices] {
+					acc = simd.conj_mul_add(
+						simd.read(essential, i),
+						simd.read(c.rb(), i),
+						acc,
+					);
+				});
+				let dot = &rhs0[j] + simd.reduce_sum(acc);
+				let kt = -dot * tau_inv;
+				rhs0[j] += &kt;
+				let k = simd.splat(&kt);
+				simd_iter!(for i in [indices] {
+					let a = simd.mul_add(
+						simd.read(essential, i),
+						k,
+						simd.read(c.rb(), i),
+					);
+					simd.write(c.rb_mut(), i, a);
+				});
+				j += 1;
+			}
+		}
+	}
+	dispatch!(
+		Impl {
+			tau_inv,
+			essential,
+			rhs0,
+			rhs,
+		},
+		Impl,
+		T
+	)
+}
+/// Two consecutive reflectors applied from the left in one pass: `v_1 = [1; e10; e1]` from row `r`
+/// and `v_2 = [0; 1; e2]`, so `row0` and `row1` are the target's rows `r` and `r + 1` and `rhs` its
+/// rows from `r + 2`, which both `e1` and `e2` meet. Per column `a = v_1^H c` and `b = v_2^H c` are
+/// reduced together, then, applying `H_1` first (the factorization, `qr::no_pivoting::factor`'s small path),
+/// `k_1 = -a / tau_1` and `k_2 = -(b + s k_1) / tau_2` with `s = v_2^H v_1` (the second reflector meets
+/// the column after the first has updated it); applying `H_2` first (`reverse`, forming `Q`),
+/// `k_2 = -b / tau_2` and `k_1 = -(a + s k_2) / tau_1` with `s = v_1^H v_2`. Then
+/// `c += v_1 k_1 + v_2 k_2`. The reflectors are Hermitian (`tau` is real), so a pair and its adjoint
+/// differ only in that order.
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::int_plus_one)] // `block!(1)`: one macro serves every column width
+pub(crate) fn apply_reflector_pair_small<
+	'TAIL,
+	T: ComplexField,
+	const REVERSE: bool,
+>(
+	tau_inv: [&T; 2],
+	s: &T,
+	e10: &T,
+	e1: ColRef<'_, T, Dim<'TAIL>, ContiguousFwd>,
+	e2: ColRef<'_, T, Dim<'TAIL>, ContiguousFwd>,
+	row0: RowMut<'_, T>,
+	row1: RowMut<'_, T>,
+	rhs: MatMut<'_, T, Dim<'TAIL>, usize, ContiguousFwd>,
+) {
+	struct Impl<'a, 'TAIL, T: ComplexField, const REVERSE: bool> {
+		tau_inv: [&'a T; 2],
+		s: &'a T,
+		e10: &'a T,
+		e1: ColRef<'a, T, Dim<'TAIL>, ContiguousFwd>,
+		e2: ColRef<'a, T, Dim<'TAIL>, ContiguousFwd>,
+		row0: RowMut<'a, T>,
+		row1: RowMut<'a, T>,
+		rhs: MatMut<'a, T, Dim<'TAIL>, usize, ContiguousFwd>,
+	}
+	impl<'TAIL, T: ComplexField, const REVERSE: bool> pulp::WithSimd
+		for Impl<'_, 'TAIL, T, REVERSE>
+	{
+		type Output = ();
+
+		#[inline(always)]
+		fn with_simd<S: pulp::Simd>(self, simd: S) -> Self::Output {
+			let Self {
+				tau_inv,
+				s,
+				e10,
+				e1,
+				e2,
+				mut row0,
+				mut row1,
+				mut rhs,
+			} = self;
+			let simd = SimdCtx::<T, S>::new(T::simd_ctx(simd), rhs.nrows());
+			let indices = simd.indices();
+			let ncols = rhs.ncols();
+			let e10_conj = e10.conj();
+			let mut j = 0;
+			macro_rules! block {
+				($w:literal) => {
+					while j + $w <= ncols {
+						let mut cols = rhs.rb_mut().get_mut(.., j..j + $w);
+						let mut acc1 = [simd.zero(); $w];
+						let mut acc2 = [simd.zero(); $w];
+						simd_iter!(for i in [indices] {
+							let x1 = simd.read(e1, i);
+							let x2 = simd.read(e2, i);
+							for t in 0..$w {
+								let c = simd.read(cols.rb().col(t), i);
+								acc1[t] = simd.conj_mul_add(x1, c, acc1[t]);
+								acc2[t] = simd.conj_mul_add(x2, c, acc2[t]);
+							}
+						});
+						let mut k1 = [simd.zero(); $w];
+						let mut k2 = [simd.zero(); $w];
+						for t in 0..$w {
+							let a = &row0[j + t]
+								+ &e10_conj * &row1[j + t]
+								+ simd.reduce_sum(acc1[t]);
+							let b = &row1[j + t] + simd.reduce_sum(acc2[t]);
+							let (k1t, k2t) = if const { REVERSE } {
+								let k2t = -b * tau_inv[1];
+								(-(a + s * &k2t) * tau_inv[0], k2t)
+							} else {
+								let k1t = -a * tau_inv[0];
+								let k2t = -(b + s * &k1t) * tau_inv[1];
+								(k1t, k2t)
+							};
+							row0[j + t] += &k1t;
+							row1[j + t] += e10 * &k1t + &k2t;
+							k1[t] = simd.splat(&k1t);
+							k2[t] = simd.splat(&k2t);
+						}
+						simd_iter!(for i in [indices] {
+							let x1 = simd.read(e1, i);
+							let x2 = simd.read(e2, i);
+							for t in 0..$w {
+								let c = simd.read(cols.rb().col(t), i);
+								let c = simd.mul_add(x1, k1[t], c);
+								let c = simd.mul_add(x2, k2[t], c);
+								simd.write(cols.rb_mut().col_mut(t), i, c);
+							}
+						});
+						j += $w;
+					}
+				};
+			}
+			block!(4);
+			block!(1);
+		}
+	}
+	macro_rules! run {
+		($rev:literal) => {{
+			type Pair<'a, 'TAIL, T> = Impl<'a, 'TAIL, T, $rev>;
+			dispatch!(
+				Pair {
+					tau_inv,
+					s,
+					e10,
+					e1,
+					e2,
+					row0,
+					row1,
+					rhs,
+				},
+				Pair,
+				T
+			)
+		}};
+	}
+	if const { REVERSE } {
+		run!(true)
+	} else {
+		run!(false)
+	}
+}
+/// Largest target (`nrows * ncols`) for [`apply_sequence_on_the_left_small`]. The sweep applies
+/// every reflector to every column, so it gives back what it saves on calls sooner than the
+/// factorization's small path, which only meets the trailing columns: on an identity target, f64
+/// at one thread, `24 x 24` 5.1 us against 6.6 for the blocked sequence, `32 x 32` 8.8 against
+/// 10.9, `40 x 40` 13.8 against 13.1 and `64 x 64` 39.5 against 35.1.
+const SMALL_SEQUENCE_MAX_AREA: usize = 32 * 32;
+/// Widest block factor for which a team still takes [`apply_sequence_on_the_left_small`]. A wide
+/// block is one product the team splits: a single 32-reflector block on a `32 x 32` target takes
+/// 6.1 us at eight participants against 8.4 at one, and 8.1 on the small path (f64), while the
+/// blocks of 4 or 8 a small QR leaves are products too small to split, and the small path wins on
+/// a team as it does on one thread.
+const SMALL_SEQUENCE_TEAM_MAX_BLOCK: usize = 8;
+/// [`apply_block_householder_sequence_on_the_left_in_place_with_conj`] for a small column-major
+/// target, one reflector at a time from the last, two at a time where two remain
+/// ([`apply_reflector_pair_small`] in its `reverse` order), instead of one block apply of a few
+/// columns per block: at these sizes the block apply's products are calls whose fixed cost is the
+/// whole of their time (tensor4all/colmat-rs#269). Only the diagonal of each block factor is read.
+fn apply_sequence_on_the_left_small<T: ComplexField>(
+	householder_basis: MatRef<'_, T>,
+	householder_factor: MatRef<'_, T>,
+	matrix: MatMut<'_, T>,
+) {
+	let mut matrix = matrix;
+	let block_size = householder_factor.nrows();
+	let m = householder_basis.nrows();
+	let tau_inv = |k: usize| -> T {
+		householder_factor[(k % block_size, k)]
+			.real()
+			.recip()
+			.to_cplx()
+	};
+	let mut end = householder_factor.ncols();
+	while end > 0 {
+		let k = end - 1;
+		if k >= 1 && k + 1 < m {
+			let r = k - 1;
+			let (t1, t2) = (tau_inv(r), tau_inv(k));
+			let e10 = householder_basis[(k, r)].clone();
+			with_dim!(TAIL, m - k - 1);
+			let e1 = householder_basis.col(r).subrows(k + 1, m - k - 1);
+			let e2 = householder_basis.col(k).subrows(k + 1, m - k - 1);
+			let s = e10.conj()
+				+ dot::inner_prod(e1.transpose(), Conj::Yes, e2, Conj::No);
+			let target = matrix.rb_mut().get_mut(r.., ..);
+			let (rows01, rhs) = target.split_at_row_mut(2);
+			let (r0, r1) = rows01.split_at_row_mut(1);
+			apply_reflector_pair_small::<_, true>(
+				[&t1, &t2],
+				&s,
+				&e10,
+				e1.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				e2.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				r0.row_mut(0),
+				r1.row_mut(0),
+				rhs.as_row_shape_mut(TAIL).try_as_col_major_mut().unwrap(),
+			);
+			end -= 2;
+		} else {
+			let t = tau_inv(k);
+			with_dim!(TAIL, m - k - 1);
+			let essential = householder_basis.col(k).subrows(k + 1, m - k - 1);
+			let target = matrix.rb_mut().get_mut(k.., ..);
+			let (rhs0, rhs) = target.split_at_row_mut(1);
+			apply_reflector_small(
+				&t,
+				essential.as_row_shape(TAIL).try_as_col_major().unwrap(),
+				rhs0.row_mut(0),
+				rhs.as_row_shape_mut(TAIL).try_as_col_major_mut().unwrap(),
+			);
+			end -= 1;
+		}
+	}
+}
 /// computes the product of a sequence of block householder transformations
 /// given by `householder_basis` and `householder_factor`, multiplied by
 /// `matrix`, and stores the result in `matrix`
@@ -1078,6 +1398,20 @@ pub fn apply_block_householder_sequence_on_the_left_in_place_with_conj<
 		householder_factor.ncols() == Ord::min(m, n),
 	));
 	let size = householder_factor.ncols();
+	if T::SIMD_CAPABILITIES.is_simd()
+		&& (T::IS_REAL || conj_lhs == Conj::No)
+		&& householder_basis.row_stride() == 1
+		&& matrix.row_stride() == 1
+		&& m.saturating_mul(matrix.ncols()) <= SMALL_SEQUENCE_MAX_AREA
+		&& (crate::utils::thread::parallelism_degree(&par) == 1
+			|| householder_factor.nrows() <= SMALL_SEQUENCE_TEAM_MAX_BLOCK)
+	{
+		return apply_sequence_on_the_left_small(
+			householder_basis.get(.., ..size),
+			householder_factor,
+			matrix,
+		);
+	}
 	let mut j = size;
 	let mut block_size = size % householder_factor.nrows();
 	if block_size == 0 {

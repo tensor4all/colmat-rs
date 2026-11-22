@@ -154,6 +154,61 @@ fn parallel_regions_allocate_nothing() {
 					"QR thin Q, width {width}: no parallel region"
 				);
 				assert_eq!(allocs, 0, "QR thin Q, width {width}");
+				// The small paths (tensor4all/colmat-rs#269): the factor, the thin Q and the
+				// sequence apply below their gates, on the held team and sequentially. They run on
+				// the calling thread, so only the allocation count is asserted.
+				use colmat::linalg::householder;
+				for (m, n) in [(32usize, 32usize), (96, 96), (256, 64)] {
+					let block = factor::recommended_block_size::<f64>(m, n);
+					let k = Ord::min(m, n);
+					let a0 = sample(m, n, 269);
+					let mut packed = a0.clone();
+					let mut coeff = Mat::<f64>::zeros(block, k);
+					let mut q = Mat::<f64>::zeros(m, k);
+					let mut mem = MemBuffer::new(colmat::dyn_stack::StackReq::all_of(&[
+						factor::qr_in_place_scratch::<f64>(m, n, block, par.shape(), Default::default()),
+						unitary::unitary_scratch::<f64>(m, n, k, block, par.shape()),
+						householder::apply_block_householder_sequence_on_the_left_in_place_scratch::<f64>(m, block, k),
+					]));
+					for seq in [false, true] {
+						let (allocs, _) = counted(|| {
+							let mut p =
+								if seq { Par::Seq } else { par.reborrow() };
+							packed.copy_from(&a0);
+							factor::qr_in_place(
+								packed.as_mut(),
+								coeff.as_mut(),
+								p.reborrow(),
+								MemStack::new(&mut mem),
+								Default::default(),
+							);
+							unitary::unitary(
+								q.as_mut(),
+								packed.as_ref(),
+								coeff.as_ref(),
+								false,
+								p.reborrow(),
+								MemStack::new(&mut mem),
+							);
+							q.fill(0.0);
+							for i in 0..k {
+								q[(i, i)] = 1.0;
+							}
+							householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
+								packed.get(.., ..k),
+								coeff.as_ref(),
+								colmat::Conj::No,
+								q.as_mut(),
+								p,
+								MemStack::new(&mut mem),
+							);
+						});
+						assert_eq!(
+							allocs, 0,
+							"small QR {m}x{n}, width {width}, seq {seq}"
+						);
+					}
+				}
 				// The tridiagonal EVD solver, including its independent merge repairs.
 				use colmat::linalg::evd::{
 					ComputeEigenvectors, tridiagonal_self_adjoint_evd,
