@@ -1,0 +1,9 @@
+# first run of the same shapes, 2026-11-22 19:26 (load 3.61-3.92), example before the review's changes to its output line
+dtype=f64 m=2048 n=2048 k=2048 threads=1 samples=11 batch=2 median_ms=40.2004 q1_ms=40.0678 q3_ms=40.3271 iqr_ms=0.2593 gflops=427.4
+dtype=f64 m=2048 n=2048 k=2048 threads=6 samples=11 batch=2 median_ms=37.7259 q1_ms=37.5953 q3_ms=38.6707 iqr_ms=1.0754 gflops=455.4
+dtype=c64 m=2048 n=2048 k=2048 threads=1 samples=11 batch=1 median_ms=269.9032 q1_ms=269.5845 q3_ms=271.1831 iqr_ms=1.5986 gflops=254.6
+dtype=c64 m=2048 n=2048 k=2048 threads=6 samples=11 batch=1 median_ms=136.0409 q1_ms=135.5362 q3_ms=136.7358 iqr_ms=1.1996 gflops=505.1
+dtype=f32 m=2048 n=2048 k=2048 threads=1 samples=11 batch=3 median_ms=18.1167 q1_ms=18.1009 q3_ms=18.2784 iqr_ms=0.1775 gflops=948.3
+dtype=f32 m=2048 n=2048 k=2048 threads=6 samples=11 batch=4 median_ms=14.1062 q1_ms=13.9694 q3_ms=14.1984 iqr_ms=0.2290 gflops=1217.9
+dtype=c32 m=2048 n=2048 k=2048 threads=1 samples=11 batch=1 median_ms=73.4978 q1_ms=73.1605 q3_ms=73.8752 iqr_ms=0.7148 gflops=935.0
+dtype=c32 m=2048 n=2048 k=2048 threads=6 samples=11 batch=2 median_ms=42.4234 q1_ms=42.3380 q3_ms=42.7039 iqr_ms=0.3659 gflops=1619.9
