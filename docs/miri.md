@@ -54,8 +54,10 @@ lane guards the fixes.
 one invocation with `test result: ok. 53 passed; 0 failed; 0 ignored; 947 filtered out; finished in
 184.79s`, plus about 15 s to start. Most of it is two tests:
 `mat::matref::tests::test_cloned_from_a_strided_source` (about 135 s alone) and
-`sort::tests::test_quicksort_big` (about 21 s). The 60-minute cap leaves room for the CI runner being
-several times slower than the M5 and for the regression tests above.
+`sort::tests::test_quicksort_big` (about 21 s). On `ubuntu-24.04-arm` (run 44965688890, 2026-11-22)
+the same set reported `53 passed … finished in 180.74s` and the whole job, toolchain install and build
+included, took 5 min 36 s. The 60-minute cap leaves room for the regression tests above and for
+slower runner days.
 
 ## Why aarch64: x86_64 is not Miri-covered
 
