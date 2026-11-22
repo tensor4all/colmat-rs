@@ -1,0 +1,74 @@
+# The main crate's selected Miri test set, run by `scripts/run-miri-colmat.sh` and the weekly
+# `.github/workflows/miri.yml` (`colmat` job, aarch64). Selection rule and exclusions: `docs/miri.md`.
+#
+# One libtest name per line, passed as an `--exact` filter; `#` starts a comment. The runner fails if
+# the run does not pass exactly these tests (a renamed, removed or `#[ignore]`d test is an error).
+# Every entry passed under Miri on aarch64 when it was added; add a test here only after running it so.
+
+# Owned `Mat`: `resize_with` growth, `push_row`/`push_col`, dropping the elements when one `Drop` panics.
+# No in-crate test shrinks a matrix (`truncate`); see `docs/miri.md`.
+mat::matown::tests::test_drop
+mat::matown::tests::test_push_col
+mat::matown::tests::test_push_col_panic
+mat::matown::tests::test_push_row
+mat::matown::tests::test_push_row_panic
+mat::matown::tests::test_resize
+mat::matown::tests::test_resize_5
+mat::matown::tests::test_resize_5_1
+
+# Views and indexing: strided slice views, `IndexMut`, `cloned` from strided and heap-owning sources.
+mat::matmut::tests::codeberg_305
+mat::matref::tests::test_cloned_does_not_replicate_the_first_heap_value
+mat::matref::tests::test_cloned_from_a_strided_source
+
+# `zip!` over views (`map`, `at`, conjugate views) and the elementwise operators built on `zip!`.
+mat::tests::test_mat
+mat::tests::test_mat_complex
+linalg::mat_ops::test::test_adding_matrices_of_different_sizes_should_panic
+linalg::mat_ops::test::test_col_add
+linalg::mat_ops::test::test_col_sub
+linalg::mat_ops::test::test_matrix_add
+linalg::mat_ops::test::test_matrix_sub
+linalg::mat_ops::test::test_neg
+linalg::mat_ops::test::test_row_add
+linalg::mat_ops::test::test_row_sub
+linalg::mat_ops::test::test_scalar_mul
+linalg::mat_ops::test::test_subtracting_two_matrices_of_different_sizes_should_panic
+
+# `Perm` and diagonal application (indexed gathers/scatters through `PermRef`).
+linalg::mat_ops::test::test_diag_mul
+linalg::mat_ops::test::test_perm_mul
+sparse::utils::tests::test_permute_self_adjoint
+sparse::utils::tests::test_transpose
+
+# Index construction: sparse triplet/index paths, bounds-checked out-of-range indices.
+sparse::tests::test_from_indices
+sparse::tests::test_from_indices_oob_col
+sparse::tests::test_from_indices_oob_row
+sparse::tests::test_from_nonnegative_indices
+
+# Raw-pointer index sort over two parallel arrays.
+sort::tests::test_quicksort
+sort::tests::test_quicksort_big
+
+# Iterators and reductions walking owned, `Ref` and `Mut` columns, rows and matrices.
+col::colmut::tests::test_col_max
+col::colmut::tests::test_col_min
+col::colown::tests::test_col_max
+col::colown::tests::test_col_min
+col::colown::tests::test_from_iter
+col::colref::tests::test_col_max
+col::colref::tests::test_col_min
+row::rowmut::tests::test_row_max
+row::rowmut::tests::test_row_min
+row::rowown::tests::test_from_iter
+row::rowown::tests::test_row_max
+row::rowown::tests::test_row_min
+row::rowref::tests::test_row_max
+row::rowref::tests::test_row_min
+mat::matmut::tests::test_max
+mat::matmut::tests::test_min
+mat::matown::tests::test_max
+mat::matown::tests::test_min
+mat::matref::tests::test_max
+mat::matref::tests::test_min
