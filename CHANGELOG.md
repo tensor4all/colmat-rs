@@ -2,6 +2,19 @@
 
 Numbers are tensor4all/colmat-rs issues or PRs.
 
+## Performance
+
+- Small QR factorizations take a level-2 path: below `128 x 128` elements (a quarter of that for a
+  complex type on a team; at most 32 columns per row) a column-major `qr_in_place` applies one
+  reflector at a time, two per sweep, with a SIMD kernel over four target columns, and forms the
+  block factors of `H` afterwards (#269). `compute_thin_Q` up to `96 x 96` and
+  `apply_block_householder_sequence_on_the_left_in_place_with_conj` on targets up to `32 x 32`
+  use the matching sweep. f64 on evo against AOCL 6.0.0: `qr_factor` 32 from 16.7 us to 8.2
+  (AOCL 7.5), 64 from 67.9 to 30.2 (40.7); `qr` (factor + thin Q) 32 from 28.2 to 16.3 (15.9).
+  Below those sizes the results are no longer bitwise identical to 0.34.0 (they remain
+  deterministic at a fixed thread count). No API change, no allocation.
+  [Isolation and limits](docs/worklogs/2026-11-22-small-qr-level2.md).
+
 ## Correctness
 
 - `norm_l2` no longer returns infinity or zero for representable norms at the
