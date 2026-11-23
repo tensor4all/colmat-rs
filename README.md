@@ -57,10 +57,17 @@ a copy here that links back to it.
 
 Read the [review rules](docs/review-rules.md) first. We are looking for:
 
-- **Measurements on hardware we do not have.** Run the
-  [benchmarks](https://tensor4all.org/colmat-benchmark/) on other CPUs
-  (ARM servers, recent Intel and AMD parts) and report them with their
-  measurement conditions.
+- **Measurements on hardware we do not have.** Run the harness in
+  [tensor4all/colmat-benchmark](https://github.com/tensor4all/colmat-benchmark)
+  (it lives there, not in this repository) on other CPUs (ARM servers, recent
+  Intel and AMD parts). Numbers must follow its
+  [timing protocol](https://github.com/tensor4all/colmat-benchmark/blob/main/docs/protocol-v2-baseline.md):
+  pinned CPU sets, the idle guard, and discarded attempts re-run rather than
+  selected by their numbers; the commands are in its
+  [rules and runbook](https://github.com/tensor4all/colmat-benchmark/blob/main/docs/rules.md).
+  Post the result as a pull request to that repository. The
+  [published charts](https://tensor4all.org/colmat-benchmark/) show what is
+  already measured.
 - **Thread width and placement.** Choosing the fastest width rather than the
   widest that pays ([#280](https://github.com/tensor4all/colmat-rs/issues/280)),
   and placement under threadteam.
@@ -81,7 +88,7 @@ contributors coordinate in the tenferro Matrix room
 [#tenferro-tensor4all:matrix.org](https://matrix.to/#/#tenferro-tensor4all:matrix.org).
 This paper does not replace upstream faer's own paper
 ([JOSS, doi:10.21105/joss.06099](https://doi.org/10.21105/joss.06099)), which
-colmat users should keep citing (see [`CITATION.cff`](CITATION.cff)).
+colmat users should keep citing.
 
 ## Origin and acknowledgment
 
