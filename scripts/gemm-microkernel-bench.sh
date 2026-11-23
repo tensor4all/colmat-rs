@@ -69,7 +69,7 @@ if [[ -z $bin ]]; then
 	record_src="$out/bin/build-record.tmp"
 	{
 		echo "binary_sha256: $sha"
-		echo "build_date: $(date -u +%FT%TZ)"
+		echo "build_date: $(date -u +%FT%TZ)" # when this record was written, right after cargo build
 		echo "build_git_head: $(git rev-parse HEAD)"
 		echo "build_git_dirty: $(git status --porcelain --untracked-files=no | wc -l) tracked file(s) modified"
 		echo "build_rustc: $(rustc -V)"
