@@ -65,7 +65,12 @@
 //! # Cycles
 //!
 //! FLOP/cycle needs core cycles, not TSC ticks. The probe opens a user-mode
-//! `PERF_COUNT_HW_CPU_CYCLES` counter. When the kernel refuses
+//! `PERF_COUNT_HW_CPU_CYCLES` counter, read with its enabled and running
+//! times: a sample during which the event was not on the PMU the whole time
+//! (multiplexed with other events) or that counted zero cycles is rejected, the
+//! row prints `-` for FLOP/cycle, its `check` column names the rejection and
+//! the largest enabled/running multiplier, and the probe exits 4 at the end. A
+//! rate is never extrapolated from a partial count. When the kernel refuses
 //! (`perf_event_paranoid` > 2 without privileges) it falls back to
 //! wall time times the core clock, which it measures before and after every
 //! case with a chain of dependent register `add`s (one cycle each); the `clock`
@@ -378,6 +383,9 @@ mod imp {
 		let mut attr = [0u64; 16];
 		attr[0] = 128 << 32; // type = PERF_TYPE_HARDWARE (0), size = 128
 		attr[1] = 0; // config = PERF_COUNT_HW_CPU_CYCLES
+		// read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | ..._RUNNING: a read
+		// returns { value, time_enabled, time_running }
+		attr[4] = 1 | 2;
 		attr[5] = (1 << 5) | (1 << 6); // exclude_kernel | exclude_hv
 		let (pid, cpu, group, flags): (
 			libc::pid_t,
@@ -404,10 +412,77 @@ mod imp {
 		Ok(unsafe { File::from_raw_fd(fd as i32) })
 	}
 
-	fn read_counter(f: &mut File) -> u64 {
-		let mut b = [0u8; 8];
+	/// One read of the counter: `{ value, time_enabled, time_running }`
+	/// (`read_format` = TOTAL_TIME_ENABLED | TOTAL_TIME_RUNNING).
+	#[derive(Clone, Copy, Debug, PartialEq)]
+	struct PerfSample {
+		count: u64,
+		enabled_ns: u64,
+		running_ns: u64,
+	}
+
+	impl PerfSample {
+		fn from_bytes(b: &[u8; 24]) -> Self {
+			let w = |i: usize| {
+				u64::from_ne_bytes(b[8 * i..8 * i + 8].try_into().unwrap())
+			};
+			PerfSample {
+				count: w(0),
+				enabled_ns: w(1),
+				running_ns: w(2),
+			}
+		}
+	}
+
+	fn read_counter(f: &mut File) -> PerfSample {
+		let mut b = [0u8; 24];
 		f.read_exact(&mut b).expect("read perf counter");
-		u64::from_ne_bytes(b)
+		PerfSample::from_bytes(&b)
+	}
+
+	/// Why a counter interval gives no cycle count.
+	#[derive(Clone, Copy, Debug, PartialEq)]
+	enum CounterReject {
+		/// the event was on the PMU for only part of the interval (or never):
+		/// `multiplier` = enabled / running, infinite when it never ran
+		Multiplexed { multiplier: f64 },
+		/// the event ran the whole interval but counted nothing
+		ZeroCount,
+		/// a field went backwards (not a pair of reads of one event)
+		NotMonotonic,
+	}
+
+	/// Core cycles between two reads, only when the event counted the whole
+	/// interval. A multiplexed event's raw delta covers only the periods it was
+	/// scheduled, while the caller's FLOP numerator covers the whole interval,
+	/// so a partial delta would inflate FLOP/cycle by enabled/running; it is
+	/// rejected rather than scaled.
+	fn cycles_between(
+		s0: PerfSample,
+		s1: PerfSample,
+	) -> Result<u64, CounterReject> {
+		let (Some(count), Some(enabled), Some(running)) = (
+			s1.count.checked_sub(s0.count),
+			s1.enabled_ns.checked_sub(s0.enabled_ns),
+			s1.running_ns.checked_sub(s0.running_ns),
+		) else {
+			return Err(CounterReject::NotMonotonic);
+		};
+		if running > enabled {
+			return Err(CounterReject::NotMonotonic);
+		}
+		if enabled == 0 || running < enabled {
+			let multiplier = if running == 0 {
+				f64::INFINITY
+			} else {
+				enabled as f64 / running as f64
+			};
+			return Err(CounterReject::Multiplexed { multiplier });
+		}
+		if count == 0 {
+			return Err(CounterReject::ZeroCount);
+		}
+		Ok(count)
 	}
 
 	/// Run `iters * 64` dependent register adds: `iters * 64` core cycles at
@@ -460,22 +535,33 @@ mod imp {
 		}
 	}
 
-	/// Time `f` and return (core cycles, ns). For the calibrated clock the
-	/// cycles are filled in by the caller from the case's clock readings.
-	fn timed(clock: &mut Clock, f: impl FnOnce()) -> (Option<f64>, f64) {
+	/// Core cycles of one timed interval.
+	enum Cycles {
+		Counted(f64),
+		Rejected(CounterReject),
+		/// calibrated clock: the caller derives them from the clock readings
+		FromWall,
+	}
+
+	/// Time `f` and return (core cycles, ns).
+	fn timed(clock: &mut Clock, f: impl FnOnce()) -> (Cycles, f64) {
 		match clock {
 			Clock::Perf(file) => {
-				let c0 = read_counter(file);
+				let s0 = read_counter(file);
 				let t = Instant::now();
 				f();
 				let ns = t.elapsed().as_nanos() as f64;
-				let c1 = read_counter(file);
-				(Some((c1 - c0) as f64), ns)
+				let s1 = read_counter(file);
+				let cy = match cycles_between(s0, s1) {
+					Ok(c) => Cycles::Counted(c as f64),
+					Err(r) => Cycles::Rejected(r),
+				};
+				(cy, ns)
 			},
 			Clock::Calibrated => {
 				let t = Instant::now();
 				f();
-				(None, t.elapsed().as_nanos() as f64)
+				(Cycles::FromWall, t.elapsed().as_nanos() as f64)
 			},
 		}
 	}
@@ -494,11 +580,12 @@ mod imp {
 	fn fma_zmm(iters: u64) {
 		let mut n = iters;
 		// SAFETY: register-only arithmetic on zeroed registers; runs only when
-		// avx512f is detected
+		// avx512f is detected, and every instruction here is AVX-512F: the
+		// zeroing is `vpxord` (EVEX.512 `vxorpd` would need AVX-512DQ)
 		unsafe {
 			core::arch::asm!(
-				"vxorpd zmm12, zmm12, zmm12",
-				"vxorpd zmm13, zmm13, zmm13",
+				"vpxord zmm12, zmm12, zmm12",
+				"vpxord zmm13, zmm13, zmm13",
 				"2:",
 				"vfmadd231pd zmm0, zmm12, zmm13",
 				"vfmadd231pd zmm1, zmm12, zmm13",
@@ -590,7 +677,14 @@ mod imp {
 		peak256: f64,
 	}
 
-	fn parse() -> Opts {
+	const USAGE: &str = "usage: gemm_microkernel --cpu N [--samples S] \
+	                     [--sample-ms MS] [--prime-ms MS] [--filter SUBSTR] \
+	                     [--kc K] [--ldc LDC] [--peak512 F] [--peak256 F]";
+
+	/// Parse the probe's arguments. Every flag may be given once: a repeated
+	/// `--cpu` would make the probe pin a core other than the one a wrapper
+	/// asked for (and watches the SMT siblings of), so it is refused.
+	fn parse_args(args: &[String]) -> Result<Opts, String> {
 		let mut o = Opts {
 			cpu: usize::MAX,
 			samples: 31,
@@ -602,58 +696,54 @@ mod imp {
 			peak512: 32.0,
 			peak256: 16.0,
 		};
-		let args: Vec<String> = std::env::args().skip(1).collect();
+		let mut seen: Vec<&str> = Vec::new();
 		let mut i = 0;
-		let usage = "usage: gemm_microkernel --cpu N [--samples S] \
-		             [--sample-ms MS] [--prime-ms MS] [--filter SUBSTR] [--kc \
-		             K] [--ldc LDC] [--peak512 F] [--peak256 F]";
 		while i < args.len() {
-			let val = |i: usize| -> &str {
-				args.get(i + 1).map(String::as_str).unwrap_or_else(|| {
-					eprintln!("{usage}");
-					std::process::exit(2)
-				})
+			let flag = args[i].as_str();
+			let val = args.get(i + 1).ok_or_else(|| USAGE.to_string())?;
+			let num = || -> Result<usize, String> {
+				val.parse()
+					.map_err(|_| format!("{flag}: not a number: {val}"))
 			};
-			let num = |i: usize| -> usize {
-				val(i).parse().unwrap_or_else(|_| {
-					eprintln!("{}: not a number: {}", args[i], val(i));
-					std::process::exit(2)
-				})
+			let flt = || -> Result<f64, String> {
+				val.parse()
+					.map_err(|_| format!("{flag}: not a number: {val}"))
 			};
-			let flt = |i: usize| -> f64 {
-				val(i).parse().unwrap_or_else(|_| {
-					eprintln!("{}: not a number: {}", args[i], val(i));
-					std::process::exit(2)
-				})
-			};
-			match args[i].as_str() {
-				"--cpu" => o.cpu = num(i),
-				"--samples" => o.samples = num(i),
-				"--sample-ms" => o.sample_ms = num(i) as u64,
-				"--prime-ms" => o.prime_ms = num(i) as u64,
-				"--filter" => o.filter = Some(val(i).to_string()),
-				"--kc" => o.kc = Some(num(i)),
-				"--ldc" => o.ldc = num(i),
-				"--peak512" => o.peak512 = flt(i),
-				"--peak256" => o.peak256 = flt(i),
-				_ => {
-					eprintln!("{usage}");
-					std::process::exit(2)
-				},
+			if seen.contains(&flag) {
+				return Err(format!("{flag} given twice\n{USAGE}"));
 			}
+			match flag {
+				"--cpu" => o.cpu = num()?,
+				"--samples" => o.samples = num()?,
+				"--sample-ms" => o.sample_ms = num()? as u64,
+				"--prime-ms" => o.prime_ms = num()? as u64,
+				"--filter" => o.filter = Some(val.clone()),
+				"--kc" => o.kc = Some(num()?),
+				"--ldc" => o.ldc = num()?,
+				"--peak512" => o.peak512 = flt()?,
+				"--peak256" => o.peak256 = flt()?,
+				_ => return Err(USAGE.to_string()),
+			}
+			seen.push(flag);
 			i += 2;
 		}
 		if o.cpu == usize::MAX {
-			eprintln!(
-				"--cpu is required: the probe pins itself to one core\n{usage}"
-			);
-			std::process::exit(2);
+			return Err(format!(
+				"--cpu is required: the probe pins itself to one core\n{USAGE}"
+			));
 		}
 		if o.samples < 4 || o.kc == Some(0) {
-			eprintln!("--samples must be >= 4 and --kc >= 1");
-			std::process::exit(2);
+			return Err("--samples must be >= 4 and --kc >= 1".into());
 		}
-		o
+		Ok(o)
+	}
+
+	fn parse() -> Opts {
+		let args: Vec<String> = std::env::args().skip(1).collect();
+		parse_args(&args).unwrap_or_else(|e| {
+			eprintln!("{e}");
+			std::process::exit(2)
+		})
 	}
 
 	fn pin(cpu: usize) {
@@ -908,8 +998,54 @@ mod imp {
 		Ok(())
 	}
 
+	/// `perf_reject:<rejected>/<samples>:<reasons>` for a row with rejected
+	/// counter samples, where the reasons are `x<largest enabled/running>` for
+	/// multiplexed samples, `zero` and `nonmonotonic`; `None` when all counted.
+	fn reject_summary(
+		rejects: &[CounterReject],
+		samples: usize,
+	) -> Option<String> {
+		if rejects.is_empty() {
+			return None;
+		}
+		let mut worst: Option<f64> = None;
+		let (mut zero, mut nonmono) = (false, false);
+		for r in rejects {
+			match *r {
+				CounterReject::Multiplexed { multiplier } => {
+					worst =
+						Some(worst.map_or(multiplier, |w| w.max(multiplier)))
+				},
+				CounterReject::ZeroCount => zero = true,
+				CounterReject::NotMonotonic => nonmono = true,
+			}
+		}
+		let mut s = format!("perf_reject:{}/{samples}", rejects.len());
+		if let Some(w) = worst {
+			s += &format!(":x{w:.3}");
+		}
+		if zero {
+			s += ":zero";
+		}
+		if nonmono {
+			s += ":nonmonotonic";
+		}
+		Some(s)
+	}
+
+	/// a FLOP/cycle figure, `-` when there is none
+	fn fmt_rate(x: Option<f64>, digits: usize) -> String {
+		match x {
+			Some(x) if x.is_finite() => format!("{x:.digits$}"),
+			_ => "-".into(),
+		}
+	}
+
 	struct Row {
-		fpc: (f64, f64, f64),
+		/// `None` when any sample's cycle count was rejected
+		fpc: Option<(f64, f64, f64)>,
+		/// the `check` column suffix naming the rejected samples
+		perf_reject: Option<String>,
 		ns: (f64, f64, f64),
 		ghz: (f64, f64),
 		reps: usize,
@@ -947,18 +1083,34 @@ mod imp {
 		}
 		let ghz1 = core_ghz();
 		let ghz = 0.5 * (ghz0 + ghz1);
-		let fpc: Vec<f64> = cycles
+		let rejects: Vec<CounterReject> = cycles
 			.iter()
-			.zip(&nss)
-			.map(|(cy, ns)| {
-				let cy = cy.unwrap_or(ns * ghz);
-				flops_per_call * reps as f64 / cy
+			.filter_map(|cy| match cy {
+				Cycles::Rejected(r) => Some(*r),
+				_ => None,
 			})
 			.collect();
+		let perf_reject = reject_summary(&rejects, opts.samples);
+		let fpc = perf_reject.is_none().then(|| {
+			let fpc: Vec<f64> = cycles
+				.iter()
+				.zip(&nss)
+				.map(|(cy, ns)| {
+					let cy = match cy {
+						Cycles::Counted(c) => *c,
+						Cycles::FromWall => ns * ghz,
+						Cycles::Rejected(_) => unreachable!(),
+					};
+					flops_per_call * reps as f64 / cy
+				})
+				.collect();
+			quartiles(&fpc)
+		});
 		let per_call: Vec<f64> =
 			nss.iter().map(|ns| ns / reps as f64).collect();
 		Row {
-			fpc: quartiles(&fpc),
+			fpc,
+			perf_reject,
 			ns: quartiles(&per_call),
 			ghz: (ghz0, ghz1),
 			reps,
@@ -1051,6 +1203,9 @@ mod imp {
 			opts.filter.as_deref().is_none_or(|f| label.contains(f))
 		};
 
+		// rows whose cycle counter samples were rejected
+		let mut perf_rejected = 0usize;
+
 		// FMA ceilings
 		let mut fma_peak = [f64::NAN, f64::NAN];
 		for (k, (isa, name, lanes)) in
@@ -1071,7 +1226,7 @@ mod imp {
 					}
 				}
 			});
-			fma_peak[k] = row.fpc.1;
+			fma_peak[k] = row.fpc.map_or(f64::NAN, |q| q.1);
 			let nom = match isa {
 				Isa::Avx512 => opts.peak512,
 				Isa::Avx2 => opts.peak256,
@@ -1080,19 +1235,20 @@ mod imp {
 			f.extend(std::iter::repeat_n("-".to_string(), 10));
 			f.extend([
 				row.reps.to_string(),
-				format!("{:.3}", row.fpc.1),
-				format!("{:.3}", row.fpc.0),
-				format!("{:.3}", row.fpc.2),
-				format!("{:.1}", 100.0 * row.fpc.1 / nom),
-				"100.0".into(),
+				fmt_rate(row.fpc.map(|q| q.1), 3),
+				fmt_rate(row.fpc.map(|q| q.0), 3),
+				fmt_rate(row.fpc.map(|q| q.2), 3),
+				fmt_rate(row.fpc.map(|q| 100.0 * q.1 / nom), 1),
+				fmt_rate(row.fpc.map(|_| 100.0), 1),
 				format!("{:.1}", row.ns.1),
 				format!("{:.1}", row.ns.0),
 				format!("{:.1}", row.ns.2),
 				format!("{:.2}", flops / row.ns.1),
 				format!("{:.4}", row.ghz.0),
 				format!("{:.4}", row.ghz.1),
-				"-".into(),
+				row.perf_reject.clone().unwrap_or_else(|| "-".into()),
 			]);
+			perf_rejected += row.perf_reject.is_some() as usize;
 			assert_eq!(f.len(), cols.len());
 			println!("{}", f.join("\t"));
 		}
@@ -1167,19 +1323,27 @@ mod imp {
 				tiles.len().to_string(),
 				ldc.to_string(),
 				row.reps.to_string(),
-				format!("{:.3}", row.fpc.1),
-				format!("{:.3}", row.fpc.0),
-				format!("{:.3}", row.fpc.2),
-				format!("{:.1}", 100.0 * row.fpc.1 / nom),
-				format!("{:.1}", 100.0 * row.fpc.1 / fma),
+				fmt_rate(row.fpc.map(|q| q.1), 3),
+				fmt_rate(row.fpc.map(|q| q.0), 3),
+				fmt_rate(row.fpc.map(|q| q.2), 3),
+				fmt_rate(row.fpc.map(|q| 100.0 * q.1 / nom), 1),
+				fmt_rate(row.fpc.map(|q| 100.0 * q.1 / fma), 1),
 				format!("{:.1}", row.ns.1),
 				format!("{:.1}", row.ns.0),
 				format!("{:.1}", row.ns.2),
 				format!("{:.2}", flops / row.ns.1),
 				format!("{:.4}", row.ghz.0),
 				format!("{:.4}", row.ghz.1),
-				format!("{status}{}", if unstable { ",unstable" } else { "" }),
+				format!(
+					"{status}{}{}",
+					if unstable { ",unstable" } else { "" },
+					row.perf_reject
+						.as_deref()
+						.map(|r| format!(",{r}"))
+						.unwrap_or_default()
+				),
 			];
+			perf_rejected += row.perf_reject.is_some() as usize;
 			assert_eq!(f.len(), cols.len());
 			println!("{}", f.join("\t"));
 		}
@@ -1189,6 +1353,113 @@ mod imp {
 				 smoke"
 			);
 			std::process::exit(1);
+		}
+		if perf_rejected > 0 {
+			eprintln!(
+				"gemm_microkernel: {perf_rejected} row(s) had cycle-counter \
+				 samples rejected (multiplexed or zero count); their \
+				 FLOP/cycle is `-`"
+			);
+			std::process::exit(4);
+		}
+	}
+
+	#[cfg(test)]
+	mod tests {
+		use super::*;
+
+		fn sample(count: u64, enabled_ns: u64, running_ns: u64) -> PerfSample {
+			PerfSample {
+				count,
+				enabled_ns,
+				running_ns,
+			}
+		}
+
+		#[test]
+		fn perf_sample_parses_value_enabled_running_in_order() {
+			let mut b = [0u8; 24];
+			b[..8].copy_from_slice(&7u64.to_ne_bytes());
+			b[8..16].copy_from_slice(&11u64.to_ne_bytes());
+			b[16..].copy_from_slice(&13u64.to_ne_bytes());
+			assert_eq!(PerfSample::from_bytes(&b), sample(7, 11, 13));
+		}
+
+		#[test]
+		fn full_interval_counts() {
+			let s0 = sample(1_000, 5_000, 5_000);
+			let s1 = sample(41_000, 15_000, 15_000);
+			assert_eq!(cycles_between(s0, s1), Ok(40_000));
+		}
+
+		#[test]
+		fn half_scheduled_interval_is_rejected_with_its_multiplier() {
+			// the event ran 5 of the 10 us it was enabled and counted half the
+			// cycles: the raw delta would double FLOP/cycle
+			let s0 = sample(0, 0, 0);
+			let s1 = sample(20_000, 10_000, 5_000);
+			assert_eq!(
+				cycles_between(s0, s1),
+				Err(CounterReject::Multiplexed { multiplier: 2.0 })
+			);
+		}
+
+		#[test]
+		fn never_scheduled_and_zero_count_are_rejected() {
+			let s0 = sample(5, 100, 100);
+			assert_eq!(
+				cycles_between(s0, sample(5, 900, 100)),
+				Err(CounterReject::Multiplexed {
+					multiplier: f64::INFINITY
+				})
+			);
+			assert_eq!(
+				cycles_between(s0, sample(5, 100, 100)),
+				Err(CounterReject::Multiplexed {
+					multiplier: f64::INFINITY
+				})
+			);
+			assert_eq!(
+				cycles_between(s0, sample(5, 900, 900)),
+				Err(CounterReject::ZeroCount)
+			);
+			assert_eq!(
+				cycles_between(s0, sample(4, 900, 900)),
+				Err(CounterReject::NotMonotonic)
+			);
+		}
+
+		#[test]
+		fn any_rejected_sample_withholds_the_rate() {
+			assert_eq!(reject_summary(&[], 31), None);
+			let r = [
+				CounterReject::Multiplexed { multiplier: 1.25 },
+				CounterReject::Multiplexed { multiplier: 2.0 },
+				CounterReject::ZeroCount,
+			];
+			assert_eq!(
+				reject_summary(&r, 31).as_deref(),
+				Some("perf_reject:3/31:x2.000:zero")
+			);
+			assert_eq!(fmt_rate(None, 3), "-");
+			assert_eq!(fmt_rate(Some(f64::NAN), 1), "-");
+			assert_eq!(fmt_rate(Some(15.98765), 3), "15.988");
+		}
+
+		fn args(s: &str) -> Vec<String> {
+			s.split_whitespace().map(String::from).collect()
+		}
+
+		#[test]
+		fn a_second_cpu_is_refused() {
+			let e = parse_args(&args("--cpu 2 --cpu 3")).err().unwrap();
+			assert!(e.starts_with("--cpu given twice"), "{e}");
+			assert_eq!(
+				parse_args(&args("--cpu 2 --samples 5")).unwrap().cpu,
+				2
+			);
+			assert!(parse_args(&args("--samples 5")).is_err());
+			assert!(parse_args(&args("--cpu 2 --samples 3")).is_err());
 		}
 	}
 }
