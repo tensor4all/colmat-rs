@@ -33,7 +33,11 @@ upstream `faer`.
   products, written from Nakatsukasa, Bai and Gygi (2010) and Nakatsukasa and
   Higham (2012, 2013), not from code; MatrixFactorizations.jl's `polar.jl`
   (MIT) is the test oracle only, so `NOTICE` is unchanged. Newton-Schulz is not
-  included; no performance claim.
+  included; no performance claim. The SVD method keeps the singular values at
+  the dense SVD's working scale (crate-private `svd_scaled`) and restores only
+  the entries of `P`, so a `sigma_max` beyond `MAX` is not an error when `P`
+  fits ([#233](https://github.com/tensor4all/colmat-rs/issues/233)); the public
+  `svd` contract is unchanged.
   [Design and verification scope](docs/worklogs/2026-11-17-polar.md).
 
 - EXPERIMENT: `bidiagonal_dqds` and its scratch query expose the existing real

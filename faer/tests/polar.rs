@@ -351,12 +351,14 @@ fn polar_rejects_non_finite_input() {
 
 /// Finite entries near the largest finite value: `norm_l2` overflows there, which QDWH must not
 /// turn into $W = 0$, and the hermitian part of $P$ must not overflow either. Checked with $A$
-/// and $P$ divided by the largest entry, so that the products stay finite. QDWH must succeed. The
-/// SVD method must succeed unless the largest singular value of $A$ exceeds the largest finite
-/// value (the complex cases, 1.09 to 1.21 times it), where the thin SVD reports `NoConvergence`.
+/// and $P$ divided by the largest entry, so that the products stay finite. Both methods must
+/// succeed, also on the six complex cases whose largest singular value exceeds the largest finite
+/// value (1.09 to 1.21 times it), where the SVD itself reports `NoConvergence` (#233).
 #[test]
 fn polar_handles_entries_near_overflow() {
-	fn near_overflow<T: Scalar>(largest: f64) {
+	// returns the number of cases whose largest singular value is not representable
+	fn near_overflow<T: Scalar>(largest: f64) -> usize {
+		let mut sigma_overflows = 0;
 		let big = 0.5 * largest;
 		for (m, n) in [(1, 1), (5, 3), (3, 5), (4, 4)] {
 			let sample = sample_mat::<T>(m, n, 9);
@@ -368,29 +370,17 @@ fn polar_handles_entries_near_overflow() {
 			let unit = Mat::<T>::from_fn(m, n, |i, j| {
 				sample[(i, j)].mul_real(recip(&top))
 			});
-			// $\sigma_{\max}(A) = \sigma_{\max}(\text{unit}) \cdot 0.5 \cdot \text{largest}$
-			let sigma_overflows = unit
-				.singular_values(Par::Seq)
-				.unwrap()
-				.iter()
-				.any(|s| s.mul_real(from_f64::<T::Real>(0.5)) > one());
 			let scale = from_f64::<T::Real>(big);
 			let a =
 				Mat::<T>::from_fn(m, n, |i, j| unit[(i, j)].mul_real(&scale));
+			sigma_overflows += a.singular_values(Par::Seq).is_err() as usize;
 			for method in METHODS {
 				let tag = format!(
 					"{} {m}x{n} {method:?}",
 					std::any::type_name::<T>()
 				);
-				let (w, p) = match polar(a.as_ref(), method, Par::Seq) {
-					Ok(factors) => factors,
-					Err(PolarError::NoConvergence)
-						if method == PolarMethod::Svd && sigma_overflows =>
-					{
-						continue;
-					},
-					Err(e) => panic!("{tag}: {e:?}"),
-				};
+				let (w, p) = polar(a.as_ref(), method, Par::Seq)
+					.unwrap_or_else(|e| panic!("{tag}: {e:?}"));
 				let p_unit = Mat::<T>::from_fn(p.nrows(), p.ncols(), |i, j| {
 					p[(i, j)].mul_real(recip(&scale))
 				});
@@ -403,11 +393,58 @@ fn polar_handles_entries_near_overflow() {
 				}
 			}
 		}
+		sigma_overflows
 	}
-	near_overflow::<f64>(f64::MAX);
-	near_overflow::<c64>(f64::MAX);
-	near_overflow::<f32>(f32::MAX as f64);
-	near_overflow::<c32>(f32::MAX as f64);
+	let sigma_overflows = near_overflow::<f64>(f64::MAX)
+		+ near_overflow::<c64>(f64::MAX)
+		+ near_overflow::<f32>(f32::MAX as f64)
+		+ near_overflow::<c32>(f32::MAX as f64);
+	// the complex 5 x 3, 3 x 5 and 4 x 4 at both precisions
+	assert_eq!(sigma_overflows, 6);
+}
+
+/// #233: a rank-one input whose only singular value, $s \sqrt 2$ for two entries
+/// $s = 0.75 \cdot$ MAX, is not representable, while every entry of $P$ ($s / \sqrt 2$) is. The
+/// SVD method keeps $\Sigma$ at the SVD's working scale and must return both factors; checked
+/// at ordinary scale, with $A$ and $P$ divided by $s$. QDWH is left out: on a rank-deficient
+/// input its $W$ is not orthonormal (`PolarMethod::Qdwh`).
+#[test]
+fn polar_svd_with_unrepresentable_singular_value() {
+	fn run<T: Scalar>(largest: f64) {
+		let s = from_f64::<T::Real>(0.75 * largest);
+		let unit = Mat::<T>::from_fn(9, 3, |i, j| {
+			if i == 0 && j < 2 {
+				T::from_f64(1.0)
+			} else {
+				zero()
+			}
+		});
+		let a = Mat::<T>::from_fn(9, 3, |i, j| unit[(i, j)].mul_real(&s));
+		for (a, unit) in [
+			(a.as_ref(), unit.as_ref()),
+			(a.transpose(), unit.transpose()),
+		] {
+			let (m, n) = a.shape();
+			let tag = format!("{} {m}x{n}", std::any::type_name::<T>());
+			assert!(a.singular_values(Par::Seq).is_err(), "{tag}");
+			let (w, p) = polar(a, PolarMethod::Svd, Par::Seq)
+				.unwrap_or_else(|e| panic!("{tag}: {e:?}"));
+			let p_unit = Mat::<T>::from_fn(p.nrows(), p.ncols(), |i, j| {
+				p[(i, j)].mul_real(recip(&s))
+			});
+			if m >= n {
+				close((&w * &p_unit).as_ref(), unit);
+				unitary(w.as_ref());
+			} else {
+				close((&p_unit * &w).as_ref(), unit);
+				unitary(w.transpose());
+			}
+		}
+	}
+	run::<f64>(f64::MAX);
+	run::<c64>(f64::MAX);
+	run::<f32>(f32::MAX as f64);
+	run::<c32>(f32::MAX as f64);
 }
 
 /// Finite entries whose $P$ is not representable: every entry $0.9 \cdot$ MAX gives entries of

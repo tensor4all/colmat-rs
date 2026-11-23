@@ -65,8 +65,9 @@ pub enum PolarMethod {
 pub enum PolarError {
 	/// the SVD did not converge, the QDWH iteration did not meet its stopping rule within its
 	/// iteration limit, or $P$ is not representable. reached with non-finite input, or with finite
-	/// input whose $P$ (either method) or largest singular value (the SVD method) is not
-	/// representable in `T`
+	/// input whose $P$ is not representable in `T`. the SVD method keeps the singular values at
+	/// the SVD's working scale, so a largest singular value beyond the largest finite value is
+	/// not an error by itself
 	NoConvergence,
 }
 
@@ -226,7 +227,9 @@ fn svd_polar<T: ComplexField>(
 	let mut U = U.as_mat_mut();
 	let (mut V, stack) = unsafe { temp_mat_uninit::<T, _, _>(n, n, stack) };
 	let mut V = V.as_mat_mut();
-	linalg::svd::svd(
+	// $\Sigma$ stays at the SVD's working scale: $P$'s entries can be representable when
+	// $\sigma_{\max}$ is not (#233), and `left_polar` rejects a $P$ that is not
+	let scale = linalg::svd::svd_scaled(
 		A,
 		s.rb_mut().col_mut(0).as_diagonal_mut(),
 		Some(U.rb_mut()),
@@ -259,7 +262,11 @@ fn svd_polar<T: ComplexField>(
 		one(),
 		par,
 	);
-	hermitian_part_in_place(P);
+	hermitian_part_in_place(P.rb_mut());
+	if let Some(scale) = scale {
+		let inv = scale.recip();
+		z!(P).for_each(|uz!(x)| *x = x.mul_pow2(&inv));
+	}
 	Ok(())
 }
 
