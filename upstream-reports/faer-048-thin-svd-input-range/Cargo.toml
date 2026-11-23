@@ -1,0 +1,11 @@
+[package]
+name = "faer-048-thin-svd-input-range"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Not part of the colmat workspace: this reproduces the published crate on its own.
+[workspace]
+
+[dependencies]
+faer = { version = "=0.24.4", default-features = false, features = ["std", "linalg"] }
