@@ -53,6 +53,43 @@ a copy here that links back to it.
   (read the [review rules](docs/review-rules.md) first)
 - Community: [#tensor4all:matrix.org](https://matrix.to/#/#tensor4all:matrix.org)
 
+## Contributing
+
+Read the [review rules](docs/review-rules.md) first. We are looking for:
+
+- **Measurements on hardware we do not have.** Run the harness in
+  [tensor4all/colmat-benchmark](https://github.com/tensor4all/colmat-benchmark)
+  (it lives there, not in this repository) on other CPUs (ARM servers, recent
+  Intel and AMD parts). Numbers must follow its
+  [timing protocol](https://github.com/tensor4all/colmat-benchmark/blob/main/docs/protocol-v2-baseline.md):
+  pinned CPU sets, the idle guard, and discarded attempts re-run rather than
+  selected by their numbers; the commands are in its
+  [rules and runbook](https://github.com/tensor4all/colmat-benchmark/blob/main/docs/rules.md).
+  Post the result as a pull request to that repository. The
+  [published charts](https://tensor4all.org/colmat-benchmark/) show what is
+  already measured.
+- **Thread width and placement.** Choosing the fastest width rather than the
+  widest that pays ([#280](https://github.com/tensor4all/colmat-rs/issues/280)),
+  and placement under threadteam.
+- **Double-double linear algebra**, following the
+  [design under review](https://github.com/tensor4all/tensor4all-meta/blob/main/docs/design/next-generation-dense-linear-algebra.md).
+- **Validation**: more of LAPACK's test suites, and reproducers for defects found
+  on the way.
+
+### Software paper: join as a co-author
+
+colmat is part of the tenferro stack, and we plan to submit a software paper on
+tenferro at the end of January 2027 (the journal is not fixed and acceptance is
+not guaranteed). People who make a substantial contribution to colmat or the
+other crates of the stack can join the author list. The criteria and how to
+apply are in [tensor4all/tenferro-paper](https://github.com/tensor4all/tenferro-paper)
+([AUTHORS-NOTES.md](https://github.com/tensor4all/tenferro-paper/blob/main/AUTHORS-NOTES.md));
+contributors coordinate in the tenferro Matrix room
+[#tenferro-tensor4all:matrix.org](https://matrix.to/#/#tenferro-tensor4all:matrix.org).
+This paper does not replace upstream faer's own paper
+([JOSS, doi:10.21105/joss.06099](https://doi.org/10.21105/joss.06099)), which
+colmat users should keep citing.
+
 ## Origin and acknowledgment
 
 colmat is derived from [faer](https://codeberg.org/sarah-quinones/faer) by Sarah Quiñones

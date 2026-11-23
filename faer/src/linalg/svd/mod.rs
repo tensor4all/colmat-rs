@@ -914,13 +914,37 @@ pub fn svd_scratch<T: ComplexField>(
 /// or if restoring the original scale would produce a nonfinite singular value.
 pub fn svd<T: ComplexField>(
 	A: MatRef<'_, T>,
+	mut s: DiagMut<'_, T>,
+	u: Option<MatMut<'_, T>>,
+	v: Option<MatMut<'_, T>>,
+	par: Par,
+	stack: &mut MemStack,
+	params: Spec<SvdParams, T>,
+) -> Result<(), SvdError> {
+	if let Some(scale) = svd_scaled(A, s.rb_mut(), u, v, par, stack, params)? {
+		let inv = scale.recip();
+		let mut s = s.column_vector_mut();
+		z!(s.rb_mut()).for_each(|uz!(x)| *x = x.mul_pow2(&inv));
+		if !s.rb().is_all_finite() {
+			return Err(SvdError::NoConvergence);
+		}
+	}
+	Ok(())
+}
+
+/// [`svd`] without restoring the input scale: the singular values in `s` are those of
+/// `scale * A` for the returned power of two `scale` (`None` for one), which [`svd`] then
+/// divides out. The singular vectors do not depend on it. For callers that need only a
+/// product of the factors, which can be representable when $\sigma_{\max}$ is not.
+pub(crate) fn svd_scaled<T: ComplexField>(
+	A: MatRef<'_, T>,
 	s: DiagMut<'_, T>,
 	u: Option<MatMut<'_, T>>,
 	v: Option<MatMut<'_, T>>,
 	mut par: Par,
 	stack: &mut MemStack,
 	params: Spec<SvdParams, T>,
-) -> Result<(), SvdError> {
+) -> Result<Option<T::Real>, SvdError> {
 	let params = params.config;
 	let (m, n) = A.shape();
 	let size = Ord::min(m, n);
@@ -973,7 +997,7 @@ pub fn svd<T: ComplexField>(
 			u.fill(zero());
 			u.rb_mut().diagonal_mut().fill(one());
 		}
-		return Ok(());
+		return Ok(None);
 	}
 	let max = matrix.norm_max();
 	if !max.is_finite() {
@@ -1055,13 +1079,6 @@ pub fn svd<T: ComplexField>(
 			);
 		}
 	}
-	if let Some(scale) = scale {
-		let inv = scale.recip();
-		z!(s.rb_mut()).for_each(|uz!(x)| *x = x.mul_pow2(&inv));
-		if !s.rb().is_all_finite() {
-			return Err(SvdError::NoConvergence);
-		}
-	}
 	if do_transpose {
 		if let Some(u) = u.rb_mut() {
 			z!(u).for_each(|uz!(u)| *u = u.conj())
@@ -1070,7 +1087,7 @@ pub fn svd<T: ComplexField>(
 			z!(v).for_each(|uz!(v)| *v = v.conj())
 		}
 	}
-	Ok(())
+	Ok(scale)
 }
 /// computes the layout of the workspace required to compute a matrix's
 /// pseudoinverse, given the svd
