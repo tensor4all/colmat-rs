@@ -772,9 +772,23 @@ impl<'n, T> Array<'n, T> {
 	#[allow(clippy::should_implement_trait)]
 	// inherent method kept as-is: adding the trait impl would add public API
 	/// returns the unconstrained slice.
+	///
+	/// the slice borrows `self`, so two of them cannot be live at once:
+	///
+	/// ```compile_fail,E0499
+	/// use colmat::utils::bound::{Array, Dim};
+	/// let mut v = vec![1.0f64, 2.0];
+	/// Dim::with(v.len(), |n| {
+	///     let a = Array::from_mut(&mut v, n);
+	///     let s1 = a.as_mut();
+	///     let s2 = a.as_mut();
+	///     s1[0] = 3.0;
+	///     s2[0] = 4.0;
+	/// });
+	/// ```
 	#[inline]
 	#[track_caller]
-	pub fn as_mut<'a>(&mut self) -> &'a mut [T] {
+	pub fn as_mut(&mut self) -> &mut [T] {
 		unsafe { &mut *(self as *mut _ as *mut _) }
 	}
 
@@ -799,10 +813,16 @@ impl<'n, T> core::ops::Index<Range<IdxInc<'n>>> for Array<'n, T> {
 		{
 			&self.unbound[idx.start.unbound()..idx.end.unbound()]
 		}
+		// `IdxInc<'n>` bounds both ends by the length, but not their order:
+		// `start <= end` is checked here, since an inverted range is UB in
+		// `get_unchecked` rather than a wrong answer.
 		#[cfg(not(debug_assertions))]
-		unsafe {
-			self.unbound
-				.get_unchecked(idx.start.unbound()..idx.end.unbound())
+		{
+			assert!(idx.start <= idx.end);
+			unsafe {
+				self.unbound
+					.get_unchecked(idx.start.unbound()..idx.end.unbound())
+			}
 		}
 	}
 }
@@ -813,10 +833,14 @@ impl<'n, T> core::ops::IndexMut<Range<IdxInc<'n>>> for Array<'n, T> {
 		{
 			&mut self.unbound[idx.start.unbound()..idx.end.unbound()]
 		}
+		// see `Index<Range<IdxInc<'n>>>`: the order of the ends is checked.
 		#[cfg(not(debug_assertions))]
-		unsafe {
-			self.unbound
-				.get_unchecked_mut(idx.start.unbound()..idx.end.unbound())
+		{
+			assert!(idx.start <= idx.end);
+			unsafe {
+				self.unbound
+					.get_unchecked_mut(idx.start.unbound()..idx.end.unbound())
+			}
 		}
 	}
 }
@@ -856,11 +880,13 @@ pub struct One;
 pub struct Zero;
 /// index equal to zero ro one
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct IdxIncOne<I: Index = usize> {
 	inner: I,
 }
 /// index equal to zero ro one, or a sentinel value
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct MaybeIdxOne<I: Index = usize> {
 	inner: I,
 }
@@ -954,4 +980,59 @@ impl PartialOrd<One> for Zero {
 }
 impl Shape for One {
 	const IS_BOUND: bool = true;
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	// `Array::as_mut` used to return a caller-chosen lifetime, so two calls gave
+	// two live `&mut` to the same slice (tensor4all/colmat-rs#256). The slice
+	// now borrows the array; the aliasing form is a `compile_fail` doctest on
+	// `as_mut`.
+	#[test]
+	fn test_array_as_mut() {
+		let mut v = alloc::vec![1.0f64, 2.0];
+		Dim::with(v.len(), |n| {
+			let a = Array::from_mut(&mut v, n);
+			a.as_mut()[0] = 3.0;
+			a.as_mut()[1] = 4.0;
+			core::assert!(a.as_ref() == [3.0, 4.0]);
+		});
+		core::assert!(v == [3.0, 4.0]);
+	}
+
+	#[test]
+	fn test_array_range() {
+		let mut v = alloc::vec![1.0f64, 2.0, 3.0];
+		Dim::with(v.len(), |n| {
+			let a = Array::from_mut(&mut v, n);
+			core::assert!(a[n.idx_inc(1)..n.idx_inc(3)] == [2.0, 3.0]);
+			core::assert!(a[n.idx_inc(2)..n.idx_inc(2)].is_empty());
+			a[n.idx_inc(0)..n.idx_inc(2)][1] = 5.0;
+		});
+		core::assert!(v == [1.0, 5.0, 3.0]);
+	}
+
+	// an inverted range used to reach `get_unchecked` in release builds
+	// (`unchecked_sub` overflow, tensor4all/colmat-rs#256).
+	#[test]
+	#[should_panic]
+	fn test_array_range_reversed() {
+		let v = alloc::vec![1.0f64, 2.0, 3.0];
+		Dim::with(v.len(), |n| {
+			let a = Array::from_ref(&v, n);
+			let _ = &a[n.idx_inc(2)..n.idx_inc(1)];
+		});
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_array_range_mut_reversed() {
+		let mut v = alloc::vec![1.0f64, 2.0, 3.0];
+		Dim::with(v.len(), |n| {
+			let a = Array::from_mut(&mut v, n);
+			let _ = &mut a[n.idx_inc(2)..n.idx_inc(1)];
+		});
+	}
 }

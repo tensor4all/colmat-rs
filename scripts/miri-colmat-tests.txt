@@ -72,3 +72,16 @@ mat::matown::tests::test_max
 mat::matown::tests::test_min
 mat::matref::tests::test_max
 mat::matref::tests::test_min
+
+# Index soundness (#256): `One`-shaped permutations (no reinterpretation of the zero-sized `Zero` as
+# `I`), `Array::as_mut`, and `Array` range indexing with `start > end`.
+perm::tests::test_as_shape_one
+perm::tests::test_cast_idx_slice
+perm::tests::test_into_shape_index_layout
+perm::tests::test_into_shape_one
+perm::tests::test_new_checked_one
+perm::tests::test_new_checked_one_rejects_two_entries
+utils::bound::tests::test_array_as_mut
+utils::bound::tests::test_array_range
+utils::bound::tests::test_array_range_mut_reversed
+utils::bound::tests::test_array_range_reversed
