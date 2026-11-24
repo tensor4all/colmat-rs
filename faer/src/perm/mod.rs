@@ -368,3 +368,94 @@ pub fn permute_cols_in_place<I: Index, T: ComplexField>(
 	}
 	implementation(matrix, perm_indices.canonicalized(), stack)
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::utils::bound::{Dim, One, Zero};
+
+	// `PermRef<_, One>::new_checked` used to reinterpret `&[Zero]` as `&[I]`
+	// and read past a zero-sized slice (tensor4all/colmat-rs#256).
+	#[test]
+	fn test_new_checked_one() {
+		let z = [Zero];
+		let p = PermRef::<u32, One>::new_checked(&z, &z, One);
+		core::assert!(p.len() == One);
+		let p = PermRef::<usize, One>::new_checked(&z, &z, One);
+		core::assert!(p.arrays().0.len() == 1);
+		let p = Perm::<u64, One>::new_checked(
+			Box::new([Zero]),
+			Box::new([Zero]),
+			One,
+		);
+		core::assert!(p.arrays().1.len() == 1);
+	}
+
+	#[test]
+	#[should_panic(expected = "forward.len() == dim.unbound()")]
+	fn test_new_checked_one_rejects_two_entries() {
+		let z = [Zero, Zero];
+		PermRef::<u32, One>::new_checked(&z, &z, One);
+	}
+
+	#[test]
+	fn test_cast_idx_slice() {
+		let v = [2u32, 0, 1];
+		core::assert!(<usize as Shape>::cast_idx_slice::<u32>(&v) == v);
+		Dim::with(3, |n| {
+			let idx = [n.idx(2u64), n.idx(0u64)];
+			core::assert!(Dim::cast_idx_slice::<u64>(&idx) == [2u64, 0]);
+		});
+		core::assert!(<One as Shape>::cast_idx_slice::<u32>(&[Zero]) == [0u32]);
+		core::assert!(<One as Shape>::cast_idx_slice::<u64>(&[]).is_empty());
+	}
+
+	// `Perm::into_shape` used to rebuild a `Box<[I]>` with the layout of
+	// `[Zero]` and back (tensor4all/colmat-rs#256): a leak one way, a free of
+	// a dangling pointer the other way.
+	#[test]
+	fn test_into_shape_one() {
+		let p = Perm::<u32>::new_checked(Box::new([0u32]), Box::new([0u32]), 1);
+		let p = p.into_shape(One);
+		core::assert!(p.arrays().0.len() == 1);
+		let p = p.into_shape(1usize);
+		core::assert!(p.arrays() == (&[0u32][..], &[0u32][..]));
+		Dim::with(1, |n| {
+			let p = Perm::<usize>::new_checked(Box::new([0]), Box::new([0]), 1)
+				.into_shape(n);
+			let p = p.into_shape(One).into_shape(n);
+			core::assert!(p.arrays().0[0].unbound() == 0);
+		});
+	}
+
+	#[test]
+	fn test_into_shape_index_layout() {
+		let p = Perm::<u64>::new_checked(
+			Box::new([2u64, 0, 1]),
+			Box::new([1u64, 2, 0]),
+			3,
+		);
+		Dim::with(3, |n| {
+			let p = p.into_shape(n);
+			let (fwd, inv) = p.as_shape(3usize).arrays();
+			core::assert!(fwd == [2u64, 0, 1] && inv == [1u64, 2, 0]);
+			let p = p.into_shape(3usize);
+			core::assert!(p.arrays().0 == [2u64, 0, 1]);
+		});
+	}
+
+	// `PermRef::as_shape` from `One` used to reinterpret `&[Zero]` as `&[I]`.
+	#[test]
+	fn test_as_shape_one() {
+		let z = [Zero];
+		let p = PermRef::<u32, One>::new_checked(&z, &z, One);
+		core::assert!(
+			p.as_shape(1usize).arrays() == (&[0u32][..], &[0u32][..])
+		);
+		Dim::with(1, |n| {
+			core::assert!(p.as_shape(n).arrays().1[0].unbound() == 0);
+		});
+		let q = Perm::<usize>::new_checked(Box::new([0]), Box::new([0]), 1);
+		core::assert!(q.as_shape(One).arrays().0.len() == 1);
+	}
+}

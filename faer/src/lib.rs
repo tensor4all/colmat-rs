@@ -743,6 +743,62 @@ pub type Idx<Dim, I = usize> = <Dim as ShapeIdx>::Idx<I>;
 pub type IdxInc<Dim, I = usize> = <Dim as ShapeIdx>::IdxInc<I>;
 /// either an index or a negative value
 pub type MaybeIdx<Dim, I = usize> = <Dim as ShapeIdx>::MaybeIdx<I>;
+/// whether `Idx<N, I>` is stored as `I` (`size_of::<Idx<N, I>>() ==
+/// size_of::<I>()`): true for `usize` and `Dim<'n>`, whose index is `I` or a
+/// `#[repr(transparent)]` wrapper of it, false for `One`, whose index is the
+/// zero-sized `Zero`. `Shape` is sealed, so these are the only cases and a size
+/// comparison tells them apart.
+#[inline(always)]
+pub(crate) const fn idx_has_index_layout<N: ShapeIdx + ?Sized, I: Index>()
+-> bool {
+	core::mem::size_of::<Idx<N, I>>() == core::mem::size_of::<I>()
+}
+
+/// `len` copies of the index `0` stored as `T`, borrowed from a static zero.
+///
+/// For a zero-sized `T` (`Zero`) any length is returned; otherwise `len` must
+/// be at most one, and the function panics if it is not.
+///
+/// # Safety
+///
+/// `T` must be zero-sized, or a type for which eight zero bytes aligned to
+/// eight hold a valid value: an `Index` (`u32`, `u64`, `usize`) or a
+/// `#[repr(transparent)]` wrapper of one whose value `0` the caller knows to
+/// be in bounds.
+#[inline]
+#[track_caller]
+pub(crate) unsafe fn zero_idx_slice<'a, T: 'a>(len: usize) -> &'a [T] {
+	#[repr(C, align(8))]
+	struct Zeros([u8; 8]);
+	static ZEROS: Zeros = Zeros([0; 8]);
+
+	if core::mem::size_of::<T>() == 0 {
+		// SAFETY: a slice of a zero-sized type needs only a non-null, aligned
+		// pointer, and every value of the zero-sized index `Zero` is valid.
+		unsafe {
+			core::slice::from_raw_parts(
+				core::ptr::NonNull::<T>::dangling().as_ptr(),
+				len,
+			)
+		}
+	} else {
+		core::assert!(
+			len <= 1,
+			"a `One`-shaped index slice holds at most one index"
+		);
+		core::assert!(
+			core::mem::size_of::<T>() <= 8 && core::mem::align_of::<T>() <= 8
+		);
+		// SAFETY: `ZEROS` is a static of eight zero bytes aligned to eight, which
+		// covers `len <= 1` entries of `T` (size and alignment checked above);
+		// the caller guarantees that zero bytes are a valid `T`. The memory is
+		// only ever borrowed shared, so it is never written.
+		unsafe {
+			core::slice::from_raw_parts(ZEROS.0.as_ptr() as *const T, len)
+		}
+	}
+}
+
 /// base trait for [`Shape`]
 pub trait ShapeIdx {
 	/// type that can be used to index into a range
@@ -769,13 +825,37 @@ pub trait Shape:
 		utils::bound::Dim::new(self.unbound(), guard)
 	}
 	/// cast a slice of bound values to unbound values
+	///
+	/// # panics
+	///
+	/// for [`One`](utils::bound::One), whose index is the zero-sized
+	/// [`Zero`](utils::bound::Zero), panics if `slice` is longer than one
+	/// entry: there is no `I` in memory to borrow, so the entries are read
+	/// from a static zero, which holds one.
 	#[inline]
+	#[track_caller]
 	fn cast_idx_slice<I: Index>(slice: &[Idx<Self, I>]) -> &[I] {
-		unsafe { core::slice::from_raw_parts(slice.as_ptr() as _, slice.len()) }
+		if idx_has_index_layout::<Self, I>() {
+			// SAFETY: `Shape` is sealed, and `Idx<Self, I>` is `I` or a
+			// `#[repr(transparent)]` wrapper of `I` (`utils::bound::Idx`): the
+			// zero-sized `Zero` is the only other index type, and the size check
+			// above excludes it. So the slice has the layout of `[I]` with the
+			// same length.
+			unsafe {
+				core::slice::from_raw_parts(slice.as_ptr() as _, slice.len())
+			}
+		} else {
+			// SAFETY: `I` is `u32`, `u64` or `usize` (`Index` is sealed), and
+			// every entry of a `Zero` slice is the index `0`.
+			unsafe { zero_idx_slice::<I>(slice.len()) }
+		}
 	}
 	/// cast a slice of bound values to unbound values
 	#[inline]
 	fn cast_idx_inc_slice<I: Index>(slice: &[IdxInc<Self, I>]) -> &[I] {
+		// SAFETY: `Shape` is sealed, and `IdxInc<Self, I>` is `I` or a
+		// `#[repr(transparent)]` wrapper of `I` (`utils::bound::IdxInc`,
+		// `utils::bound::IdxIncOne`), so the slice has the layout of `[I]`.
 		unsafe { core::slice::from_raw_parts(slice.as_ptr() as _, slice.len()) }
 	}
 	/// returns the index `0`, which is always valid

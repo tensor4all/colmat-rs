@@ -20,19 +20,44 @@ impl<I: Index, N: Shape> Perm<I, N> {
 	#[inline]
 	pub fn into_shape<M: Shape>(self, dim: M) -> Perm<I, M> {
 		assert!(self.len().unbound() == dim.unbound());
-		Perm {
-			0: Own {
-				forward: unsafe {
-					alloc::boxed::Box::from_raw(alloc::boxed::Box::into_raw(
-						self.0.forward,
-					) as _)
+		if crate::idx_has_index_layout::<N, I>()
+			&& crate::idx_has_index_layout::<M, I>()
+		{
+			// SAFETY: `Box::into_raw` gives a pointer from the global allocator,
+			// and the slice-pointer cast keeps its length; `N::Idx<I>` and
+			// `M::Idx<I>` both have the layout of `I` (checked above), so the
+			// layout the allocation is freed with is the one it was made with.
+			// Every entry is `< dim` by the permutation invariant, so the entries
+			// are valid `M::Idx<I>`.
+			Perm {
+				0: Own {
+					forward: unsafe {
+						alloc::boxed::Box::from_raw(
+							alloc::boxed::Box::into_raw(self.0.forward) as _,
+						)
+					},
+					inverse: unsafe {
+						alloc::boxed::Box::from_raw(
+							alloc::boxed::Box::into_raw(self.0.inverse) as _,
+						)
+					},
 				},
-				inverse: unsafe {
-					alloc::boxed::Box::from_raw(alloc::boxed::Box::into_raw(
-						self.0.inverse,
-					) as _)
+			}
+		} else {
+			// one of the shapes is `One`, so `dim == 1` and the only
+			// permutation is the identity `[0]`. `[Zero]` and `[I]` have
+			// different layouts, so the boxes are not reinterpreted: `self` is
+			// dropped with its own layout and the result built with `M`'s.
+			assert!(dim.unbound() == 1);
+			drop(self);
+			// SAFETY: `0 < dim == 1`.
+			let zero = unsafe { M::Idx::<I>::new_unbound(I::truncate(0)) };
+			Perm {
+				0: Own {
+					forward: alloc::boxed::Box::new([zero]),
+					inverse: alloc::boxed::Box::new([zero]),
 				},
-			},
+			}
 		}
 	}
 

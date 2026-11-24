@@ -26,7 +26,8 @@ hold most of the crate's own `unsafe`: the owned `Mat` (`resize_with`, `push_row
 its elements when one `Drop` panics), strided views and `IndexMut`, `cloned`, `zip!` and the
 elementwise operators built on it, `Perm` and diagonal application, sparse index construction, the
 raw-pointer index sort, and the iterators and reductions over `Col`, `Row` and `Mat` in their owned,
-`Ref` and `Mut` forms. The list file groups the 53 names by these headings.
+`Ref` and `Mut` forms, and the bound index API (`Array`, `One`-shaped `Perm`, #256). The list file
+groups the 63 names by these headings.
 
 **Excluded:**
 
@@ -53,12 +54,17 @@ tests in `faer/tests/` are outside it. One of them, `faer/tests/owned_capacity.r
 `Mat::truncate` and was Miri-clean when run by hand
 ([worklog](worklogs/2026-11-07-zst-reservation-division.md); now
 `cargo +nightly miri test -p colmat --test owned_capacity`); adding it to this lane is a separate
-decision. Within `--lib`, no test calls `Mat::truncate` (shrinking), the
-`Array` API in `utils::bound` (`as_mut`, range indexing), `PermRef` with `N = One`, `ZipEq::new_unchecked`
+decision. Within `--lib`, no test calls `Mat::truncate` (shrinking), `ZipEq::new_unchecked`
 or `for_each_triangular_*` on a transposed and reversed operand. These are exactly the paths of
-#254, #255 and #256, which external reports found by running Miri on reproducers outside the crate.
+#254 and #255, which external reports found by running Miri on reproducers outside the crate.
 Their fixes are expected to bring regression tests; add those names to the list when they land, so the
-lane guards the fixes.
+lane guards the fixes. The third report, #256 (the `Array` API in `utils::bound` and `PermRef`/`Perm`
+with `N = One`), landed with its tests in `perm::tests` and `utils::bound::tests`, which are listed.
+The lane runs the debug profile, so it reaches the checked slice of `Array`'s range indexing, not the
+release arm's `get_unchecked` that #256 fixed. The `start <= end` assertion that protects that arm runs in
+both profiles and the reversed-range tests expect its message, so the lane fails if it is removed; the
+release arm itself was run under Miri by hand with `--release`
+([worklog](worklogs/2026-11-24-index-soundness.md)).
 
 No listed test writes through an uninitialized matrix destination: those paths are exercised by
 `linalg::matmul::tests::test_matmul_with_conj_uninit*` (`faer/src/linalg/matmul/mod.rs`), which are
@@ -71,7 +77,7 @@ isolation on, Miri gives the program a virtual clock, so the figure is determini
 every M5 run, `180.74s` on both CI runs) and says nothing about the budget. Wall-clock times:
 
 - M5 (aarch64, 2026-11-22, `miri 0.1.0 (daf2e5e18b 2026-07-13)`), crate already built for Miri:
-  `scripts/run-miri-colmat.sh` takes 70 s for all 53 tests. The heaviest single test,
+  `scripts/run-miri-colmat.sh` takes 70 s for the 53 tests listed then. The heaviest single test,
   `mat::matref::tests::test_cloned_from_a_strided_source`, takes 54 s as its own invocation, against
   14 s for a trivial one (`sort::tests::test_quicksort`), so about 40 s of the set is that test.
 - `ubuntu-24.04-arm` (runs 44965688890 and 44972192686, 2026-11-22): the whole job, toolchain

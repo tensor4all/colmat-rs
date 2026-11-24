@@ -37,6 +37,10 @@ jobs:
       - run: cargo test -p colmat --test schur_eigenvectors_team_no_alloc
       - run: python3 scripts/check-migration-examples.py
       - run: cargo build --examples -j8
+      # #253 (#278 review): the microkernel probe's argument and cycle-counter guards, the bench
+      # wrapper's CPU and build-record guards, and the AVX-512F-only ZMM ceiling loop.
+      - run: cargo test -p colmat --example gemm_microkernel -j8
+      - run: bash scripts/test-gemm-microkernel-bench.sh target/debug/examples/gemm_microkernel
       - run: |
           for example in migration_overview migration_cpp migration_fortran migration_julia; do
             cargo run -p colmat --example "$example" -j8

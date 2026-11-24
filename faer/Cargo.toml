@@ -159,6 +159,11 @@ serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 serde_json = "1.0.145"
 serde_test = "1.0.177"
 
+# `examples/gemm_microkernel.rs` (#253) pins itself (`sched_setaffinity`) and reads core cycles
+# (`perf_event_open`). The lock already carries libc for std's dependents.
+[target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dev-dependencies]
+libc = "0.2.178"
+
 [target.'cfg(eigen)'.dev-dependencies]
 eigen-bench-setup = { path = "../eigen-bench-setup" }
 

@@ -56,21 +56,44 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 	#[inline]
 	pub fn as_shape<M: Shape>(self, dim: M) -> PermRef<'a, I, M> {
 		assert!(self.len().unbound() == dim.unbound());
-		PermRef {
-			0: Ref {
-				forward: unsafe {
-					core::slice::from_raw_parts(
-						self.forward.as_ptr() as _,
-						dim.unbound(),
-					)
+		if crate::idx_has_index_layout::<N, I>()
+			&& crate::idx_has_index_layout::<M, I>()
+		{
+			// SAFETY: both slices have length `dim` (checked above) and are
+			// borrowed for `'a`; `N::Idx<I>` and `M::Idx<I>` both have the layout
+			// of `I` (checked above), and every entry is `< dim` by the
+			// permutation invariant, so the entries are valid `M::Idx<I>`.
+			PermRef {
+				0: Ref {
+					forward: unsafe {
+						core::slice::from_raw_parts(
+							self.forward.as_ptr() as _,
+							dim.unbound(),
+						)
+					},
+					inverse: unsafe {
+						core::slice::from_raw_parts(
+							self.inverse.as_ptr() as _,
+							dim.unbound(),
+						)
+					},
 				},
-				inverse: unsafe {
-					core::slice::from_raw_parts(
-						self.inverse.as_ptr() as _,
-						dim.unbound(),
-					)
+			}
+		} else {
+			// one of the shapes is `One`, so `dim == 1` and the only
+			// permutation is the identity `[0]`; there may be no `I` in memory
+			// to reinterpret (`Zero` is zero-sized), so borrow a static zero.
+			// SAFETY: `M::Idx<I>` is `Zero`, `I` or a `#[repr(transparent)]`
+			// wrapper of `I`, and the index `0` is `< dim == 1`.
+			assert!(dim.unbound() == 1);
+			let id =
+				unsafe { crate::zero_idx_slice::<M::Idx<I>>(dim.unbound()) };
+			PermRef {
+				0: Ref {
+					forward: id,
+					inverse: id,
 				},
-			},
+			}
 		}
 	}
 
@@ -103,6 +126,12 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 				assert!(inverse[p].to_signed().zx() == i);
 			}
 		}
+		// the lengths first, so that a `One`-shaped slice longer than `dim`
+		// fails here rather than in `cast_idx_slice`.
+		assert!(all(
+			forward.len() == dim.unbound(),
+			inverse.len() == dim.unbound()
+		));
 		check(
 			I::canonicalize(N::cast_idx_slice(forward)),
 			I::canonicalize(N::cast_idx_slice(inverse)),

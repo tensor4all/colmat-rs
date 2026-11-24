@@ -17,6 +17,15 @@ Numbers are tensor4all/colmat-rs issues or PRs.
 
 ## Correctness
 
+- Index soundness (#256). `PermRef::new_checked`, `PermRef::as_shape` and `Perm::into_shape` with
+  the shape `One` read past a zero-sized slice, leaked, or freed a dangling `Box`, because the index
+  of `One` is the zero-sized `Zero` and was reinterpreted as `I`; they now handle `One` without the
+  cast, and `Shape::cast_idx_slice` returns zeros for it (panicking beyond one entry). `Array`'s
+  range indexing asserts `start <= end` in every profile; a release build reached `get_unchecked` with
+  an inverted range.
+  **Signature change:** `Array::as_mut<'a>(&mut self) -> &'a mut [T]` is now
+  `Array::as_mut(&mut self) -> &mut [T]`; the old lifetime let safe code hold two `&mut` to the same
+  slice, and only code that did so stops compiling.
 - `norm_l2` no longer returns infinity or zero for representable norms at the
   ends of the floating-point range (#229). The SIMD path widens its scaling
   factors, and strided views scale entries before summing squares.
