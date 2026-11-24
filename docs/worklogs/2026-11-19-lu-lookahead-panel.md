@@ -32,10 +32,17 @@ team pinned to one L3 domain, ld = n as the harness lays it out:
 ### The change: one panel of look-ahead per team level
 
 A level whose right child is wider than 64 columns updates that child's first panel (the node of
-at most 64 columns on its leftmost chain) first; then the leader factors the panel alone while the
+at most 64 columns on its leftmost chain, or the leaf that chain stops at when a caller raises
+`recursion_threshold` past 64) first; then the leader factors the panel alone while the
 other members compute the rest of the trailing product (`thread::join_sized(par, 1, ..)`), and the
 right child skips the panel. The arithmetic of every column is unchanged, so the factor and the
-permutation are bitwise the old ones.
+permutation are bitwise those of the same call at the same team width without the look-ahead.
+That is what `lu::tests::par_identity::lookahead_does_not_change_bits` asserts (f64/f32/c64/c32,
+column- and row-major, 200-300 and 8T n = 1024, team widths 4 and 8, with a per-call count that
+the path ran), plus a raised-threshold case (`recursion_threshold = 128`, 80-column panel). It is
+not a claim that a team factorization equals the sequential one: on aarch64 the pre-existing team
+path at width 3 (where the look-ahead cannot run) differs from `Par::Seq` in some runs at f32/f64
+200 x 200, which is a property of the team product on that host, not of this change.
 
 Unlike the faer#123 attempt (`2026-11-14-lu-trailing-product-lookahead.md`), the child is not
 narrowed to half the team (the leader factors only a panel that gains nothing from the team, and

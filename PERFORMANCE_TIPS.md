@@ -199,10 +199,14 @@ and scan the padding separately (`docs/worklogs/2026-11-19-lu-lookahead-panel.md
 ## Look ahead only where the panel outlasts the leader's share
 
 Overlapping a sequential panel with the rest of a team product saves `F/p + P - max(P, F/(p-1))`,
-which is positive only when `P > F / (p (p - 1))`. An always-on look-ahead won 3-6 % at LU 256-513
-and lost 5.7 % at 4T 1024 and 3 % at 8T 1536, where the far product dwarfs the panel; the gate
+which is positive only when `P > F / (p (p - 1))`. An always-on 64-column look-ahead won 0-3.7 %
+at LU 256-1024 in the panel scan (4T 257 3.7 %, 8T 1024 0 %) and lost 5.7 % at 4T 1024 and 3 % at
+8T 1536, where the far product dwarfs the panel; the gate
 kept the wins and made the large cells level. Use it for a panel that gains nothing from the
 team (64 columns in the LU), not for one that does (`docs/worklogs/2026-11-19-lu-lookahead-panel.md`).
+The panel width, the minimum team and the panel-to-product cost ratio are constants measured for
+`f64` on one host; they are applied unmeasured to the other dtypes.
+
 ## Below the blocking sizes, the block apply's calls are the cost
 
 A blocked factorization at `n = 32` (block width 4) is dozens of products of a few hundred

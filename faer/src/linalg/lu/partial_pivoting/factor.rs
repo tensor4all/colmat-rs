@@ -546,6 +546,13 @@ const LOOKAHEAD_MIN_WIDTH: usize = 4;
 /// Cost of a multiply-add of the panel factorization, in multiply-adds of the trailing product:
 /// on one thread the levels up to 64 columns of an n = 512 factorization ran at 8.1 G
 /// multiply-adds per second against the product's 15.5 G (evo, `f64`). See [`lookahead_pays`].
+///
+/// These three constants are fixed, not derived: they were measured for `f64` on one host (evo, one
+/// L3 domain) and are applied unchanged to `f32`, `c64` and `c32` and to other hosts. That is a
+/// gap, not a claim of independence: the `c64` leaf costs about four times the `f64` leaf per
+/// column, and whether the panel-to-product ratio of 2 holds for it (or for `f32`/`c32`) has not
+/// been measured. They are constants because only `f64` was scanned. The bits do not depend on
+/// them (`lu::tests::par_identity::lookahead_does_not_change_bits`); only the speed does.
 const LOOKAHEAD_PANEL_COST: usize = 2;
 
 /// Whether a level of `p` participants gains by looking ahead. Without it the level spends
@@ -571,15 +578,30 @@ fn lookahead_pays(
 		> far_macs
 }
 
-/// Levels that looked ahead, for the tests that assert the path ran.
+/// Test-only control of the look-ahead, carried by one call's [`PartialPivLuParams`] so that
+/// concurrent tests cannot see each other: `off` takes the no-look-ahead branch at every level
+/// (the same call otherwise), and `ran` counts the levels of *this* call that looked ahead. The
+/// counter is a reference and not a thread-local because the increment runs on whichever team
+/// member leads the level, not on the caller's thread.
 #[cfg(test)]
-pub(crate) static LOOKAHEADS: core::sync::atomic::AtomicUsize =
-	core::sync::atomic::AtomicUsize::new(0);
+#[derive(Copy, Clone, Debug, Default)]
+pub(crate) struct LookaheadProbe {
+	pub(crate) off: bool,
+	pub(crate) ran: Option<&'static core::sync::atomic::AtomicUsize>,
+}
 
-/// The first panel of the right child of a node (`right` columns): the node on its leftmost chain
-/// (its left half, that one's left half, ...) of at most [`LOOKAHEAD_PANEL`] columns, the first
-/// thing the right child factors and the only part of it that needs nothing but this level's
-/// trailing update. 0 when there is no such node short of the whole right child.
+/// The first panel of the right child of a node (`right` columns): the first node on its leftmost
+/// chain (its left half, that one's left half, ...) that is at most [`LOOKAHEAD_PANEL`] columns
+/// **or** a leaf (at most `recursion_threshold` columns), the first thing the right child factors
+/// and the only part of it that needs nothing but this level's trailing update. 0 when there is no
+/// such node short of the whole right child.
+///
+/// The panel is wider than [`LOOKAHEAD_PANEL`] only when the caller raises `recursion_threshold`
+/// past it: the chain then stops at a leaf (`recursion_threshold = 128`, `right = 300` gives 80),
+/// and the result cannot be clamped to 64 because a leaf has no 64-column node inside it to hand
+/// back as `done`. Such a panel costs the leader nothing extra, since a leaf runs on one thread
+/// with or without the look-ahead, and [`lookahead_pays`] is evaluated at the panel's actual width,
+/// so the gate needs no bound on it. At the default thresholds (8 and 16) the panel is at most 64.
 fn lookahead_panel(right: usize, recursion_threshold: usize) -> usize {
 	if right <= LOOKAHEAD_PANEL || right <= recursion_threshold {
 		return 0;
@@ -701,7 +723,12 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 			let mut A11 = A11;
 			let p = par_here.degree();
 			let panel = lookahead_panel(cols1, params.recursion_threshold);
+			#[cfg(test)]
+			let lookahead_off = params.lookahead_probe.off;
+			#[cfg(not(test))]
+			let lookahead_off = false;
 			if panel == 0
+				|| lookahead_off
 				|| p < LOOKAHEAD_MIN_WIDTH
 				|| !lookahead_pays(rows1, panel, cols1 - panel, b, p)
 			{
@@ -724,7 +751,9 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 			// factorization is the same at every width, `lu::tests::par_identity`), so the factor
 			// is the same bits.
 			#[cfg(test)]
-			LOOKAHEADS.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+			if let Some(ran) = params.lookahead_probe.ran {
+				ran.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+			}
 			let (mut near, far) = A11.split_at_col_mut(panel);
 			let (A01_near, A01_far) = A01.split_at_col(panel);
 			linalg::matmul::matmul(
@@ -884,6 +913,9 @@ pub struct PartialPivLuParams {
 	pub rel_tol: Option<f64>,
 	#[doc(hidden)]
 	pub non_exhaustive: NonExhaustive,
+	/// test-only switch and per-call counter of the look-ahead (see [`LookaheadProbe`])
+	#[cfg(test)]
+	pub(crate) lookahead_probe: LookaheadProbe,
 }
 /// information about the resulting $LU$ factorization
 ///
@@ -957,6 +989,8 @@ impl<T: ComplexField> Auto<T> for PartialPivLuParams {
 			abs_tol: None,
 			rel_tol: None,
 			non_exhaustive: NonExhaustive(()),
+			#[cfg(test)]
+			lookahead_probe: LookaheadProbe::default(),
 		}
 	}
 }
@@ -1147,6 +1181,30 @@ mod tests {
 	/// `perf-warn`: contiguous column-major and row-major inputs are the two
 	/// recommended layouts, so the warning fires only for a matrix that is
 	/// neither. The predicate this replaced warned on every row-major one.
+	/// The look-ahead panel is the first node of the right child's leftmost chain that is at most
+	/// `LOOKAHEAD_PANEL` columns or a leaf. At the default thresholds that bounds it by 64; a raised
+	/// `recursion_threshold` stops the chain at a wider leaf, which is what it must return (the
+	/// right child skips exactly that node), not a clamped 64.
+	#[test]
+	fn lookahead_panel_widths() {
+		assert!(all(
+			lookahead_panel(64, 8) == 0,
+			lookahead_panel(65, 8) == 32,
+			lookahead_panel(256, 8) == 64,
+			lookahead_panel(448, 8) == 64,
+			lookahead_panel(512, 16) == 64,
+			lookahead_panel(300, 128) == 80,
+			lookahead_panel(128, 128) == 0,
+		));
+		for right in 0..2048 {
+			for threshold in [8usize, 16] {
+				let panel = lookahead_panel(right, threshold);
+				assert!(panel <= LOOKAHEAD_PANEL);
+			}
+			let panel = lookahead_panel(right, 128);
+			assert!(panel <= Ord::max(LOOKAHEAD_PANEL, 128));
+		}
+	}
 	#[test]
 	fn perf_warn_predicate_excludes_both_preferred_layouts() {
 		assert!(!has_generic_strides(64, 1)); // contiguous row-major: `row_stride = ncols`
