@@ -48,6 +48,7 @@ impl<I: Index, N: Shape> Perm<I, N> {
 			// permutation is the identity `[0]`. `[Zero]` and `[I]` have
 			// different layouts, so the boxes are not reinterpreted: `self` is
 			// dropped with its own layout and the result built with `M`'s.
+			assert!(dim.unbound() == 1);
 			drop(self);
 			// SAFETY: `0 < dim == 1`.
 			let zero = unsafe { M::Idx::<I>::new_unbound(I::truncate(0)) };

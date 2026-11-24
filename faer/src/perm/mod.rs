@@ -392,7 +392,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "forward.len() == dim.unbound()")]
 	fn test_new_checked_one_rejects_two_entries() {
 		let z = [Zero, Zero];
 		PermRef::<u32, One>::new_checked(&z, &z, One);

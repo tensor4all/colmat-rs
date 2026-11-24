@@ -85,6 +85,7 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 			// to reinterpret (`Zero` is zero-sized), so borrow a static zero.
 			// SAFETY: `M::Idx<I>` is `Zero`, `I` or a `#[repr(transparent)]`
 			// wrapper of `I`, and the index `0` is `< dim == 1`.
+			assert!(dim.unbound() == 1);
 			let id =
 				unsafe { crate::zero_idx_slice::<M::Idx<I>>(dim.unbound()) };
 			PermRef {
@@ -125,6 +126,12 @@ impl<'a, I: Index, N: Shape> PermRef<'a, I, N> {
 				assert!(inverse[p].to_signed().zx() == i);
 			}
 		}
+		// the lengths first, so that a `One`-shaped slice longer than `dim`
+		// fails here rather than in `cast_idx_slice`.
+		assert!(all(
+			forward.len() == dim.unbound(),
+			inverse.len() == dim.unbound()
+		));
 		check(
 			I::canonicalize(N::cast_idx_slice(forward)),
 			I::canonicalize(N::cast_idx_slice(inverse)),
