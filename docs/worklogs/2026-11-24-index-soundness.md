@@ -21,9 +21,12 @@
   valid permutation and should keep working.
 - `Array::as_mut` returns a slice that borrows `&mut self`. This is the one
   signature change; no in-crate caller relied on the unbounded lifetime.
-- The release arms of `Array`'s range `Index`/`IndexMut` assert `start <= end`
-  before `get_unchecked`. `IdxInc<'n>` bounds each end by the length, not their
-  order; the debug arm already panicked through the checked slice.
+- `Array`'s range `Index`/`IndexMut` assert `start <= end` before slicing.
+  `IdxInc<'n>` bounds each end by the length, not their order. Only the release
+  arm (`get_unchecked`) needed it, since the debug arm panicked through the
+  checked slice, but the assertion runs in both profiles. The reversed-range
+  tests pin its message, so the debug-profile Miri lane notices if it is removed;
+  without it they fail there with the slice's message.
 - `IdxIncOne` and `MaybeIdxOne` gain `#[repr(transparent)]`. `cast_idx_inc_slice`
   reinterprets `[IdxIncOne<I>]` as `[I]`, which the default representation does
   not guarantee. It has no in-crate caller, so this is defensive, not a

@@ -60,8 +60,10 @@ or `for_each_triangular_*` on a transposed and reversed operand. These are exact
 Their fixes are expected to bring regression tests; add those names to the list when they land, so the
 lane guards the fixes. The third report, #256 (the `Array` API in `utils::bound` and `PermRef`/`Perm`
 with `N = One`), landed with its tests in `perm::tests` and `utils::bound::tests`, which are listed.
-The lane runs the debug profile, so it reaches the checked arm of `Array`'s range indexing, not the
-release arm that #256 fixed; that arm was checked by hand with `--release`
+The lane runs the debug profile, so it reaches the checked slice of `Array`'s range indexing, not the
+release arm's `get_unchecked` that #256 fixed. The `start <= end` assertion that protects that arm runs in
+both profiles and the reversed-range tests expect its message, so the lane fails if it is removed; the
+release arm itself was run under Miri by hand with `--release`
 ([worklog](worklogs/2026-11-24-index-soundness.md)).
 
 No listed test writes through an uninitialized matrix destination: those paths are exercised by

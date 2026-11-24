@@ -809,38 +809,35 @@ impl<'n, T> core::ops::Index<Range<IdxInc<'n>>> for Array<'n, T> {
 
 	#[track_caller]
 	fn index(&self, idx: Range<IdxInc<'n>>) -> &Self::Output {
+		// `IdxInc<'n>` bounds both ends by the length, but not their order:
+		// `start <= end` is checked in every profile, since an inverted range is
+		// UB in `get_unchecked` rather than a wrong answer (and checking it here
+		// in debug too lets the debug-profile tests see this assertion).
+		assert!(idx.start <= idx.end);
 		#[cfg(debug_assertions)]
 		{
 			&self.unbound[idx.start.unbound()..idx.end.unbound()]
 		}
-		// `IdxInc<'n>` bounds both ends by the length, but not their order:
-		// `start <= end` is checked here, since an inverted range is UB in
-		// `get_unchecked` rather than a wrong answer.
 		#[cfg(not(debug_assertions))]
-		{
-			assert!(idx.start <= idx.end);
-			unsafe {
-				self.unbound
-					.get_unchecked(idx.start.unbound()..idx.end.unbound())
-			}
+		unsafe {
+			self.unbound
+				.get_unchecked(idx.start.unbound()..idx.end.unbound())
 		}
 	}
 }
 impl<'n, T> core::ops::IndexMut<Range<IdxInc<'n>>> for Array<'n, T> {
 	#[track_caller]
 	fn index_mut(&mut self, idx: Range<IdxInc<'n>>) -> &mut Self::Output {
+		// see `Index<Range<IdxInc<'n>>>`: the order of the ends is checked.
+		assert!(idx.start <= idx.end);
 		#[cfg(debug_assertions)]
 		{
 			&mut self.unbound[idx.start.unbound()..idx.end.unbound()]
 		}
-		// see `Index<Range<IdxInc<'n>>>`: the order of the ends is checked.
 		#[cfg(not(debug_assertions))]
-		{
-			assert!(idx.start <= idx.end);
-			unsafe {
-				self.unbound
-					.get_unchecked_mut(idx.start.unbound()..idx.end.unbound())
-			}
+		unsafe {
+			self.unbound
+				.get_unchecked_mut(idx.start.unbound()..idx.end.unbound())
 		}
 	}
 }
@@ -1015,9 +1012,11 @@ mod tests {
 	}
 
 	// an inverted range used to reach `get_unchecked` in release builds
-	// (`unchecked_sub` overflow, tensor4all/colmat-rs#256).
+	// (`unchecked_sub` overflow, tensor4all/colmat-rs#256). The expected
+	// message is the assertion's, which runs in both profiles, so removing it
+	// fails these tests in debug too (the checked slice panics differently).
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "idx.start <= idx.end")]
 	fn test_array_range_reversed() {
 		let v = alloc::vec![1.0f64, 2.0, 3.0];
 		Dim::with(v.len(), |n| {
@@ -1027,7 +1026,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "idx.start <= idx.end")]
 	fn test_array_range_mut_reversed() {
 		let mut v = alloc::vec![1.0f64, 2.0, 3.0];
 		Dim::with(v.len(), |n| {
