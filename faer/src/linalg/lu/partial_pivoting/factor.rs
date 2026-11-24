@@ -551,8 +551,9 @@ const LOOKAHEAD_MIN_WIDTH: usize = 4;
 /// L3 domain) and are applied unchanged to `f32`, `c64` and `c32` and to other hosts. That is a
 /// gap, not a claim of independence: the `c64` leaf costs about four times the `f64` leaf per
 /// column, and whether the panel-to-product ratio of 2 holds for it (or for `f32`/`c32`) has not
-/// been measured. They are constants because only `f64` was scanned. The bits do not depend on
-/// them (`lu::tests::par_identity::lookahead_does_not_change_bits`); only the speed does.
+/// been measured. They are constants because only `f64` was scanned. They decide only whether a
+/// level looks ahead; the factorization agrees either way within the bound of
+/// `lu::tests::par_identity::lookahead_does_not_change_the_factorization`.
 const LOOKAHEAD_PANEL_COST: usize = 2;
 
 /// Whether a level of `p` participants gains by looking ahead. Without it the level spends
@@ -746,10 +747,11 @@ fn lu_in_place_recursion_imp<I: Index, T: ComplexField>(
 			// columns of this product that it covers. Those are updated first; then the leader
 			// factors the panel alone while the other members update the rest, which the right
 			// child reads only after its panel. The panel is the sequential part of a team call,
-			// so the members would otherwise wait for it. Each column gets the same operations
-			// as without the split (the product's columns are independent, and the panel's
-			// factorization is the same at every width, `lu::tests::par_identity`), so the factor
-			// is the same bits.
+			// so the members would otherwise wait for it. Each column gets the same mathematical
+			// operations as without the split (the product's columns are independent), but the
+			// two product calls need not round like the single one: the factor agrees within a
+			// stated bound, and is bit-identical on x86_64 but not on aarch64 at every shape
+			// (`lu::tests::par_identity::lookahead_does_not_change_the_factorization`).
 			#[cfg(test)]
 			if let Some(ran) = params.lookahead_probe.ran {
 				ran.fetch_add(1, core::sync::atomic::Ordering::Relaxed);

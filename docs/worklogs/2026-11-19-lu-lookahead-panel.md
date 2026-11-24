@@ -35,14 +35,18 @@ A level whose right child is wider than 64 columns updates that child's first pa
 at most 64 columns on its leftmost chain, or the leaf that chain stops at when a caller raises
 `recursion_threshold` past 64) first; then the leader factors the panel alone while the
 other members compute the rest of the trailing product (`thread::join_sized(par, 1, ..)`), and the
-right child skips the panel. The arithmetic of every column is unchanged, so the factor and the
-permutation are bitwise those of the same call at the same team width without the look-ahead.
-That is what `lu::tests::par_identity::lookahead_does_not_change_bits` asserts (f64/f32/c64/c32,
-column- and row-major, 200-300 and 8T n = 1024, team widths 4 and 8, with a per-call count that
-the path ran), plus a raised-threshold case (`recursion_threshold = 128`, 80-column panel). It is
-not a claim that a team factorization equals the sequential one: on aarch64 the pre-existing team
-path at width 3 (where the look-ahead cannot run) differs from `Par::Seq` in some runs at f32/f64
-200 x 200, which is a property of the team product on that host, not of this change.
+right child skips the panel. The arithmetic of every column is the same mathematically, but the
+trailing product of a level becomes two calls (panel columns, then the rest on `p - 1` members),
+which need not round like the single call. What is established
+(`lu::tests::par_identity::lookahead_does_not_change_the_factorization`, f64/f32/c64/c32, column-
+and row-major, 200-300 and 8T n = 1024, team widths 4 and 8, plus `recursion_threshold = 128`):
+the permutation and transposition count are those of the same call without the look-ahead, and
+the factor is within `||on - off||_1 <= 30 max(m, n) eps ||off||_1` of it. Exact bit identity held
+on x86_64 (evo, ubuntu CI) at every tested case; it does **not** hold on aarch64 (Apple M-series)
+at f32/f64 257 x 257 column-major, width 4 (deterministic, colmat-rs#244). The feature saves time;
+it does not promise cross-platform bit identity. Separately, the pre-existing team path at width 3
+(where the look-ahead cannot run) differs from `Par::Seq` in some runs on aarch64 at f32/f64
+200 x 200; that is a property of the team product on that host, not of this change.
 
 Unlike the faer#123 attempt (`2026-11-14-lu-trailing-product-lookahead.md`), the child is not
 narrowed to half the team (the leader factors only a panel that gains nothing from the team, and
@@ -79,11 +83,13 @@ mixed); a half-width panel for nodes with a right child of at most 64 columns wa
 
 ## Verification conclusions and constraints
 
-- `lu::tests::par_identity::lookahead_is_bit_identical_to_sequential` (f64, f32, c64, c32): square,
-  tall and wide shapes whose right children reach the panel through uneven halves (200, 257,
-  300 x 211, 211 x 300), column-major and row-major, team widths 3, 4 and 8 with every region on the
-  team; factor bits, permutation and transposition count equal to the sequential run, and the
-  look-ahead must have run at widths 4 and 8. The existing identity tests (26 shapes, widths
+- `lu::tests::par_identity::lookahead_does_not_change_the_factorization` (f64, f32, c64, c32):
+  square, tall and wide shapes whose right children reach the panel through uneven halves (200,
+  257, 300 x 211, 211 x 300) and 8T n = 1024, column-major and row-major, team widths 3, 4 and 8
+  with every region on the team; look-ahead on against off at the same width: permutation and
+  transposition count equal, factor within the ratio bound above, and a per-call count that the
+  look-ahead ran at widths 4 and 8 and did not at 3. (It replaced a comparison against the
+  sequential run, see above.) The existing identity tests (26 shapes, widths
   1/2/4/8, derived floor) pass unchanged.
 - Release `cargo test -p colmat --lib`: 850 passed. `cargo clippy --workspace --all-targets -D
   warnings` clean. `cargo fmt --check` reports only the existing diff in

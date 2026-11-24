@@ -152,20 +152,15 @@ fn parallel_path_is_bit_identical_with_one_column_per_member() {
 }
 
 /// One factorization with the look-ahead switched on or off ([`pp::factor::LookaheadProbe`]),
-/// returning the factor's entry bits, the permutation, the transposition count and the number of
-/// levels of *this call* that looked ahead. The counter lives in this call's params, so a test
-/// running beside it on another thread cannot bump it.
+/// returning the packed `L \ U` factor (column-major copy), the permutation, the transposition
+/// count and the number of levels of *this call* that looked ahead. The counter lives in this
+/// call's params, so a test running beside it on another thread cannot bump it.
 fn lookahead_run(
 	a: MatMut<'_, Scalar>,
 	par: Par,
 	recursion_threshold: Option<usize>,
 	lookahead: bool,
-) -> (
-	alloc::vec::Vec<(u64, u64)>,
-	alloc::vec::Vec<usize>,
-	usize,
-	usize,
-) {
+) -> (Mat<Scalar>, alloc::vec::Vec<usize>, usize, usize) {
 	use core::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 	let (m, n) = a.shape();
 	// one counter per call; leaked so that the `Copy` params can carry it (a few bytes per call)
@@ -200,18 +195,47 @@ fn lookahead_run(
 		MemStack::new(&mut mem),
 		params,
 	);
-	let bits = (0..m)
-		.flat_map(|i| (0..n).map(move |j| (i, j)))
-		.map(|(i, j)| a[(i, j)].lookahead_bits())
-		.collect();
-	(bits, p, info.transposition_count, ran.load(Relaxed))
+	(a.rb().to_owned(), p, info.transposition_count, ran.load(Relaxed))
+}
+
+/// Bound on how far the look-ahead-on factor may be from the look-ahead-off one: the LAPACK test
+/// ratio of this suite, `difference_ratio(on, off, eps) = ||on - off||_1 / (||off||_1 *
+/// max(m, n) * eps)` on the packed `L \ U` factor, below LAPACK's usual threshold of 30. That is
+/// `||on - off||_1 <= 30 * max(m, n) * eps * ||off||_1`.
+const LOOKAHEAD_RATIO_BOUND: f64 = 30.0;
+
+/// Asserts that look-ahead-on and look-ahead-off agree: the same permutation and transposition
+/// count, and factors within [`LOOKAHEAD_RATIO_BOUND`].
+fn assert_lookahead_agrees(
+	on: &(Mat<Scalar>, alloc::vec::Vec<usize>, usize, usize),
+	off: &(Mat<Scalar>, alloc::vec::Vec<usize>, usize, usize),
+	tag: &str,
+) {
+	core::assert_eq!(on.1, off.1, "{tag}: permutation");
+	core::assert_eq!(on.2, off.2, "{tag}: transposition count");
+	let ratio = difference_ratio(on.0.as_ref(), off.0.as_ref(), Real::EPSILON);
+	core::assert!(
+		(ratio as f64) < LOOKAHEAD_RATIO_BOUND,
+		"{tag}: L/U differ by ratio {ratio} >= {LOOKAHEAD_RATIO_BOUND}"
+	);
 }
 
 /// The look-ahead (tensor4all/colmat-rs#239): a level updates its right child's first panel, the
 /// leader factors that panel alone while the other members update the rest, and the right child
-/// then skips the panel. The claim is that this does not change a bit: the same call at the same
-/// team width with the look-ahead switched off ([`pp::factor::LookaheadProbe::off`]) gives the
-/// same factor, permutation and transposition count.
+/// then skips the panel. The claim is that this changes the time, not the factorization: the same
+/// call at the same team width with the look-ahead switched off
+/// ([`pp::factor::LookaheadProbe::off`]) gives the same permutation and transposition count, and a
+/// factor within [`LOOKAHEAD_RATIO_BOUND`] of it. Exact bit identity is **not** asserted.
+///
+/// Documented exception (do not re-open without new evidence): on aarch64 (Apple M-series,
+/// tensor4all/colmat-rs#244), the `f32`/`f64` 257 x 257 column-major factor at team width 4
+/// differs in its bits between look-ahead on and off, deterministically over three reruns, while
+/// every x86_64 run (evo, the ubuntu CI lanes) was bit-identical at every case here. The
+/// permutation agreed there. The cause is host-dependent summation order in the panel path: with
+/// the look-ahead a level's trailing product is two calls (the panel's columns on the team, the
+/// rest on the other members) instead of one, and the host's product kernels may block and sum the
+/// two differently from the single call. Bit identity across that split is not a property the
+/// product promises, so the feature does not promise it either.
 ///
 /// Every region on the whole team (`ParThreshold::Fixed(0)`) so the levels look ahead on any host,
 /// at shapes whose right children reach the panel through halves that do not halve evenly (a
@@ -220,23 +244,19 @@ fn lookahead_run(
 /// not `>`) and does not look ahead; the 512-column levels below do (panel 64, far 192), so the
 /// path runs at the shape the timings were taken at. Column-major and row-major (whose leaves share
 /// one buffer with the panel), square, tall and wide. At 4 and 8 members the look-ahead must have
-/// run in this call; at 3 it must not (the `LOOKAHEAD_MIN_WIDTH` gate). Width 3 asserts only that:
-/// there both runs execute the pre-#239 code (one `matmul(.., par_here)` per level), so comparing
-/// their bits would test whether the team path reproduces itself, which is not this change's claim
-/// and is not true everywhere (below).
+/// run in this call; at 3 it must not (the `LOOKAHEAD_MIN_WIDTH` gate), and width 3 asserts only
+/// that: both runs there execute the pre-#239 code, so comparing them would test whether the team
+/// path reproduces itself, which is not this change's claim (below).
 ///
-/// This test deliberately does **not** compare against `Par::Seq`. Bitwise agreement of a team
-/// factorization with the sequential one is not a property of the team path: with `Fixed(0)` every
-/// trailing product runs on the team, and on aarch64 (M-series) the `f32`/`f64` 200 x 200
+/// This test does not compare against `Par::Seq` either. On aarch64 the `f32`/`f64` 200 x 200
 /// column-major factor at width 3 -- where the look-ahead did not run (per-call count 0) --
-/// differed from the sequential one in some runs and matched it in others, i.e. the team product's
-/// summation order there depends on scheduling. `c32`/`c64` and every width-4/8 case agreed. The
-/// x86 lanes agree at all of them. That is pre-existing (#239 does not touch that branch), so it is
-/// recorded here and in the PR rather than asserted; the narrower team-vs-sequential checks above
+/// differed from the sequential one in some runs and matched it in others: the team product's
+/// summation order there depends on scheduling. That is pre-existing (#239 does not touch that
+/// branch); the narrower team-vs-sequential checks above
 /// ([`parallel_path_is_bit_identical_to_sequential`],
 /// [`parallel_path_is_bit_identical_with_one_column_per_member`]) are main's and unchanged.
 #[test]
-fn lookahead_does_not_change_bits() {
+fn lookahead_does_not_change_the_factorization() {
 	for &(m, n) in &[
 		(200usize, 200usize),
 		(257, 257),
@@ -276,13 +296,7 @@ fn lookahead_does_not_change_bits() {
 						"{tag}: the switch did not turn the look-ahead off"
 					);
 					if width >= 4 {
-						core::assert_eq!(on.1, off.1, "{tag}: permutation");
-						core::assert_eq!(
-							on.2,
-							off.2,
-							"{tag}: transposition count"
-						);
-						core::assert!(on.0 == off.0, "{tag}: L/U bits");
+						assert_lookahead_agrees(&on, &off, &tag);
 						core::assert!(
 							on.3 > 0,
 							"{tag}: the look-ahead did not run in this call"
@@ -302,10 +316,11 @@ fn lookahead_does_not_change_bits() {
 
 /// A caller-raised `recursion_threshold` makes the look-ahead panel a leaf wider than
 /// `LOOKAHEAD_PANEL` (threshold 128: a 300-column right child gives an 80-column panel, see
-/// `lookahead_panel`). The right child then skips that whole leaf; the factor must be the bits of
-/// the same call without the look-ahead, and the path must have run.
+/// `lookahead_panel`). The right child then skips that whole leaf; the factorization must agree
+/// with the same call without the look-ahead as in
+/// [`lookahead_does_not_change_the_factorization`], and the path must have run.
 #[test]
-fn lookahead_with_raised_threshold_does_not_change_bits() {
+fn lookahead_with_raised_threshold_does_not_change_the_factorization() {
 	for &(m, n) in &[(600usize, 600usize), (700, 600)] {
 		let a = lookahead_fixture(Ord::max(m, n)).get(..m, ..n).to_owned();
 		crate::team::with_team(8, |mut par| {
@@ -322,9 +337,7 @@ fn lookahead_with_raised_threshold_does_not_change_bits() {
 				0,
 				"{tag}: the switch did not turn the look-ahead off"
 			);
-			core::assert_eq!(on.1, off.1, "{tag}: permutation");
-			core::assert_eq!(on.2, off.2, "{tag}: transposition count");
-			core::assert!(on.0 == off.0, "{tag}: L/U bits");
+			assert_lookahead_agrees(&on, &off, &tag);
 			core::assert!(
 				on.3 > 0,
 				"{tag}: the look-ahead did not run in this call"
