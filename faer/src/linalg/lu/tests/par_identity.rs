@@ -248,13 +248,15 @@ fn assert_lookahead_agrees(
 /// that: both runs there execute the pre-#239 code, so comparing them would test whether the team
 /// path reproduces itself, which is not this change's claim (below).
 ///
-/// This test does not compare against `Par::Seq` either. On aarch64 the `f32`/`f64` 200 x 200
-/// column-major factor at width 3 -- where the look-ahead did not run (per-call count 0) --
-/// differed from the sequential one in some runs and matched it in others: the team product's
-/// summation order there depends on scheduling. That is pre-existing (#239 does not touch that
-/// branch); the narrower team-vs-sequential checks above
+/// This test does not compare against `Par::Seq` either. On aarch64 (Apple M-series) the team
+/// path's `f32`/`f64` factors differ from the sequential ones at several shapes: 200 x 200 at
+/// width 3 here (look-ahead count 0, differing in some runs and matching in others), and in the
+/// team-vs-sequential tests above at n = 129 width 4 and n = 64 width 3, which fail identically at
+/// the base `8d504cc8` without #239 (GLM review of `78412493` on colmat-rs#244). That is the team
+/// product's summation order on that host, pre-existing and outside this change. Those two tests
 /// ([`parallel_path_is_bit_identical_to_sequential`],
-/// [`parallel_path_is_bit_identical_with_one_column_per_member`]) are main's and unchanged.
+/// [`parallel_path_is_bit_identical_with_one_column_per_member`]) are main's, unchanged here, and
+/// pass on x86_64 only; whether to scope them is for a separate issue.
 #[test]
 fn lookahead_does_not_change_the_factorization() {
 	for &(m, n) in &[

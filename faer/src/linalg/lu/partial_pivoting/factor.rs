@@ -1180,9 +1180,6 @@ mod tests {
 	use crate::utils::cost::{pays_at, rate, serial_time};
 	use crate::{Mat, assert, c32, c64};
 	use dyn_stack::MemBuffer;
-	/// `perf-warn`: contiguous column-major and row-major inputs are the two
-	/// recommended layouts, so the warning fires only for a matrix that is
-	/// neither. The predicate this replaced warned on every row-major one.
 	/// The look-ahead panel is the first node of the right child's leftmost chain that is at most
 	/// `LOOKAHEAD_PANEL` columns or a leaf. At the default thresholds that bounds it by 64; a raised
 	/// `recursion_threshold` stops the chain at a wider leaf, which is what it must return (the
@@ -1207,6 +1204,9 @@ mod tests {
 			assert!(panel <= Ord::max(LOOKAHEAD_PANEL, 128));
 		}
 	}
+	/// `perf-warn`: contiguous column-major and row-major inputs are the two
+	/// recommended layouts, so the warning fires only for a matrix that is
+	/// neither. The predicate this replaced warned on every row-major one.
 	#[test]
 	fn perf_warn_predicate_excludes_both_preferred_layouts() {
 		assert!(!has_generic_strides(64, 1)); // contiguous row-major: `row_stride = ncols`

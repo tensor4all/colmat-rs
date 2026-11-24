@@ -46,7 +46,9 @@ on x86_64 (evo, ubuntu CI) at every tested case; it does **not** hold on aarch64
 at f32/f64 257 x 257 column-major, width 4 (deterministic, colmat-rs#244). The feature saves time;
 it does not promise cross-platform bit identity. Separately, the pre-existing team path at width 3
 (where the look-ahead cannot run) differs from `Par::Seq` in some runs on aarch64 at f32/f64
-200 x 200; that is a property of the team product on that host, not of this change.
+200 x 200, and main's team-vs-sequential identity tests fail there too (f64/f32 n = 129 width 4,
+n = 64 width 3), identically at the base `8d504cc8`; that is a property of the team product on
+that host, not of this change.
 
 Unlike the faer#123 attempt (`2026-11-14-lu-trailing-product-lookahead.md`), the child is not
 narrowed to half the team (the leader factors only a panel that gains nothing from the team, and
@@ -90,7 +92,7 @@ mixed); a half-width panel for nodes with a right child of at most 64 columns wa
   transposition count equal, factor within the ratio bound above, and a per-call count that the
   look-ahead ran at widths 4 and 8 and did not at 3. (It replaced a comparison against the
   sequential run, see above.) The existing identity tests (26 shapes, widths
-  1/2/4/8, derived floor) pass unchanged.
+  1/2/4/8, derived floor) pass unchanged on x86_64; on aarch64 they fail at the base as well (above).
 - Release `cargo test -p colmat --lib`: 850 passed. `cargo clippy --workspace --all-targets -D
   warnings` clean. `cargo fmt --check` reports only the existing diff in
   `faer/tests/gevd_223_extreme_scale.rs`.
@@ -117,6 +119,11 @@ Candidate `7c557fd9` recorded with the commands of the baseline record, unchange
 `faer-kernels/20261119T141221Z-lu239-daily-mkl-cand` (development-host, not published). Each
 number is the median across 6 process starts of each start's median; primary in-place row;
 not tested for significance.
+
+These numbers describe `7c557fd9` only. The branch has since merged `main` several times, which
+changed `faer/src/linalg/matmul/mod.rs` and `faer/src/utils/team.rs`, while the later #239 commits changed
+only test-gated code and comments in the LU factor (`8866b75e`, `2aca1003`). The merged tree was not re-timed,
+so the table is evidence for the change at `7c557fd9`, not a measurement of the head.
 
 | cell (f64, F) | fork/MKL before | after | fork after/before | MKL after/before |
 |---|---|---|---|---|
