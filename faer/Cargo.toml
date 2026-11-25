@@ -69,7 +69,9 @@ nano-gemm = { version = "0.2.2", default-features = false }
 # negative depth stride (faer#113), which `spicy_matmul` relies on. 0.1.28 adds
 # `gemm_with_scratch`, which takes the kernel's parallel job tables from caller memory
 # (faer#223): `gemm_team` lends it this thread's workspace, so a warm product allocates nothing.
-t4a-private-gemm-x86 = { version = "0.1.28", default-features = false, optional = true }
+# 0.1.30 (#294) adds `gemm_with_stack` and the f64 lower `syrk_lower_block`, neither called
+# here yet, and an Intel-only packed AVX2 driver that is bit-identical to the classical path.
+t4a-private-gemm-x86 = { version = "0.1.30", default-features = false, optional = true }
 
 [features]
 default = [

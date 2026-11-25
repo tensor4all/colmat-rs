@@ -2779,9 +2779,9 @@ dependencies = [
 
 [[package]]
 name = "t4a-private-gemm-x86"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90295f48b59ab213a5fa840a0342d7a16cfc71bb5905070414fd105fcc0fcba7"
+checksum = "0b25dab0c02ddb2068f8caaeeffda5d8399111007d16bbceef0fce215d54cb12"
 dependencies = [
  "crossbeam",
  "defer",

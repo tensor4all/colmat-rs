@@ -70,6 +70,12 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   or bidiagonalization, restoring the original scale in the returned singular
   values (#227).
 
+## Dependencies
+
+- `t4a-private-gemm-x86` 0.1.28 -> 0.1.30 (#294). No colmat code change and no change in results:
+  the new single-thread packed AVX2 driver (Haswell and Skylake-client Intel only) is bit-identical
+  to the classical kernel, and `gemm_with_stack` / `syrk_lower_block` are not called yet (#281).
+
 ## Added
 
 - Polar decomposition, `linalg::polar` (#60): `left_polar` (`A = W P`, `m >= n`) and
