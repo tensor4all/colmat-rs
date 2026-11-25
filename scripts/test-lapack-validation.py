@@ -34,6 +34,11 @@ class Runner(unittest.TestCase):
             'linalg::lu::lapack::c64::parallel_path_is_bit_identical_to_sequential'))
         self.assertIsNone(v.classify(
             'linalg::lu::lapack::c32::parallel_path_is_bit_identical_with_one_column_per_member'))
+        # the #239 look-ahead on/off tests sit in the same module but are not case records
+        self.assertIsNone(v.classify(
+            'linalg::lu::lapack::c32::lookahead_does_not_change_the_factorization'))
+        self.assertIsNone(v.classify(
+            'linalg::lu::lapack::c64::lookahead_with_raised_threshold_does_not_change_the_factorization'))
         # a self-adjoint accuracy test beside the case suite (tensor4all/faer#100): classified, not a case record
         name = 'linalg::evd::lapack::c32::lapack_self_adjoint_evd_qr_spectrum_accuracy'
         self.assertEqual(v.classify(name), 'self_adjoint_evd')

@@ -39,12 +39,18 @@ def classify(name):
         return 'svd'
     leaf = name.rsplit('::', 1)[-1]
     # Non-LAPACK correctness tests in the dtype-parameterized `lu` test module.
-    # Their exact-bit contract is x86_64-only: off x86_64 the parallel product is
+    # They are ordinary library tests, not LAPACK case suites, and run in the
+    # normal test jobs; the nightly selects the LAPACK families only. The
+    # bit-identity contract is x86_64-only: off x86_64 the parallel product is
     # the `gemm` crate, and the parallel/sequential bits differ (seen at n=129,
-    # width=4 on macOS arm64). They still run in the ordinary library tests; the
-    # nightly selects the LAPACK families only. The prefix covers the later
-    # `parallel_path_is_bit_identical_with_one_column_per_member` as well.
-    if leaf.startswith('parallel_path_is_bit_identical'):
+    # width=4 on macOS arm64). The lead-in covers the later
+    # `parallel_path_is_bit_identical_with_one_column_per_member` and both
+    # look-ahead tests (#239); neither is a numerical case record.
+    if leaf.startswith((
+        'parallel_path_is_bit_identical',
+        'lookahead_does_not_change_the_factorization',
+        'lookahead_with_raised_threshold_does_not_change_the_factorization',
+    )):
         return None
     if leaf.startswith(('lapack_common_', 'lapack_lin_')):
         return 'common'
