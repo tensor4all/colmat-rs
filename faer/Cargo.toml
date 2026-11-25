@@ -102,8 +102,9 @@ std = [
 # compile-in only: the wide functions are entered after run-time detection, so a build with it is
 # safe on an AVX2 host. Not a default feature yet; that flip is a later step (colmat-rs#297). The
 # non-finite factors that kept it out (tensor4all/faer#86) came from two of colmat's own algorithms,
-# which the lane count exposed: the full-pivot LU tie-break (#102, PR #105) and the partial-SVD
-# restart (#102, PR #108). Both are fixed, and the suite passes with it on an AVX-512 host (#297).
+# which the lane count exposed: the full-pivot LU tie-break (tensor4all/faer#105) and the
+# partial-SVD restart (tensor4all/faer#108), under tensor4all/faer#102. Both are fixed, and the
+# suite passes with it on an AVX-512 host (colmat-rs#297).
 # Without it, the packed x86 product (`t4a-private-gemm-x86`) still runs its AVX-512 kernels: that
 # route is chosen at run time (`is_x86_feature_detected!("avx512f")` in `linalg::matmul` and
 # `utils::team`), not by this feature.

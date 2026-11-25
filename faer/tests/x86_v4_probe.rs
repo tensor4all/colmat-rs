@@ -2,7 +2,7 @@
 //! 1..=40, the product of `f64` and `c64` matrices against a naive sum, and the
 //! full-pivoting LU solve of a random square system. It passes with and without
 //! `x86-v4`; the proposed CI `x86-v4` lane (#298) runs it next to the regression tests of the
-//! defects that kept `x86-v4` out of the defaults (#102), so a failure
+//! defects that kept `x86-v4` out of the defaults (tensor4all/faer#102), so a failure
 //! there separates "the AVX-512 path is wrong everywhere" from "one algorithm
 //! is wrong on it".
 use colmat::prelude::*;
