@@ -43,7 +43,9 @@ macro_rules! near_max_tests {
 				})
 			}
 			fn scaled(a: &Mat<T>) -> Mat<T> {
-				Mat::from_fn(a.nrows(), a.ncols(), |i, j| a[(i, j)] * mk(down(), 0.0))
+				Mat::from_fn(a.nrows(), a.ncols(), |i, j| {
+					a[(i, j)] * mk(down(), 0.0)
+				})
 			}
 			fn fro(a: &Mat<T>) -> f64 {
 				a.norm_l2() as f64
@@ -63,7 +65,9 @@ macro_rules! near_max_tests {
 				let (qs, rs, as_) = (q, scaled(&r), scaled(a));
 				let o = ortho(&qs);
 				let res = fro(&(&qs * &rs - &as_)) / fro(&as_);
-				println!("qr  {name}: {m}x{n} ||QhQ-I|| = {o:.2e}, ||QR-A||/||A|| = {res:.2e}");
+				println!(
+					"qr  {name}: {m}x{n} ||QhQ-I|| = {o:.2e}, ||QR-A||/||A|| = {res:.2e}"
+				);
 				let tol = 16.0 * (m as f64) * eps() as f64;
 				assert!(o <= tol, "{name}: orthogonality {o:e} > {tol:e}");
 				assert!(res <= tol, "{name}: QR residual {res:e} > {tol:e}");
@@ -112,7 +116,10 @@ macro_rules! near_max_tests {
 					)
 				};
 				println!("qdwh {name}: {m}x{n} right={right}: {r:?}");
-				assert!(r.is_ok(), "{name}: QDWH returned {r:?} for a representable P");
+				assert!(
+					r.is_ok(),
+					"{name}: QDWH returned {r:?} for a representable P"
+				);
 				assert!(
 					p.norm_max().is_finite() as bool,
 					"{name}: P not finite"
@@ -129,7 +136,9 @@ macro_rules! near_max_tests {
 				} else {
 					ortho(&w)
 				};
-				println!("     ||W^H W-I|| = {o:.2e}, ||A-WP||/||A|| = {res:.2e}");
+				println!(
+					"     ||W^H W-I|| = {o:.2e}, ||A-WP||/||A|| = {res:.2e}"
+				);
 				let tol = 64.0 * (m.max(n) as f64) * eps() as f64;
 				assert!(o <= tol, "{name}: orthogonality {o:e} > {tol:e}");
 				assert!(res <= tol, "{name}: polar residual {res:e} > {tol:e}");
@@ -144,22 +153,25 @@ macro_rules! near_max_tests {
 					);
 				}
 				// head near MAX, tail smaller: |x_0| + ||x|| > MAX with ||x|| < MAX
-				qr_case(
-					"head .8 tail .5",
-					&pattern(&[&[0.8], &[0.5]], 1.0),
-				);
+				qr_case("head .8 tail .5", &pattern(&[&[0.8], &[0.5]], 1.0));
 			}
 
 			#[test]
 			fn qr_multi_column() {
 				qr_case(
 					"issue A2",
-					&pattern(&[&[-1.0, -2.0], &[0.0, -2.0], &[-1.0, -2.0]], 0.25),
+					&pattern(
+						&[&[-1.0, -2.0], &[0.0, -2.0], &[-1.0, -2.0]],
+						0.25,
+					),
 				);
 				// one column at the limit, one small
 				qr_case(
 					"big+small column",
-					&pattern(&[&[0.6, 1e-300], &[0.6, 2e-300], &[0.2, 1e-300]], 1.0),
+					&pattern(
+						&[&[0.6, 1e-300], &[0.6, 2e-300], &[0.2, 1e-300]],
+						1.0,
+					),
 				);
 				qr_case(
 					"MAX/2, MAX/4 columns",
@@ -171,21 +183,26 @@ macro_rules! near_max_tests {
 			fn qdwh_tall_and_wide() {
 				let a1 = pattern(&[&[1.0], &[1.0]], 0.5);
 				polar_qdwh("A1", &a1, false);
-				let a2 = pattern(&[&[-1.0, -2.0], &[0.0, -2.0], &[-1.0, -2.0]], 0.25);
+				let a2 = pattern(
+					&[&[-1.0, -2.0], &[0.0, -2.0], &[-1.0, -2.0]],
+					0.25,
+				);
 				polar_qdwh("A2", &a2, false);
 				polar_qdwh("A2^T", &a2.transpose().to_owned(), true);
 			}
 
 			#[test]
 			fn qdwh_diagonal_at_max() {
-				for d in [
-					&[1.0, 0.5][..],
-					&[1.0, 0.5, 0.25][..],
-					&[0.5, 0.25][..],
-				] {
+				for d in
+					[&[1.0, 0.5][..], &[1.0, 0.5, 0.25][..], &[0.5, 0.25][..]]
+				{
 					let n = d.len();
 					let a = Mat::from_fn(n, n, |i, j| {
-						if i == j { mk(d[i] as R * R::MAX, 0.0) } else { mk(0.0, 0.0) }
+						if i == j {
+							mk(d[i] as R * R::MAX, 0.0)
+						} else {
+							mk(0.0, 0.0)
+						}
 					});
 					polar_qdwh(&format!("diag{d:?}"), &a, false);
 				}
@@ -230,11 +247,36 @@ fn qdwh_sigma_max_above_max_with_representable_p() {
 	);
 	assert!(r.is_ok(), "QDWH returned {r:?} for a representable P");
 	let s = 2.0f64.powi(-1000);
-	let sc = |m: &Mat<c64>| Mat::from_fn(2, 2, |i, j| m[(i, j)] * c64::new(s, 0.0));
+	let sc =
+		|m: &Mat<c64>| Mat::from_fn(2, 2, |i, j| m[(i, j)] * c64::new(s, 0.0));
 	let g = &wh * wh.adjoint();
 	let o = (&g - Mat::<c64>::identity(2, 2)).norm_l2();
 	let res = (&sc(&p) * &wh - sc(&b)).norm_l2() / sc(&b).norm_l2();
-	println!("qdwh (b): Ok, ||W W^H - I|| = {o:.2e}, ||A - P W||/||A|| = {res:.2e}");
+	println!(
+		"qdwh (b): Ok, ||W W^H - I|| = {o:.2e}, ||A - P W||/||A|| = {res:.2e}"
+	);
 	assert!(o <= 64.0 * 2.0 * f64::EPSILON, "orthogonality {o:e}");
 	assert!(res <= 64.0 * 2.0 * f64::EPSILON, "residual {res:e}");
+}
+
+/// the diagnosis in numbers (`cargo test -- --nocapture diagnosis`): for #265's `A1 = [0.5 MAX;
+/// 0.5 MAX]` the reflector's `head + sign * norm` is `1.207 MAX`, so it is `inf` while `norm`
+/// is finite, and its reciprocal, which scales the essential part, is `0`. for #266 (a) the
+/// converged `W[0,0] = 1 + 2^-52` makes `W[0,0] * MAX` round to `inf`
+#[test]
+fn diagnosis_overflowing_intermediates() {
+	let (head, tail) = (0.5 * f64::MAX, 0.5 * f64::MAX);
+	let norm = head.hypot(tail);
+	let head_with_beta = head + norm;
+	println!(
+		"#265 A1: norm = {norm:e} (finite), head + norm = {head_with_beta:e}, 1/(head + norm) = {:e}",
+		head_with_beta.recip()
+	);
+	assert!(norm.is_finite() && head_with_beta.is_infinite());
+	let w00 = 1.0 + f64::EPSILON;
+	println!(
+		"#266 (a): W[0,0] = {w00:e}, W[0,0] * MAX = {:e}",
+		w00 * f64::MAX
+	);
+	assert!((w00 * f64::MAX).is_infinite());
 }

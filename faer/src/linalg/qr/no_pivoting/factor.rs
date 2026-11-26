@@ -976,14 +976,17 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 	// `v^H a` in a trailing update, and `x_0 + sign * ||x||` in a reflector, overflow for finite
 	// columns of norm near `MAX` (tensor4all/colmat-rs#265). a reflector is invariant under
 	// scaling `A` by a power of two, so factor `2^-p A` and scale the triangle `R` back up: the
-	// columns of `2^-p A` have norm at most `MAX / 8`, which leaves every intermediate finite.
+	// columns of `2^-p A` have norm at most `MAX / 8` (`2^p >= 8 sqrt(m)`), which leaves every intermediate finite.
 	// non-finite entries are left alone. `R` entries that are not representable overflow to
 	// infinity, as the product would
 	let (m, n) = A.shape();
 	let max_entry = A.rb().norm_max();
-	let down_exp = 3 + (m.max(1).next_power_of_two().trailing_zeros() as i32 + 1) / 2;
+	// `2^q >= sqrt(m)`, so a column has norm at most `2^q * max_entry`. `max_positive` is a
+	// quarter of `MAX`: below the limit a column norm is at most `MAX / 8`
+	let q = (m.max(1).next_power_of_two().trailing_zeros() as i32 + 1) / 2;
+	let down_exp = 3 + q;
 	let limit = &max_positive::<T::Real>()
-		* &from_f64::<T::Real>(libm::exp2(-(down_exp as f64)));
+		* &from_f64::<T::Real>(libm::exp2(-((1 + q) as f64)));
 	let prescale = is_finite(&max_entry) && max_entry > limit;
 	if prescale {
 		let down = from_f64::<T::Real>(libm::exp2(-(down_exp as f64)));

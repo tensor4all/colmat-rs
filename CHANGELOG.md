@@ -17,6 +17,14 @@ Numbers are tensor4all/colmat-rs issues or PRs.
 
 ## Correctness
 
+- `qr` and QDWH polar on finite input near the largest finite value (#265, #266). `qr` returned a
+  `Q` with `Q R != A` (or non-finite entries) when a column had `|a_00| + ||a_:0|| > MAX`: the
+  reflector's `head + sign * norm` and the trailing update's `v^H a` overflowed while the column
+  norm was finite. The reflector is now formed on a power-of-two rescaling, and the unpivoted
+  factorization rescales the matrix by `2^-p` and scales `R` back (exact, no new workspace). QDWH
+  forms `P = W^H A` at a scaled range, so `diag(MAX, MAX/2)` and a `sigma_max > MAX` input with a
+  representable `P` return `Ok`; a component that overflows by no more than the rounding error of
+  `P` (`4 n eps`) is rounded to `MAX`. `PolarMethod::Svd` for `sigma_max > MAX` is unchanged (#233).
 - Index soundness (#256). `PermRef::new_checked`, `PermRef::as_shape` and `Perm::into_shape` with
   the shape `One` read past a zero-sized slice, leaked, or freed a dangling `Box`, because the index
   of `One` is the zero-sized `Zero` and was reinterpreted as `I`; they now handle `One` without the

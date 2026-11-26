@@ -71,7 +71,8 @@ fn make_householder_imp<T: ComplexField, const PRESERVE_TINY: bool>(
 	// is at most `0.61 MAX`. above it, form the reflector on `x / 4`. the essential part
 	// `x_tail / (x_0 + beta)` and `tau` are invariant under the scaling, and `beta` and the
 	// reciprocal are scaled back exactly (powers of two)
-	let big = &max_positive::<T::Real>() * &from_f64::<T::Real>(0.25);
+	// `max_positive` is `1 / min_positive`, a quarter of the largest finite value
+	let big = max_positive::<T::Real>();
 	let scales = if head_norm > big || tail_norm > big {
 		Some((from_f64::<T::Real>(0.25), from_f64::<T::Real>(4.0)))
 	} else if PRESERVE_TINY {
