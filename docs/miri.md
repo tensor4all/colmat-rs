@@ -27,7 +27,7 @@ its elements when one `Drop` panics), strided views and `IndexMut`, `cloned`, `z
 elementwise operators built on it, `Perm` and diagonal application, sparse index construction, the
 raw-pointer index sort, and the iterators and reductions over `Col`, `Row` and `Mat` in their owned,
 `Ref` and `Mut` forms, and the bound index API (`Array`, `One`-shaped `Perm`, #256). The list file
-groups the 63 names by these headings.
+groups the 66 names by these headings.
 
 **Excluded:**
 
