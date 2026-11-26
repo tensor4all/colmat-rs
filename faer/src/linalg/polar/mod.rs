@@ -377,7 +377,15 @@ fn qdwh_polar<T: ComplexField>(
 		return Ok(());
 	}
 	if m == n {
-		return qdwh_iterate(A, BlockStructure::Rectangular, W, P, par, stack);
+		return qdwh_iterate(
+			A,
+			BlockStructure::Rectangular,
+			false,
+			W,
+			P,
+			par,
+			stack,
+		);
 	}
 	// $A = Q R$, so $W = Q W_R$ and $P = P_R$ from the polar decomposition $R = W_R P_R$ of the
 	// $n \times n$ factor
@@ -391,9 +399,10 @@ fn qdwh_polar<T: ComplexField>(
 		unsafe { temp_mat_uninit::<T, _, _>(bs, n, stack) };
 	let mut householder = householder.as_mat_mut();
 	qr.copy_from(A);
-	// finite entries near the largest finite value overflow the QR's column norms: factor
-	// `eps * A` instead (a power of two, so exact), which leaves $W$ unchanged and scales $P$,
-	// and scale $P$ back at the end
+	// a Frobenius norm beyond the largest finite value: factor `eps * A` instead (a power of
+	// two, so exact), which leaves $W$ unchanged and scales $P$. `qdwh_iterate` is told, and
+	// scales $P$ back. the QR itself rescales a column whose reflector would overflow
+	// (tensor4all/colmat-rs#265)
 	let shrink = !is_finite(&qr.norm_l2()) && is_finite(&qr.norm_max());
 	if shrink {
 		let down = eps::<T::Real>();
@@ -409,15 +418,12 @@ fn qdwh_polar<T: ComplexField>(
 	qdwh_iterate(
 		qr.rb().subrows(0, n),
 		BlockStructure::TriangularUpper,
+		shrink,
 		W.rb_mut().subrows_mut(0, n),
 		P.rb_mut(),
 		par.reborrow(),
 		stack,
 	)?;
-	if shrink {
-		let up = recip(&eps::<T::Real>());
-		z!(P.rb_mut()).for_each(|uz!(x)| *x = mul_real(x, &up));
-	}
 	W.rb_mut().subrows_mut(n, m - n).fill(zero());
 	linalg::householder::apply_block_householder_sequence_on_the_left_in_place_with_conj(
 		qr.rb(),
@@ -446,10 +452,12 @@ fn qdwh_weights(l: f64) -> (f64, f64, f64) {
 }
 
 /// the polar decomposition of the square `base` (read through `base_structure`): $W$ into `X`,
-/// $P$ into `P`
+/// $P$ into `P`. `base_shrunk` says `base` is already $\varepsilon$ times the matrix to factor,
+/// so the product below is $\varepsilon P$
 fn qdwh_iterate<T: ComplexField>(
 	base: MatRef<'_, T>,
 	base_structure: BlockStructure,
+	base_shrunk: bool,
 	X: MatMut<'_, T>,
 	P: MatMut<'_, T>,
 	par: Par,
@@ -478,6 +486,12 @@ fn qdwh_iterate<T: ComplexField>(
 		z!(X.rb_mut()).for_each(|uz!(x)| *x = mul_real(x, &up));
 		alpha = X.norm_l2();
 	}
+	// $P = W^H A$ has entries up to $\|A\|_F$, and the sums forming them can pass the largest
+	// finite value before they come back down (tensor4all/colmat-rs#266): form $\varepsilon P$
+	// instead, and scale it back with `scale_up_clamped`
+	let product_scaled = base_shrunk
+		|| alpha > largest_finite::<T::Real>() * from_f64::<T::Real>(0.5);
+	let shrink_product = product_scaled && !base_shrunk;
 	if !is_finite(&alpha) && is_finite(&X.norm_max()) {
 		// the overflow twin: finite entries near the largest finite value make `norm_l2`
 		// overflow, and `recip` of infinity would zero $X$ and report a converged $W = 0$.
@@ -540,6 +554,10 @@ fn qdwh_iterate<T: ComplexField>(
 		}
 	}
 	// $P$ is the hermitian part of $W^H A = W_R^H R$
+	if shrink_product {
+		let down = eps::<T::Real>();
+		z!(X.rb_mut()).for_each(|uz!(x)| *x = mul_real(x, &down));
+	}
 	linalg::matmul::triangular::matmul(
 		G.rb_mut(),
 		BlockStructure::Rectangular,
@@ -551,9 +569,61 @@ fn qdwh_iterate<T: ComplexField>(
 		one(),
 		par,
 	);
+	if shrink_product {
+		let up = recip(&eps::<T::Real>());
+		z!(X.rb_mut()).for_each(|uz!(x)| *x = mul_real(x, &up));
+	}
 	P.copy_from(G.rb());
-	hermitian_part_in_place(P);
+	hermitian_part_in_place(P.rb_mut());
+	if product_scaled {
+		scale_up_clamped(P, n);
+	}
 	Ok(())
+}
+
+/// the largest finite value of `R`. `max_positive` is `1 / min_positive`, which is a quarter of it
+fn largest_finite<R: RealField>() -> R {
+	&max_positive::<R>()
+		* &(&from_f64::<R>(4.0) - &(&from_f64::<R>(2.0) * &eps::<R>()))
+}
+
+/// multiplies every entry of $\varepsilon P$ by $1 / \varepsilon$ (exact), except that an entry
+/// with a component that would overflow by at most the rounding error of $P$, $4 n \varepsilon$
+/// in relative terms, is scaled so that its larger component is the largest finite value (the
+/// entry is scaled as a whole, so its other component and its phase keep their ratio). $P$ comes
+/// from $W$ with $\|W^H W - I\| \approx n \varepsilon$, so it is not known better than that. a
+/// larger overflow stays infinite and the caller reports it. finiteness is judged per component
+/// (as `norm_max` does), so the modulus of a complex entry may exceed the largest finite value.
+///
+/// this is best effort within that band: a $W$ that the stopping rule accepts but that is off by
+/// more than $4 n \varepsilon$ gives an infinite entry for an input whose $P$ is exactly the
+/// largest finite value
+fn scale_up_clamped<T: ComplexField>(P: MatMut<'_, T>, n: usize) {
+	let e = eps::<T::Real>();
+	let up = recip(&e);
+	let limit = &largest_finite::<T::Real>() * &e;
+	let allowed = &limit
+		* &(&one::<T::Real>() + &(&from_f64::<T::Real>(4.0 * n as f64) * &e));
+	z!(P).for_each(|uz!(x)| {
+		let y = mul_real(x, &up);
+		if is_finite(&y) {
+			*x = y;
+			return;
+		}
+		let (re, im) = (abs(&real(x)), abs(&imag(x)));
+		let big = if re > im { re } else { im };
+		if big <= allowed {
+			let mut f = &limit / &big;
+			let mut y = mul_real(&mul_real(x, &f), &up);
+			if !is_finite(&y) {
+				f = &f * &(&one::<T::Real>() - &e);
+				y = mul_real(&mul_real(x, &f), &up);
+			}
+			*x = y;
+		} else {
+			*x = y;
+		}
+	});
 }
 
 /// $G = Q_1 Q_2^H$ from the thin $QR$ factorization $[\sqrt{c} X; I] = [Q_1; Q_2] R$, with

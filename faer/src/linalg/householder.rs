@@ -65,7 +65,19 @@ fn make_householder_imp<T: ComplexField, const PRESERVE_TINY: bool>(
 	let mut tail_norm = tail.norm_l2();
 	let mut head_norm = (*head).abs();
 	let min = min_positive::<T::Real>();
-	let scales = if PRESERVE_TINY {
+	// `head + sign * norm` has modulus `|head| + norm`, up to `(1 + sqrt(2)) max(|head|, |tail|)`,
+	// which overflows while `norm` itself is finite (tensor4all/colmat-rs#265): its reciprocal
+	// is then zero and the reflector is `I - 2 e_0 e_0^H`, the wrong one. below `MAX / 4` the sum
+	// is at most `0.61 MAX`. above it, form the reflector on `x / 4`, which is enough exactly
+	// when `norm <= MAX` (`|head| + norm <= 2 MAX`); a larger norm is not representable, so
+	// `beta` is `inf` as it must be. the essential part
+	// `x_tail / (x_0 + beta)` and `tau` are invariant under the scaling, and `beta` and the
+	// reciprocal are scaled back exactly (powers of two)
+	// `max_positive` is `1 / min_positive`, a quarter of the largest finite value
+	let big = max_positive::<T::Real>();
+	let scales = if head_norm > big || tail_norm > big {
+		Some((from_f64::<T::Real>(0.25), from_f64::<T::Real>(4.0)))
+	} else if PRESERVE_TINY {
 		let safmin = &min / eps::<T::Real>();
 		// As in LAPACK xLARFG, lift a tiny reflector before forming its ratios.
 		// Check the entries if the initial norm rounded to zero.
@@ -100,10 +112,20 @@ fn make_householder_imp<T: ComplexField, const PRESERVE_TINY: bool>(
 		head_norm = zero();
 	}
 	if tail_norm < min {
+		// the identity reflector: `head`, the tail and the norm come back at the input's scale
+		let norm = match &scales {
+			Some((_, unscale)) => {
+				*head = head.mul_pow2(unscale);
+				zip!(out.rb_mut())
+					.for_each(|unzip!(x)| *x = x.mul_pow2(unscale));
+				head_norm * unscale
+			},
+			None => head_norm,
+		};
 		return HouseholderInfo {
 			tau: infinity(),
 			head_with_beta_inv: infinity(),
-			norm: head_norm,
+			norm,
 		};
 	}
 	let head_norm = &head_norm;
