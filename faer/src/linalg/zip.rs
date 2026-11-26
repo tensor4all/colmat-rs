@@ -1577,7 +1577,7 @@ fn for_each_mat_triangular_lower_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					annotate_noalias_mat_with_index::<false, false, Z, _, _>(
@@ -1596,7 +1596,7 @@ fn for_each_mat_triangular_lower_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					for i in start..end {
@@ -1777,7 +1777,7 @@ fn for_each_mat_triangular_upper_with_index<
 		},
 		MatLayoutTransform::ReverseRows => unsafe {
 			if Z::Dyn::is_contiguous(&z) {
-				for j in 0..Ord::min(m, n) {
+				for j in 0..n {
 					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
@@ -1796,7 +1796,7 @@ fn for_each_mat_triangular_upper_with_index<
 					);
 				}
 			} else {
-				for j in 0..Ord::min(m, n) {
+				for j in 0..n {
 					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
@@ -1814,7 +1814,7 @@ fn for_each_mat_triangular_upper_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					annotate_noalias_mat_with_index::<true, false, Z, _, _>(
@@ -1833,7 +1833,7 @@ fn for_each_mat_triangular_upper_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					for i in start..end {
@@ -1847,7 +1847,7 @@ fn for_each_mat_triangular_upper_with_index<
 			if Z::Dyn::is_contiguous(&z) {
 				for j in 0..n {
 					let start = 0;
-					let end = m - j - strict;
+					let end = m - Ord::min(j + strict, m);
 					if start == end {
 						continue;
 					}
@@ -1866,7 +1866,7 @@ fn for_each_mat_triangular_upper_with_index<
 			} else {
 				for j in 0..n {
 					let start = 0;
-					let end = m - j - strict;
+					let end = m - Ord::min(j + strict, m);
 					if start == end {
 						continue;
 					}
