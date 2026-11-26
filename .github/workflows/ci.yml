@@ -39,7 +39,12 @@ jobs:
       # #271: held-team Schur eigenvectors allocate nothing warm; the `q` case runs only on x86_64.
       - run: cargo test --profile ci -p colmat --test schur_eigenvectors_team_no_alloc
       - run: python3 scripts/check-migration-examples.py
+      # The microkernel bench wrapper below disassembles `gemm_microkernel` and looks up
+      # `imp::fma_zmm` by symbol name, so this one build keeps symbols (`strip = "symbols"` in
+      # `[profile.ci]` removes them). Debug info stays off.
       - run: cargo build --profile ci --examples -j8
+        env:
+          CARGO_PROFILE_CI_STRIP: none
       # #253 (#278 review): the microkernel probe's argument and cycle-counter guards, the bench
       # wrapper's CPU and build-record guards, and the AVX-512F-only ZMM ceiling loop.
       - run: cargo test --profile ci -p colmat --example gemm_microkernel -j8
