@@ -15,6 +15,9 @@ mat::matown::tests::test_push_row_panic
 mat::matown::tests::test_resize
 mat::matown::tests::test_resize_5
 mat::matown::tests::test_resize_5_1
+mat::matown::tests::panic_safety::resize_with_panicking_callback_every_position
+mat::matown::tests::panic_safety::resize_with_shrink_panicking_drop_every_position
+mat::matown::tests::panic_safety::truncate_panicking_drop_every_position
 
 # Views and indexing: strided slice views, `IndexMut`, `cloned` from strided and heap-owning sources.
 mat::matmut::tests::codeberg_305
