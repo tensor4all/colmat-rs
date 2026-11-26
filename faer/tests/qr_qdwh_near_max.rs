@@ -280,3 +280,18 @@ fn diagnosis_overflowing_intermediates() {
 	);
 	assert!((w00 * f64::MAX).is_infinite());
 }
+
+/// a head near `MAX` with a zero tail (review of #303): the reflector is the identity, and
+/// `beta` and the norm must come back at the input's scale, not at the rescaled one
+#[test]
+fn big_head_with_zero_tail_keeps_its_scale() {
+	use colmat::linalg::householder::make_householder_in_place;
+	let x0 = 0.9 * f64::MAX;
+	let mut m = Mat::<f64>::zeros(3, 1);
+	m[(0, 0)] = x0;
+	let mut beta = x0;
+	let info = make_householder_in_place(&mut beta, m.as_mut().col_mut(0).subrows_mut(1, 2));
+	println!("head = {beta:e} (x_0 = {x0:e}), norm = {:e}", info.norm);
+	assert_eq!(beta, x0);
+	assert_eq!(info.norm, x0);
+}
