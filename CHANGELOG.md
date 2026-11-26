@@ -24,7 +24,8 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   factorization rescales the matrix by `2^-p` and scales `R` back (power-of-two shifts, so exact except for entries that underflow in the
   scaled copy; no new workspace). QDWH
   forms `P = W^H A` at a scaled range, so `diag(MAX, MAX/2)` and a `sigma_max > MAX` input with a
-  representable `P` return `Ok`; a component that overflows by no more than the rounding error of
+  representable `P` return `Ok` (best effort when `P` is within `4 n eps` of `MAX`: `W` is
+  accepted at a looser stopping rule than that); a component that overflows by no more than the rounding error of
   `P` (`4 n eps`) is rounded to `MAX`. `PolarMethod::Svd` for `sigma_max > MAX` is unchanged (#233).
 - Index soundness (#256). `PermRef::new_checked`, `PermRef::as_shape` and `Perm::into_shape` with
   the shape `One` read past a zero-sized slice, leaked, or freed a dangling `Box`, because the index

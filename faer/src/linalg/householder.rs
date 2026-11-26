@@ -116,7 +116,8 @@ fn make_householder_imp<T: ComplexField, const PRESERVE_TINY: bool>(
 		let norm = match &scales {
 			Some((_, unscale)) => {
 				*head = head.mul_pow2(unscale);
-				zip!(out.rb_mut()).for_each(|unzip!(x)| *x = x.mul_pow2(unscale));
+				zip!(out.rb_mut())
+					.for_each(|unzip!(x)| *x = x.mul_pow2(unscale));
 				head_norm * unscale
 			},
 			None => head_norm,

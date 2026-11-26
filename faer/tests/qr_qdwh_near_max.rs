@@ -179,6 +179,34 @@ macro_rules! near_max_tests {
 				);
 			}
 
+			/// a column of entries near `MIN_POSITIVE` next to one near `MAX`: the prescale must not
+			/// cost the small column its accuracy, so it is checked column by column, unscaled
+			#[test]
+			fn qr_tiny_column_next_to_huge_one() {
+				let tiny = R::MIN_POSITIVE * 1000.0;
+				let a = Mat::from_fn(3, 2, |i, j| {
+					if j == 0 {
+						mk([0.6, 0.6, 0.2][i] as R * R::MAX, 0.0)
+					} else {
+						mk([1.0, 2.0, 1.0][i] as R * tiny, 0.0)
+					}
+				});
+				let qr = a.qr(Par::Seq);
+				let q = qr.compute_thin_Q(Par::Seq);
+				let r = qr.thin_R().to_owned();
+				let rec = &q * &r;
+				let col1 = Mat::from_fn(3, 1, |i, _| rec[(i, 1)] - a[(i, 1)]);
+				let a1 = Mat::from_fn(3, 1, |i, _| a[(i, 1)]);
+				let res = fro(&col1) / fro(&a1);
+				println!(
+					"qr tiny column next to huge: column-1 residual = {res:.2e}"
+				);
+				assert!(
+					res <= 16.0 * 3.0 * eps() as f64,
+					"small column residual {res:e}"
+				);
+			}
+
 			#[test]
 			fn qdwh_tall_and_wide() {
 				let a1 = pattern(&[&[1.0], &[1.0]], 0.5);
@@ -290,8 +318,42 @@ fn big_head_with_zero_tail_keeps_its_scale() {
 	let mut m = Mat::<f64>::zeros(3, 1);
 	m[(0, 0)] = x0;
 	let mut beta = x0;
-	let info = make_householder_in_place(&mut beta, m.as_mut().col_mut(0).subrows_mut(1, 2));
+	let info = make_householder_in_place(
+		&mut beta,
+		m.as_mut().col_mut(0).subrows_mut(1, 2),
+	);
 	println!("head = {beta:e} (x_0 = {x0:e}), norm = {:e}", info.norm);
 	assert_eq!(beta, x0);
 	assert_eq!(info.norm, x0);
+}
+
+/// the rescaled reflector itself, which `qr` never reaches (its prescale keeps every column
+/// below `MAX / 8`): `x = [0.5 MAX; 0.5 MAX]` has `|head| + norm = 1.207 MAX`
+#[test]
+fn rescaled_reflector_on_its_own() {
+	use colmat::linalg::householder::make_householder_in_place;
+	let h = 0.5 * f64::MAX;
+	let mut m = Mat::<f64>::zeros(2, 1);
+	m[(1, 0)] = h;
+	let mut beta = h;
+	let info = make_householder_in_place(
+		&mut beta,
+		m.as_mut().col_mut(0).subrows_mut(1, 1),
+	);
+	let norm = h * 2.0f64.sqrt();
+	let essential = m[(1, 0)];
+	// exact: v = x_tail / (x_0 + norm), tau = (1 + v^2) / 2, beta = -norm
+	let v = 0.5 / (0.5 + 2.0f64.sqrt() / 2.0);
+	println!(
+		"beta/norm = {:e}, essential = {essential:e} (exact {v:e}), tau = {:e}",
+		beta / norm,
+		info.tau
+	);
+	assert!(((beta + norm) / norm).abs() <= 4.0 * f64::EPSILON);
+	assert!(((info.norm - norm) / norm).abs() <= 4.0 * f64::EPSILON);
+	assert!(((essential - v) / v).abs() <= 4.0 * f64::EPSILON);
+	assert!(
+		((info.tau - 0.5 * (1.0 + v * v)) / info.tau).abs()
+			<= 4.0 * f64::EPSILON
+	);
 }

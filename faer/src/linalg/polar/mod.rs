@@ -587,12 +587,17 @@ fn largest_finite<R: RealField>() -> R {
 		* &(&from_f64::<R>(4.0) - &(&from_f64::<R>(2.0) * &eps::<R>()))
 }
 
-/// multiplies every entry of $\varepsilon P$ by $1 / \varepsilon$ (exact), except that a
-/// component that would overflow by at most the rounding error of $P$, $4 n \varepsilon$ in
-/// relative terms, is rounded down to the largest finite value (the whole entry is scaled by the
-/// same factor), so it is not reported as unrepresentable. $P$ comes from $W$ with
-/// $\|W^H W - I\| \approx n \varepsilon$, so it is not known better than that. a larger
-/// overflow stays infinite and is reported by the caller
+/// multiplies every entry of $\varepsilon P$ by $1 / \varepsilon$ (exact), except that an entry
+/// with a component that would overflow by at most the rounding error of $P$, $4 n \varepsilon$
+/// in relative terms, is scaled so that its larger component is the largest finite value (the
+/// entry is scaled as a whole, so its other component and its phase keep their ratio). $P$ comes
+/// from $W$ with $\|W^H W - I\| \approx n \varepsilon$, so it is not known better than that. a
+/// larger overflow stays infinite and the caller reports it. finiteness is judged per component
+/// (as `norm_max` does), so the modulus of a complex entry may exceed the largest finite value.
+///
+/// this is best effort within that band: a $W$ that the stopping rule accepts but that is off by
+/// more than $4 n \varepsilon$ gives an infinite entry for an input whose $P$ is exactly the
+/// largest finite value
 fn scale_up_clamped<T: ComplexField>(P: MatMut<'_, T>, n: usize) {
 	let e = eps::<T::Real>();
 	let up = recip(&e);
