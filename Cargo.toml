@@ -23,3 +23,19 @@ documentation = "https://docs.rs/colmat"
 [profile.dev]
 opt-level = 3
 lto = "off"
+debug = 0
+
+[profile.test]
+debug = 0
+
+# The profile every CI job builds with (`cargo test --profile ci`). It inherits `test`, not
+# `release`, on purpose: colmat's sources carry `debug_assert!`s and its tests rely on them
+# (the `#[should_panic]` cases and the index/bounds checks), and `inherits = "release"` would
+# silently turn them off. `test` inherits `dev`, so opt-level 3 and lto off above still apply;
+# only debug info, incremental state and symbols are dropped.
+# Refs tensor4all-agent-rules, rules/common/repository.md, "Build Profiles".
+[profile.ci]
+inherits = "test"
+debug = 0
+incremental = false
+strip = "symbols"
