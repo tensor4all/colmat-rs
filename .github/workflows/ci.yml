@@ -9,6 +9,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Every cargo build and test below uses `--profile ci` (see `[profile.ci]` in Cargo.toml):
+# no debug info, which is what keeps `faer_ffi` from compiling for over an hour and from
+# growing to tens of GiB. Refs tensor4all-agent-rules, rules/common/repository.md, "Build Profiles".
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,40 +21,45 @@ jobs:
       # Build the crates, test the traits and migration guides, and check package layout.
       # The inherited upstream workflows (`run-tests.yml`, `code-quality.yml`)
       # also run on these events with the heavier upstream suite.
-      - run: cargo build -p colmat-traits -p colmat
-      - run: cargo build -p colmat --no-default-features --features std
+      - run: cargo build --profile ci -p colmat-traits -p colmat
+      - run: cargo build --profile ci -p colmat --no-default-features --features std
       # The library also builds without `rayon`; keep the sequential-only path tested, not
       # just compiled (the test modules inside the library need `threadteam`, #203).
-      - run: cargo test -p colmat --no-default-features --features "std,linalg" --test public_bidiag_sequential --test sparse_lu_no_rayon --test iteration_control
+      - run: cargo test --profile ci -p colmat --no-default-features --features "std,linalg" --test public_bidiag_sequential --test sparse_lu_no_rayon --test iteration_control
       # #174/#173: the double-double product and SIMD hooks, compiled as a downstream crate compiles them.
-      - run: cargo test -p colmat --test fx128_matmul --test fx128_simd_hooks
-      - run: cargo test -p colmat-traits
+      - run: cargo test --profile ci -p colmat --test fx128_matmul --test fx128_simd_hooks
+      - run: cargo test --profile ci -p colmat-traits
       # `faer-ffi` is in the workspace again (#98); its two tests drive the C entry points, the team
       # handle, and the "the team is left again" affinity check.
-      - run: cargo test -p faer-ffi -j4
-      - run: cargo test -p colmat --no-default-features --features "std,linalg" --test lsmr_initial_residual --test generalized_schur_reorder --test generalized_schur_reorder_no_alloc --test gevd_no_alloc --test public_qz_aed --test public_qz_scratch --test public_householder_upgrade --test generalized_hessenberg_rotations --test qz_scratch
-      - run: cargo test -p colmat --features perf-warn --test lu_perf_warn --test evd_perf_warn
+      - run: cargo test --profile ci -p faer-ffi -j4
+      - run: cargo test --profile ci -p colmat --no-default-features --features "std,linalg" --test lsmr_initial_residual --test generalized_schur_reorder --test generalized_schur_reorder_no_alloc --test gevd_no_alloc --test public_qz_aed --test public_qz_scratch --test public_householder_upgrade --test generalized_hessenberg_rotations --test qz_scratch
+      - run: cargo test --profile ci -p colmat --features perf-warn --test lu_perf_warn --test evd_perf_warn
       # #168: a held team of one participant runs sequentially.
-      - run: cargo test -p colmat --test team_of_one
+      - run: cargo test --profile ci -p colmat --test team_of_one
       # #271: held-team Schur eigenvectors allocate nothing warm; the `q` case runs only on x86_64.
-      - run: cargo test -p colmat --test schur_eigenvectors_team_no_alloc
+      - run: cargo test --profile ci -p colmat --test schur_eigenvectors_team_no_alloc
       - run: python3 scripts/check-migration-examples.py
-      - run: cargo build --examples -j8
+      # The microkernel bench wrapper below disassembles `gemm_microkernel` and looks up
+      # `imp::fma_zmm` by symbol name, so this one build keeps symbols (`strip = "symbols"` in
+      # `[profile.ci]` removes them). Debug info stays off.
+      - run: cargo build --profile ci --examples -j8
+        env:
+          CARGO_PROFILE_CI_STRIP: none
       # #253 (#278 review): the microkernel probe's argument and cycle-counter guards, the bench
       # wrapper's CPU and build-record guards, and the AVX-512F-only ZMM ceiling loop.
-      - run: cargo test -p colmat --example gemm_microkernel -j8
-      - run: bash scripts/test-gemm-microkernel-bench.sh target/debug/examples/gemm_microkernel
+      - run: cargo test --profile ci -p colmat --example gemm_microkernel -j8
+      - run: bash scripts/test-gemm-microkernel-bench.sh target/ci/examples/gemm_microkernel
       - run: |
           for example in migration_overview migration_cpp migration_fortran migration_julia; do
-            cargo run -p colmat --example "$example" -j8
+            cargo run --profile ci -p colmat --example "$example" -j8
           done
-      - run: cargo test --doc --workspace -j8 -- --test-threads=4
+      - run: cargo test --profile ci --doc --workspace -j8 -- --test-threads=4
       - run: cargo package -p colmat-traits -p colmat --no-verify --list
       # The header is only re-derived when `FAER_FFI` is set, and cbindgen needs nightly
       # (`-Zunpretty=expanded`): without this, a stale or broken `faer.h` passes every Rust test,
       # because none of them resolves a C declaration.
       - run: rustup toolchain install nightly --profile minimal
-      - run: FAER_FFI=1 cargo +nightly build -p faer-ffi
+      - run: FAER_FFI=1 cargo +nightly build --profile ci -p faer-ffi
       - run: |
           cat > "$RUNNER_TEMP/faer_ffi_smoke.c" <<'C'
           #include "faer.h"
@@ -104,6 +112,6 @@ jobs:
           set -o pipefail
           {
             echo '```'
-            cargo llvm-cov nextest --workspace --all-targets --locked --fail-under-lines 82.694
+            cargo llvm-cov nextest --cargo-profile ci --workspace --all-targets --locked --fail-under-lines 82.694
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
