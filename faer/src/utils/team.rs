@@ -895,6 +895,80 @@ pub(crate) unsafe fn gemm_tiled<E: 'static + Copy + Send + Sync>(
 	}
 }
 
+/// A mixed real product with an `f64` destination, partitioned into the same disjoint output tiles
+/// as [`gemm_tiled`]. Every participant calls `gemm_mixed` sequentially on its own tile; `K` is
+/// never split and no partial result is allocated.
+///
+/// # Safety
+///
+/// As `gemm::gemm_mixed`.
+#[allow(clippy::too_many_arguments)]
+pub(crate) unsafe fn mixed_gemm_tiled<
+	Lhs: 'static + Copy + Send + Sync,
+	Rhs: 'static + Copy + Send + Sync,
+>(
+	team: TeamExec<'_>,
+	m: usize,
+	n: usize,
+	k: usize,
+	ns_per_mac: f64,
+	dst: *mut f64,
+	dst_cs: isize,
+	dst_rs: isize,
+	read_dst: bool,
+	lhs: *const Lhs,
+	lhs_cs: isize,
+	lhs_rs: isize,
+	rhs: *const Rhs,
+	rhs_cs: isize,
+	rhs_rs: isize,
+	beta: f64,
+) where
+	(Lhs, Rhs): gemm::MixedRealGemmToF64,
+{
+	let seq = |dst: *mut f64,
+	           lhs: *const Lhs,
+	           rhs: *const Rhs,
+	           m: usize,
+	           n: usize| unsafe {
+		gemm::gemm_mixed(
+			m,
+			n,
+			k,
+			dst,
+			dst_cs,
+			dst_rs,
+			read_dst,
+			lhs,
+			lhs_cs,
+			lhs_rs,
+			rhs,
+			rhs_cs,
+			rhs_rs,
+			if read_dst { 1.0 } else { 0.0 },
+			beta,
+			gemm::Parallelism::None,
+		)
+	};
+	let estimate = crate::utils::cost::serial_time(
+		m.saturating_mul(n).saturating_mul(k),
+		ns_per_mac,
+	);
+	match tile_split(&team, m, n, estimate) {
+		// SAFETY: `m`, `n` and the strides are the ones of this call.
+		Some(grid) => unsafe {
+			run_tiles(
+				team, m, n, grid, dst, dst_cs, dst_rs, lhs, lhs_rs, rhs,
+				rhs_cs, &seq,
+			)
+		},
+		None => {
+			stats::bump(&stats::GEMM_BELOW_FLOOR);
+			seq(dst, lhs, rhs, m, n)
+		},
+	}
+}
+
 /// The grid `(pm, pn)` in which a product of serial time `estimate` is cut into one tile per
 /// member of `team`, or `None` when no grid pays and the caller should run one call instead.
 /// [`tile_grid`](self::tile_grid) picks the grid; a grid that cannot use every member of the
@@ -947,7 +1021,11 @@ fn tile_split(
 /// `seq` implements `dst := alpha * dst + beta * lhs * rhs` on a sub-rectangle, and the tiles are
 /// disjoint parts of the destination that no other thread touches.
 #[allow(clippy::too_many_arguments)]
-unsafe fn run_tiles<E: Copy + Send + Sync>(
+unsafe fn run_tiles<
+	E: Copy + Send + Sync,
+	Lhs: Copy + Send + Sync,
+	Rhs: Copy + Send + Sync,
+>(
 	team: TeamExec<'_>,
 	m: usize,
 	n: usize,
@@ -955,15 +1033,18 @@ unsafe fn run_tiles<E: Copy + Send + Sync>(
 	dst: *mut E,
 	dst_cs: isize,
 	dst_rs: isize,
-	lhs: *const E,
+	lhs: *const Lhs,
 	lhs_rs: isize,
-	rhs: *const E,
+	rhs: *const Rhs,
 	rhs_cs: isize,
-	seq: &(dyn Fn(*mut E, *const E, *const E, usize, usize) + Sync),
+	seq: &(dyn Fn(*mut E, *const Lhs, *const Rhs, usize, usize) + Sync),
 ) {
 	stats::bump(&stats::GEMM_TILED);
-	let (dst, lhs, rhs) =
-		(SendPtr(dst), SendPtr(lhs as *mut E), SendPtr(rhs as *mut E));
+	let (dst, lhs, rhs) = (
+		SendPtr(dst),
+		SendPtr(lhs as *mut Lhs),
+		SendPtr(rhs as *mut Rhs),
+	);
 	run(team, pm * pn, &|i, parts| {
 		// `parts == pm * pn` for every grid `tile_split` returns, since `nt` is clamped to the
 		// team's size; round robin keeps a narrower section correct rather than skipping tiles
@@ -977,9 +1058,9 @@ unsafe fn run_tiles<E: Copy + Send + Sync>(
 					.get()
 					.wrapping_offset(i0 as isize * dst_rs + j0 as isize * dst_cs);
 				let l =
-					lhs.get().wrapping_offset(i0 as isize * lhs_rs) as *const E;
+					lhs.get().wrapping_offset(i0 as isize * lhs_rs) as *const Lhs;
 				let r =
-					rhs.get().wrapping_offset(j0 as isize * rhs_cs) as *const E;
+					rhs.get().wrapping_offset(j0 as isize * rhs_cs) as *const Rhs;
 				seq(d, l, r, i1 - i0, j1 - j0);
 			}
 			t += parts;

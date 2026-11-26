@@ -47,18 +47,12 @@ colmat-traits = { path = "../faer-traits", version = "0.25.0", default-features 
 # behind the `apple-sme` feature, which is a no-op outside
 # `target_arch = "aarch64"` + `target_vendor = "apple"` and is additionally gated
 # at run time on macOS >= 26 + FEAT_SME (+ FEAT_SME_F64F64 / FEAT_SME_F32F32).
-# Pinned to the crates.io release of the fork (`t4a-gemm` 0.20.1) so a plain
-# `cargo build` needs no git access.
 #
-# `t4a-gemm-common` must resolve to >= 0.20.4. In 0.20.1 the RHS packing flags were
-# `alloc::vec![false; mc / MR]` (gemm-common/src/gemm.rs:490, and :654 on the threaded
-# path), so on aarch64 -- where `DEFAULT_RHS_PACKING_THRESHOLD` is 2 rather than 128 --
-# every `gemm` call with `m > 2*MR` allocated twice. A single values-only SVD makes 37
-# such calls, which is the 73/74 heap allocations `tests/svd_values_no_alloc.rs` exists
-# to catch. 0.20.4 took those buffers off the heap; the facade crate still says 0.20.1,
-# so the floor lives in `Cargo.lock`. If that entry is ever downgraded, the allocation
-# test fails again on aarch64 (see #299).
-gemm = { package = "t4a-gemm", version = "0.20.1", default-features = false }
+# Draft integration for #293 pins the exact companion commit that adds mixed real GEMM.
+# Replace this Git dependency and the matching dev-dependency below with the same released
+# t4a-gemm version after that change lands, before opening the colmat PR. The companion
+# also retains the >= 0.20.4 common-crate allocation fix described in #299.
+gemm = { package = "t4a-gemm", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "0ff0f9189dd95aa85a5261c8e2451d9d96ab2d68", default-features = false }
 nano-gemm = { version = "0.2.2", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
@@ -144,10 +138,9 @@ npy = [
 
 [dev-dependencies]
 # `examples/sme_route.rs` prints the SME size gate's own verdict (`sme_thresholds`) next to its
-# timing (#180). It is the kernels' gate only while `Cargo.lock` holds one copy of the crate, which
-# `scripts/sme-route-probe.sh` checks; bump this with `gemm` when that moves to another range.
-# The floor stays at the facade's 0.20.1; the 0.20.4 floor of the library lives in `Cargo.lock`.
-gemm-common = { package = "t4a-gemm-common", version = "0.20.1", default-features = false }
+# timing (#180). Keep this dev-dependency on the same source and revision as `gemm`, so the probe
+# and library share one gate implementation and the mixed-GEMM draft has no duplicate common crate.
+gemm-common = { package = "t4a-gemm-common", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "0ff0f9189dd95aa85a5261c8e2451d9d96ab2d68", default-features = false }
 log = { version = "0.4.29", default-features = false, features = ["std"] }
 aligned-vec = "0.6.4"
 amd = "0.2.2"

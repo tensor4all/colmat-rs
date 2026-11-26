@@ -11,6 +11,7 @@ use colmat_traits::{ByRef, ComplexField, Conjugate};
 use core::mem::MaybeUninit;
 use dyn_stack::{MemBuffer, MemStack};
 use equator::assert;
+pub use gemm::MixedRealGemmToF64;
 use pulp::Simd;
 use reborrow::*;
 const NANO_GEMM_THRESHOLD: usize = 16 * 16 * 16;
@@ -2115,6 +2116,155 @@ pub fn matmul<
 		par,
 	);
 }
+
+/// Computes a mixed-precision matrix product with `f64` destination and accumulation.
+///
+/// The supported input pairs are exactly `f32 × f32 → f64` and `f32 × f64 → f64`, restricted by the
+/// sealed [`MixedRealGemmToF64`] trait. Other pairs fail at compile time. The existing homogeneous
+/// [`matmul`] API is unchanged.
+///
+/// Each `f32` input is converted exactly to `f64` during packing. Every product and partial sum is
+/// computed in `f64`, including across `K` blocks; an `f32` product followed by widening is not
+/// performed. `alpha` is applied in `f64` once per output. `Accum::Replace` computes
+/// `dst = alpha * lhs * rhs` without reading old output, and `Accum::Add` computes
+/// `dst = dst + alpha * lhs * rhs`, reading and adding old output exactly once. Empty output
+/// returns without access. Zero depth writes zero for Replace and leaves Add unchanged.
+///
+/// `K` blocking can change summation order, so results are **not** block-size independent. Bitwise
+/// equality across execution routes or thread counts is not promised. Fused multiply-add and
+/// route-dependent summation order are allowed. Packing uses reusable per-thread `f64` buffers;
+/// no whole-matrix conversion copies or per-combination microkernels are created. `Par::Team`
+/// partitions only disjoint output tiles and never splits `K`.
+///
+/// # Panics
+///
+/// Panics if the matrix dimensions are incompatible for multiplication, before output is written:
+/// `dst.nrows() == lhs.nrows()`, `dst.ncols() == rhs.ncols()`, and
+/// `lhs.ncols() == rhs.nrows()` must hold.
+///
+/// # Examples
+///
+/// ```
+/// use colmat::linalg::matmul::mixed_matmul;
+/// use colmat::{Accum, Mat, Par};
+/// let lhs = Mat::from_fn(1, 1, |_, _| 1.0_f32 + f32::EPSILON);
+/// let rhs = Mat::from_fn(1, 1, |_, _| lhs[(0, 0)]);
+/// let mut dst = Mat::<f64>::zeros(1, 1);
+/// mixed_matmul(&mut dst, Accum::Replace, &lhs, &rhs, 1.0, Par::Seq);
+/// assert_eq!(dst[(0, 0)], f64::from(lhs[(0, 0)]).powi(2));
+/// ```
+///
+/// An unsupported left-operand precision is rejected during type checking:
+///
+/// ```compile_fail
+/// use colmat::linalg::matmul::mixed_matmul;
+/// use colmat::{Accum, Mat, Par};
+/// let lhs = Mat::<f64>::zeros(2, 3);
+/// let rhs = Mat::<f32>::zeros(3, 4);
+/// let mut dst = Mat::<f64>::zeros(2, 4);
+/// mixed_matmul(&mut dst, Accum::Replace, &lhs, &rhs, 1.0, Par::Seq);
+/// ```
+///
+/// Complex input is outside the first slice as well:
+///
+/// ```compile_fail
+/// use colmat::linalg::matmul::mixed_matmul;
+/// use colmat::{Accum, Mat, Par, c64};
+/// let lhs = Mat::<c64>::zeros(2, 3);
+/// let rhs = Mat::<f64>::zeros(3, 4);
+/// let mut dst = Mat::<f64>::zeros(2, 4);
+/// mixed_matmul(&mut dst, Accum::Replace, &lhs, &rhs, 1.0, Par::Seq);
+/// ```
+#[track_caller]
+#[inline]
+pub fn mixed_matmul<
+	LhsT: 'static + Copy + Send + Sync,
+	RhsT: 'static + Copy + Send + Sync,
+	M: Shape,
+	N: Shape,
+	K: Shape,
+>(
+	mut dst: impl AsMatMut<T = f64, Rows = M, Cols = N>,
+	beta: Accum,
+	lhs: impl AsMatRef<T = LhsT, Rows = M, Cols = K>,
+	rhs: impl AsMatRef<T = RhsT, Rows = K, Cols = N>,
+	alpha: f64,
+	par: Par,
+) where
+	(LhsT, RhsT): MixedRealGemmToF64,
+{
+	let dst = dst.as_mat_mut();
+	let lhs = lhs.as_mat_ref();
+	let rhs = rhs.as_mat_ref();
+	precondition(
+		dst.nrows(),
+		dst.ncols(),
+		lhs.nrows(),
+		lhs.ncols(),
+		rhs.nrows(),
+		rhs.ncols(),
+	);
+	let mut dst = dst;
+	let m = dst.nrows().unbound();
+	let n = dst.ncols().unbound();
+	let k = lhs.ncols().unbound();
+	if m == 0 || n == 0 {
+		return;
+	}
+	if k == 0 {
+		if beta == Accum::Replace {
+			dst.fill(zero());
+		}
+		return;
+	}
+	let read_dst = beta != Accum::Replace;
+	unsafe {
+		let _ = match par {
+			#[cfg(feature = "threadteam")]
+			Par::Team(team) => {
+				crate::utils::team::mixed_gemm_tiled(
+					team,
+					m,
+					n,
+					k,
+					crate::utils::cost::gemm_ns_per_mac::<f64>(),
+					dst.as_ptr_mut(),
+					dst.col_stride(),
+					dst.row_stride(),
+					read_dst,
+					lhs.as_ptr(),
+					lhs.col_stride(),
+					lhs.row_stride(),
+					rhs.as_ptr(),
+					rhs.col_stride(),
+					rhs.row_stride(),
+					alpha,
+				);
+				return;
+			},
+			other => other,
+		};
+		gemm::gemm_mixed(
+			m,
+			n,
+			k,
+			dst.as_ptr_mut(),
+			dst.col_stride(),
+			dst.row_stride(),
+			read_dst,
+			lhs.as_ptr(),
+			lhs.col_stride(),
+			lhs.row_stride(),
+			rhs.as_ptr(),
+			rhs.col_stride(),
+			rhs.row_stride(),
+			if read_dst { 1.0 } else { 0.0 },
+			alpha,
+			gemm::Parallelism::None,
+		);
+	}
+}
+
 #[allow(clippy::too_many_arguments)] // faer kernel shape, kept flat to match upstream
 /// computes the matrix product `[beta * acc] + alpha * lhs * rhs` (implicitly
 /// conjugating the operands if needed) and stores the result in `acc`
