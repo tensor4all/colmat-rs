@@ -1,7 +1,8 @@
 //! tensor4all/colmat-rs#255: `zip!` triangular iteration visits exactly the triangle, in order.
 //!
 //! The iteration walks the operand's preferred memory layout, so the order is part of the
-//! contract: columns of the *physical* storage, rows ascending inside a column, and the column
+//! contract (for a view with a contiguous column; a strided view follows the logical order, see
+//! `expected`): columns of the *physical* storage, rows ascending inside a column, and the column
 //! order follows the logical axis that maps onto the physical columns (descending when that axis
 //! is reversed). The oracle below is derived from the view's construction, not from the code
 //! under test. Every assertion is on the visited `(row, col, value)` *sequence*: a sum, or a set,
@@ -33,15 +34,36 @@ fn layouts() -> Vec<Layout> {
 	v
 }
 
-/// a logical `m x n` view of a column-major base, value = the base's linear (physical) index
-fn base(m: usize, n: usize, l: Layout) -> Mat<f64> {
+/// the physical base of a logical `m x n` view, value = its linear (column-major, unit-stride)
+/// index; with `strided`, rows are laid out two apart, so no column is contiguous
+fn with_base<R>(
+	m: usize,
+	n: usize,
+	l: Layout,
+	strided: bool,
+	f: impl FnOnce(MatMut<'_, f64>) -> R,
+) -> R {
 	let (r0, c0) = if l.transpose { (n, m) } else { (m, n) };
-	Mat::from_fn(r0, c0, |i, j| (i + j * r0) as f64)
+	if strided {
+		let mut big = Mat::<f64>::zeros(2 * r0, c0);
+		for q in 0..c0 {
+			for p in 0..r0 {
+				big[(2 * p, q)] = (p + q * r0) as f64;
+			}
+		}
+		// an owned `Mat` may pad its column stride, so read it back rather than assume `2 * r0`
+		let cs = big.col_stride();
+		let ptr = big.as_ptr_mut();
+		f(unsafe { MatMut::from_raw_parts_mut(ptr, r0, c0, 2, cs) })
+	} else {
+		let mut b = Mat::from_fn(r0, c0, |i, j| (i + j * r0) as f64);
+		f(b.as_mut())
+	}
 }
 
 macro_rules! with_view {
-	($base:ident, $l:ident, |$v:ident| $body:expr) => {{
-		let b = $base.as_mut();
+	($b:expr, $l:ident, |$v:ident| $body:expr) => {{
+		let b = $b;
 		match ($l.transpose, $l.rev_rows, $l.rev_cols) {
 			(false, false, false) => {
 				let $v = b;
@@ -86,10 +108,10 @@ fn visit(
 	l: Layout,
 	upper: bool,
 	diag: Diag,
+	strided: bool,
 ) -> Vec<(usize, usize, f64)> {
-	let mut base = base(m, n, l);
 	let mut out = vec![];
-	with_view!(base, l, |v| {
+	with_base(m, n, l, strided, |b| with_view!(b, l, |v| {
 		assert_eq!((v.nrows(), v.ncols()), (m, n));
 		let f = |i: usize, j: usize, x: colmat::linalg::zip::Last<&mut f64>| {
 			out.push((i, j, *x.0))
@@ -99,7 +121,7 @@ fn visit(
 		} else {
 			zip!(v).for_each_triangular_lower_with_index(diag, f)
 		}
-	});
+	}));
 	out
 }
 
@@ -110,17 +132,17 @@ fn visit_values(
 	l: Layout,
 	upper: bool,
 	diag: Diag,
+	strided: bool,
 ) -> Vec<f64> {
-	let mut base = base(m, n, l);
 	let mut out = vec![];
-	with_view!(base, l, |v| {
+	with_base(m, n, l, strided, |b| with_view!(b, l, |v| {
 		let f = |x: colmat::linalg::zip::Last<&mut f64>| out.push(*x.0);
 		if upper {
 			zip!(v).for_each_triangular_upper(diag, f)
 		} else {
 			zip!(v).for_each_triangular_lower(diag, f)
 		}
-	});
+	}));
 	out
 }
 
@@ -131,6 +153,7 @@ fn expected(
 	l: Layout,
 	upper: bool,
 	diag: Diag,
+	strided: bool,
 ) -> Vec<(usize, usize, f64)> {
 	let strict = matches!(diag, Diag::Skip) as usize;
 	let (r0, _c0) = if l.transpose { (n, m) } else { (m, n) };
@@ -152,7 +175,13 @@ fn expected(
 			let (p, q) = if l.transpose { (jj, ii) } else { (ii, jj) };
 			// the axis that lands on the physical columns, and whether it is reversed
 			let col_rev = if l.transpose { l.rev_rows } else { l.rev_cols };
-			let key = (if col_rev { -(q as isize) } else { q as isize }, p);
+			let key = if strided {
+				// no column is contiguous, so the walk is not flipped to memory order: it follows
+				// the logical view, column by column
+				(j as isize, i)
+			} else {
+				(if col_rev { -(q as isize) } else { q as isize }, p)
+			};
 			v.push((key, (i, j, (p + q * r0) as f64)));
 		}
 	}
@@ -178,12 +207,14 @@ fn triangular_with_index_visits_the_triangle_in_order() {
 		for l in layouts() {
 			for upper in [false, true] {
 				for diag in [Diag::Include, Diag::Skip] {
+					for strided in [false, true] {
 					assert_eq!(
-						visit(m, n, l, upper, diag),
-						expected(m, n, l, upper, diag),
-						"{m}x{n} {l:?} upper={upper} diag={}",
+						visit(m, n, l, upper, diag, strided),
+						expected(m, n, l, upper, diag, strided),
+						"{m}x{n} {l:?} upper={upper} diag={} strided={strided}",
 						matches!(diag, Diag::Include),
 					);
+					}
 				}
 			}
 		}
@@ -196,11 +227,12 @@ fn triangular_without_index_visits_the_triangle_in_order() {
 		for l in layouts() {
 			for upper in [false, true] {
 				for diag in [Diag::Include, Diag::Skip] {
-					let want: Vec<f64> = expected(m, n, l, upper, diag)
+					for strided in [false, true] {
+					let want: Vec<f64> = expected(m, n, l, upper, diag, strided)
 						.into_iter()
 						.map(|e| e.2)
 						.collect();
-					let mut got = visit_values(m, n, l, upper, diag);
+					let mut got = visit_values(m, n, l, upper, diag, strided);
 					// the index-free variants take the transpose of the lower walk for
 					// `upper`; they promise the elements, in memory order per column
 					let mut w = want.clone();
@@ -211,9 +243,10 @@ fn triangular_without_index_visits_the_triangle_in_order() {
 					assert_eq!(
 						got,
 						w,
-						"{m}x{n} {l:?} upper={upper} diag={}",
+						"{m}x{n} {l:?} upper={upper} diag={} strided={strided}",
 						matches!(diag, Diag::Include),
 					);
+					}
 				}
 			}
 		}
@@ -228,7 +261,7 @@ fn reverse_rows_wide_upper_visits_all_five() {
 		rev_rows: true,
 		rev_cols: false,
 	};
-	let got = visit(2, 3, l, true, Diag::Include);
+	let got = visit(2, 3, l, true, Diag::Include, false);
 	// base 2x3 col-major: value = i + 2 j; logical row i is physical row 1 - i
 	assert_eq!(
 		got,

@@ -28,8 +28,8 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   accepted at a looser stopping rule than that); a component that overflows by no more than the rounding error of
   `P` (`4 n eps`) is rounded to `MAX`. `PolarMethod::Svd` for `sigma_max > MAX` is unchanged (#233).
 - `zip!` triangular iteration on wide and tall views (#255). `for_each_triangular_upper_with_index`
-  on a transposed, row-reversed view (a wide operand with reversed columns) subtracted past zero
-  (`m - j - strict`), and the lower-`None` and upper-`Transpose` arms passed `get_slice_unchecked` a
+  on a transposed view with reversed columns (the report's `4 x 2` view of a `2 x 4` operand)
+  subtracted past zero (`m - j - strict`), and the lower-`None` and upper-`Transpose` arms passed `get_slice_unchecked` a
   start beyond the end; the upper arm for a row-reversed view stopped at column `min(m, n)`, so a wide
   `2 x 3` view visited 3 of its 5 upper elements. Each now visits exactly its triangle, once.
   **Behavior change:** `ZipEq::new_unchecked` is a safe function whose shape check was a
