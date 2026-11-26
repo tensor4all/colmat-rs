@@ -27,6 +27,14 @@ Numbers are tensor4all/colmat-rs issues or PRs.
   representable `P` return `Ok` (best effort when `P` is within `4 n eps` of `MAX`: `W` is
   accepted at a looser stopping rule than that); a component that overflows by no more than the rounding error of
   `P` (`4 n eps`) is rounded to `MAX`. `PolarMethod::Svd` for `sigma_max > MAX` is unchanged (#233).
+- `zip!` triangular iteration on wide and tall views (#255). `for_each_triangular_upper_with_index`
+  on a transposed view with reversed columns (the report's `4 x 2` view of a `2 x 4` operand)
+  subtracted past zero (`m - j - strict`), and the lower-`None` and upper-`Transpose` arms passed `get_slice_unchecked` a
+  start beyond the end; the upper arm for a row-reversed view stopped at column `min(m, n)`, so a wide
+  `2 x 3` view visited 3 of its 5 upper elements. Each now visits exactly its triangle, once.
+  **Behavior change:** `ZipEq::new_unchecked` is a safe function whose shape check was a
+  `debug_assert!`; it is now an `assert!`. A caller that released with mismatched shapes used to read
+  out of bounds (undefined behavior); it now panics at construction. The signature is unchanged.
 - Index soundness (#256). `PermRef::new_checked`, `PermRef::as_shape` and `Perm::into_shape` with
   the shape `One` read past a zero-sized slice, leaked, or freed a dangling `Box`, because the index
   of `One` is the zero-sized `Zero` and was reinterpreted as `I`; they now handle `One` without the

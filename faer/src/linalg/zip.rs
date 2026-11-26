@@ -4,7 +4,7 @@ use crate::mat::{Mat, MatMut, MatRef};
 use crate::row::{Row, RowMut, RowRef};
 use crate::{ContiguousFwd, Idx, Shape, Stride, Unbind, diag};
 use core::marker::PhantomData;
-use equator::{assert, debug_assert};
+use equator::assert;
 use reborrow::*;
 pub trait IntoView {
 	type Target;
@@ -462,10 +462,20 @@ impl<
 	}
 
 	/// creates a zip matrix, assuming that the dimensions match
+	///
+	/// Despite the name this function is safe, so it checks: the iteration
+	/// methods index every operand with the shape of the first one, and with
+	/// mismatched operands that would read out of bounds. The check is a real
+	/// `assert!`, kept in release builds, so mismatched dimensions panic here
+	/// rather than being undefined behavior later. It is the same check as
+	/// [`Self::new`], and costs two comparisons per construction.
+	///
+	/// # Panics
+	/// Panics if the dimensions of `head` and `tail` differ.
 	#[inline(always)]
 	#[track_caller]
 	pub fn new_unchecked(head: Head, tail: Tail) -> Self {
-		debug_assert!(all(
+		assert!(all(
 			Head::nrows(&head) == Tail::nrows(&tail),
 			Head::ncols(&head) == Tail::ncols(&tail),
 		));
@@ -1577,7 +1587,7 @@ fn for_each_mat_triangular_lower_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					annotate_noalias_mat_with_index::<false, false, Z, _, _>(
@@ -1596,7 +1606,7 @@ fn for_each_mat_triangular_lower_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					for i in start..end {
@@ -1777,7 +1787,7 @@ fn for_each_mat_triangular_upper_with_index<
 		},
 		MatLayoutTransform::ReverseRows => unsafe {
 			if Z::Dyn::is_contiguous(&z) {
-				for j in 0..Ord::min(m, n) {
+				for j in 0..n {
 					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
@@ -1796,7 +1806,7 @@ fn for_each_mat_triangular_upper_with_index<
 					);
 				}
 			} else {
-				for j in 0..Ord::min(m, n) {
+				for j in 0..n {
 					let start = m - Ord::min(j + (1 - strict), m);
 					let end = m;
 					if start == end {
@@ -1814,7 +1824,7 @@ fn for_each_mat_triangular_upper_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					annotate_noalias_mat_with_index::<true, false, Z, _, _>(
@@ -1833,7 +1843,7 @@ fn for_each_mat_triangular_upper_with_index<
 				for j in 0..n {
 					let start = j + strict;
 					let end = m;
-					if start == end {
+					if start >= end {
 						continue;
 					}
 					for i in start..end {
@@ -1847,7 +1857,7 @@ fn for_each_mat_triangular_upper_with_index<
 			if Z::Dyn::is_contiguous(&z) {
 				for j in 0..n {
 					let start = 0;
-					let end = m - j - strict;
+					let end = m - Ord::min(j + strict, m);
 					if start == end {
 						continue;
 					}
@@ -1866,7 +1876,7 @@ fn for_each_mat_triangular_upper_with_index<
 			} else {
 				for j in 0..n {
 					let start = 0;
-					let end = m - j - strict;
+					let end = m - Ord::min(j + strict, m);
 					if start == end {
 						continue;
 					}
@@ -2274,6 +2284,12 @@ where
 	/// while passing the indices of the position of the current element
 	///
 	/// `diag` specifies whether the diagonal should be included or excluded
+	///
+	/// The triangle is that of the `nrows x ncols` view, wide or tall as it
+	/// may be: each of its elements is visited exactly once. The order is that
+	/// of the operand's memory layout, which is not in general the row- or
+	/// column-major order of the view, so use the passed indices to place an
+	/// element
 	#[inline(always)]
 	pub fn for_each_triangular_lower_with_index(
 		self,
@@ -2287,6 +2303,12 @@ where
 	/// while passing the indices of the position of the current element
 	///
 	/// `diag` specifies whether the diagonal should be included or excluded
+	///
+	/// The triangle is that of the `nrows x ncols` view, wide or tall as it
+	/// may be: each of its elements is visited exactly once. The order is that
+	/// of the operand's memory layout, which is not in general the row- or
+	/// column-major order of the view, so use the passed indices to place an
+	/// element
 	#[inline(always)]
 	pub fn for_each_triangular_upper_with_index(
 		self,
@@ -2398,6 +2420,12 @@ where
 	/// while passing the indices of the position of the current element
 	///
 	/// `diag` specifies whether the diagonal should be included or excluded
+	///
+	/// The triangle is that of the `nrows x ncols` view, wide or tall as it
+	/// may be: each of its elements is visited exactly once. The order is that
+	/// of the operand's memory layout, which is not in general the row- or
+	/// column-major order of the view, so use the passed indices to place an
+	/// element
 	#[inline(always)]
 	pub fn for_each_triangular_lower_with_index(
 		self,
@@ -2411,6 +2439,12 @@ where
 	/// while passing the indices of the position of the current element
 	///
 	/// `diag` specifies whether the diagonal should be included or excluded
+	///
+	/// The triangle is that of the `nrows x ncols` view, wide or tall as it
+	/// may be: each of its elements is visited exactly once. The order is that
+	/// of the operand's memory layout, which is not in general the row- or
+	/// column-major order of the view, so use the passed indices to place an
+	/// element
 	#[inline(always)]
 	pub fn for_each_triangular_upper_with_index(
 		self,
