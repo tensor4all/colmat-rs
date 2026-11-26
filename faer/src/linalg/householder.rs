@@ -112,10 +112,11 @@ fn make_householder_imp<T: ComplexField, const PRESERVE_TINY: bool>(
 		head_norm = zero();
 	}
 	if tail_norm < min {
-		// the identity reflector: `head` and the norm come back at the input's scale
+		// the identity reflector: `head`, the tail and the norm come back at the input's scale
 		let norm = match &scales {
 			Some((_, unscale)) => {
 				*head = head.mul_pow2(unscale);
+				zip!(out.rb_mut()).for_each(|unzip!(x)| *x = x.mul_pow2(unscale));
 				head_norm * unscale
 			},
 			None => head_norm,
