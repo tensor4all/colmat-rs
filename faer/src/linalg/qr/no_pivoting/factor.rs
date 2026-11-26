@@ -972,11 +972,28 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 		Q_coeff.ncols() == Ord::min(A.nrows(), A.ncols()),
 	));
 	let mut Q_coeff = Q_coeff;
+	let mut A = A;
+	// `v^H a` in a trailing update, and `x_0 + sign * ||x||` in a reflector, overflow for finite
+	// columns of norm near `MAX` (tensor4all/colmat-rs#265). a reflector is invariant under
+	// scaling `A` by a power of two, so factor `2^-p A` and scale the triangle `R` back up: the
+	// columns of `2^-p A` have norm at most `MAX / 8`, which leaves every intermediate finite.
+	// non-finite entries are left alone. `R` entries that are not representable overflow to
+	// infinity, as the product would
+	let (m, n) = A.shape();
+	let max_entry = A.rb().norm_max();
+	let down_exp = 3 + (m.max(1).next_power_of_two().trailing_zeros() as i32 + 1) / 2;
+	let limit = &max_positive::<T::Real>()
+		* &from_f64::<T::Real>(libm::exp2(-(down_exp as f64)));
+	let prescale = is_finite(&max_entry) && max_entry > limit;
+	if prescale {
+		let down = from_f64::<T::Real>(libm::exp2(-(down_exp as f64)));
+		zip!(A.rb_mut()).for_each(|unzip!(x)| *x = x.mul_pow2(&down));
+	}
 	let rank = if small_path(A.rb(), &par) {
-		qr_in_place_small(A, Q_coeff.rb_mut())
+		qr_in_place_small(A.rb_mut(), Q_coeff.rb_mut())
 	} else {
 		qr_in_place_blocked(
-			A,
+			A.rb_mut(),
 			Q_coeff.rb_mut(),
 			0,
 			0,
@@ -987,6 +1004,14 @@ pub(crate) fn qr_in_place_packed<T: ComplexField>(
 			stage_panels,
 		)
 	};
+	if prescale {
+		let up = from_f64::<T::Real>(libm::exp2(down_exp as f64));
+		for j in 0..n {
+			let rows = Ord::min(j + 1, m);
+			zip!(A.rb_mut().col_mut(j).subrows_mut(0, rows))
+				.for_each(|unzip!(x)| *x = x.mul_pow2(&up));
+		}
+	}
 	Q_coeff.rb_mut().get_mut(.., rank..).fill(zero());
 	let mut col = rank / block_size * block_size;
 	let n = Q_coeff.ncols();
