@@ -20,14 +20,20 @@ unsafe fn noalias_annotate<T, Rows: Shape, Cols: Shape>(
 	f: &mut impl FnMut(Idx<Rows>, Idx<Cols>) -> T,
 	j: Idx<Cols>,
 ) {
-	let ptr = iter.as_mut_ptr();
+	// derive the raw pointer once: re-borrowing `iter` for every element would
+	// invalidate the pointer held by `guard` under stacked borrows.
+	let base = iter.as_mut_ptr() as *mut T;
+	// the guard owns exactly the slots `[old_nrows, old_nrows + nrows)` of this
+	// column, i.e. the new elements written so far. the old rows belong to the
+	// matrix and must not be dropped here. `nrows` is bumped immediately after
+	// each `write`, and nothing between the write and the bump can unwind, so
+	// on a panic in `f` the guard describes exactly the initialised slots.
 	let mut guard = DropCol {
-		ptr: ptr as *mut T,
+		ptr: base.add(old_nrows.unbound()),
 		nrows: 0,
 	};
 	for i in Rows::indices(old_nrows, new_nrows) {
-		let ptr = iter.as_mut_ptr().add(i.unbound()) as *mut T;
-		ptr.write((*f)(i, j));
+		base.add(i.unbound()).write((*f)(i, j));
 		guard.nrows += 1;
 	}
 	core::mem::forget(guard);
@@ -282,13 +288,17 @@ impl<T> Drop for DropMat<T> {
 	fn drop(&mut self) {
 		if const { core::mem::needs_drop::<T>() } {
 			let mut ptr = self.ptr;
-			if self.nrows > 0 {
+			let nrows = self.nrows;
+			let byte_col_stride = self.byte_col_stride;
+			if nrows > 0 {
 				DropIter((0..self.ncols).map(|_| {
-					DropCol {
-						ptr,
-						nrows: self.nrows,
-					};
-					ptr = ptr.wrapping_byte_add(self.byte_col_stride);
+					// advance *before* dropping: if an element's `Drop`
+					// panics, `DropIter` resumes with the next column and must
+					// not visit this one again (the slice drop glue has
+					// already dropped the rest of this column).
+					let col = ptr;
+					ptr = ptr.wrapping_byte_add(byte_col_stride);
+					DropCol { ptr: col, nrows };
 				}));
 			}
 		}
@@ -354,8 +364,12 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	) {
 		let stride = row_capacity;
 		let mut ptr = ptr.wrapping_add(stride * old_ncols.unbound());
+		// on a panic in `f` this guard drops the new elements of the columns
+		// completed so far (rows `[old_nrows, new_nrows)`); the partially
+		// written column is dropped by `noalias_annotate`'s own guard. the old
+		// rows are never touched.
 		let mut col_guard = DropMat {
-			ptr,
+			ptr: ptr.wrapping_add(old_nrows.unbound()),
 			nrows: new_nrows.unbound() - old_nrows.unbound(),
 			ncols: 0,
 			byte_col_stride: stride * core::mem::size_of::<T>(),
@@ -481,6 +495,15 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// resizes the matrix in-place so that the new dimensions are `(new_nrows,
 	/// new_ncols)`. new elements are created with the given function `f`, so
 	/// that elements at index `(i, j)` are created by calling `f(i, j)`.
+	///
+	/// # panic safety
+	/// `f` may panic at any element, and an element's `Drop` may panic while
+	/// the matrix shrinks. on unwind every element is dropped exactly once and
+	/// none is leaked or dropped twice: the elements of a partially built
+	/// growth step are dropped, and the matrix keeps the elements it owned before
+	/// the call. its dimensions are between `min(old, new)` and `new` in each
+	/// direction (the shrink happens first, and a completed row growth is kept
+	/// if the column growth then panics). the matrix stays valid and usable.
 	pub fn resize_with(
 		&mut self,
 		new_nrows: Rows,
@@ -532,9 +555,21 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	/// the function panics if any of the following conditions are violated:
 	/// - `new_nrows > self.nrows()`
 	/// - `new_ncols > self.ncols()`
+	///
+	/// # panic safety
+	/// if an element's `Drop` panics, every removed element is still dropped
+	/// exactly once and the matrix remains valid; it keeps the elements that
+	/// were not removed (the column truncation is committed before the row
+	/// truncation, so a panic in the first leaves the old row count).
 	pub fn truncate(&mut self, new_nrows: Rows, new_ncols: Cols) {
+		// the dimensions are committed *before* the tail is dropped: the
+		// `DropMat` temporary owns the removed elements from that point on, so
+		// if an element's `Drop` panics, the matrix no longer claims them and
+		// they are dropped exactly once (by the guard's unwind path).
 		if new_ncols < self.0.ncols {
 			let stride = self.0.raw.row_capacity;
+			let old_ncols = self.0.ncols.unbound();
+			self.0.ncols = new_ncols;
 			drop(DropMat {
 				ptr: self
 					.0
@@ -543,21 +578,21 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 					.as_ptr()
 					.wrapping_add(stride * new_ncols.unbound()),
 				nrows: self.0.nrows.unbound(),
-				ncols: self.0.ncols.unbound() - new_ncols.unbound(),
+				ncols: old_ncols - new_ncols.unbound(),
 				byte_col_stride: stride * core::mem::size_of::<T>(),
 			});
-			self.0.ncols = new_ncols;
 		}
 		if new_nrows < self.0.nrows {
 			let size = core::mem::size_of::<T>();
 			let stride = size * self.0.raw.row_capacity;
+			let old_nrows = self.0.nrows.unbound();
+			self.0.nrows = new_nrows;
 			drop(DropMat {
 				ptr: self.0.raw.ptr.as_ptr().wrapping_add(new_nrows.unbound()),
-				nrows: self.0.nrows.unbound() - new_nrows.unbound(),
+				nrows: old_nrows - new_nrows.unbound(),
 				ncols: self.0.ncols.unbound(),
 				byte_col_stride: stride,
 			});
-			self.0.nrows = new_nrows;
 		}
 	}
 
@@ -1778,5 +1813,138 @@ mod tests {
 		.unwrap_err();
 		// matrix elements + init value
 		assert!(counter.get() == M * N + 1);
+	}
+
+	/// drop-counting element: every created id must be dropped exactly once.
+	mod panic_safety {
+		use super::Mat;
+		use std::cell::{Cell, RefCell};
+		use std::panic::{AssertUnwindSafe, catch_unwind};
+		use std::rc::Rc;
+
+		#[derive(Default)]
+		struct Ctx {
+			created: Cell<u32>,
+			dropped: RefCell<Vec<u32>>,
+			/// panic in the `Drop` of the element dropped when this hits 0
+			drop_countdown: Cell<Option<usize>>,
+		}
+		struct D(u32, Rc<Ctx>);
+		impl D {
+			fn new(ctx: &Rc<Ctx>) -> Self {
+				let id = ctx.created.get();
+				ctx.created.set(id + 1);
+				D(id, ctx.clone())
+			}
+		}
+		impl Drop for D {
+			fn drop(&mut self) {
+				self.1.dropped.borrow_mut().push(self.0);
+				if let Some(n) = self.1.drop_countdown.get() {
+					if n == 0 {
+						self.1.drop_countdown.set(None);
+						panic!("drop {}", self.0);
+					}
+					self.1.drop_countdown.set(Some(n - 1));
+				}
+			}
+		}
+		fn assert_each_dropped_once(ctx: &Ctx) {
+			let mut d = ctx.dropped.borrow().clone();
+			d.sort();
+			let expected: Vec<u32> = (0..ctx.created.get()).collect();
+			assert!(d == expected, "dropped {d:?}, created {expected:?}");
+		}
+
+		#[test]
+		fn resize_with_panicking_callback_every_position() {
+			// (old shape, new shape): grow rows, grow cols, both, and mixed
+			// grow/shrink (the shrink runs first)
+			let cases = [
+				((2, 1), (4, 1)),
+				((2, 3), (4, 3)),
+				((3, 2), (3, 5)),
+				((2, 2), (4, 5)),
+				((4, 3), (2, 5)),
+				((3, 3), (5, 1)),
+				((0, 0), (3, 3)),
+			];
+			for ((r0, c0), (r1, c1)) in cases {
+				let mut k = 0;
+				loop {
+					let ctx = Rc::new(Ctx::default());
+					let mut m = Mat::from_fn(r0, c0, |_, _| D::new(&ctx));
+					let mut calls = 0;
+					let res = catch_unwind(AssertUnwindSafe(|| {
+						m.resize_with(r1, c1, |_, _| {
+							if calls == k {
+								panic!("callback");
+							}
+							calls += 1;
+							D::new(&ctx)
+						})
+					}));
+					if res.is_ok() {
+						// k is past the last call: nothing left to test
+						assert!(m.nrows() == r1 && m.ncols() == c1);
+						drop(m);
+						assert_each_dropped_once(&ctx);
+						break;
+					}
+					// the matrix is valid: each dimension is between the
+					// truncated and the requested size (row growth is
+					// committed before column growth begins)
+					assert!(m.nrows() >= r0.min(r1) && m.nrows() <= r1.max(r0));
+					assert!(m.ncols() >= c0.min(c1) && m.ncols() <= c1.max(c0));
+					drop(m);
+					assert_each_dropped_once(&ctx);
+					k += 1;
+				}
+			}
+		}
+
+		#[test]
+		fn truncate_panicking_drop_every_position() {
+			let cases = [
+				((1, 3), (1, 1)),
+				((4, 1), (2, 1)),
+				((3, 4), (3, 2)),
+				((4, 4), (2, 2)),
+				((3, 3), (0, 0)),
+			];
+			for ((r0, c0), (r1, c1)) in cases {
+				let removed = r0 * c0 - r1 * c1;
+				for k in 0..removed {
+					let ctx = Rc::new(Ctx::default());
+					let mut m = Mat::from_fn(r0, c0, |_, _| D::new(&ctx));
+					ctx.drop_countdown.set(Some(k));
+					let res =
+						catch_unwind(AssertUnwindSafe(|| m.truncate(r1, c1)));
+					assert!(res.is_err());
+					// the matrix is still valid: dimensions only ever shrink
+					assert!(m.nrows() >= r1 && m.ncols() >= c1);
+					assert!(m.nrows() <= r0 && m.ncols() <= c0);
+					drop(m);
+					assert_each_dropped_once(&ctx);
+				}
+			}
+		}
+
+		#[test]
+		fn resize_with_shrink_panicking_drop_every_position() {
+			let (r0, c0, r1, c1) = (3, 4, 2, 6);
+			let removed = r0 * c0 - r1 * c1.min(c0);
+			for k in 0..removed {
+				let ctx = Rc::new(Ctx::default());
+				let mut m = Mat::from_fn(r0, c0, |_, _| D::new(&ctx));
+				ctx.drop_countdown.set(Some(k));
+				let res = catch_unwind(AssertUnwindSafe(|| {
+					m.resize_with(r1, c1, |_, _| D::new(&ctx))
+				}));
+				assert!(res.is_err());
+				drop(m);
+				assert_each_dropped_once(&ctx);
+			}
+		}
 	}
 }
