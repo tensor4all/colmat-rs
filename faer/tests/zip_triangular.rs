@@ -22,7 +22,11 @@ fn layouts() -> Vec<Layout> {
 	for transpose in [false, true] {
 		for rev_rows in [false, true] {
 			for rev_cols in [false, true] {
-				v.push(Layout { transpose, rev_rows, rev_cols });
+				v.push(Layout {
+					transpose,
+					rev_rows,
+					rev_cols,
+				});
 			}
 		}
 	}
@@ -68,7 +72,8 @@ macro_rules! with_view {
 				$body
 			},
 			(true, true, true) => {
-				let $v = b.transpose_mut().reverse_rows_mut().reverse_cols_mut();
+				let $v =
+					b.transpose_mut().reverse_rows_mut().reverse_cols_mut();
 				$body
 			},
 		}
@@ -132,7 +137,11 @@ fn expected(
 	let mut v = vec![];
 	for j in 0..n {
 		for i in 0..m {
-			let inside = if upper { i + strict <= j } else { j + strict <= i };
+			let inside = if upper {
+				i + strict <= j
+			} else {
+				j + strict <= i
+			};
 			if !inside {
 				continue;
 			}
@@ -151,8 +160,17 @@ fn expected(
 	v.into_iter().map(|(_, e)| e).collect()
 }
 
-const SHAPES: [(usize, usize); 9] =
-	[(3, 3), (4, 4), (2, 4), (4, 2), (2, 3), (3, 2), (1, 3), (3, 1), (1, 1)];
+const SHAPES: [(usize, usize); 9] = [
+	(3, 3),
+	(4, 4),
+	(2, 4),
+	(4, 2),
+	(2, 3),
+	(3, 2),
+	(1, 3),
+	(3, 1),
+	(1, 1),
+];
 
 #[test]
 fn triangular_with_index_visits_the_triangle_in_order() {
@@ -191,7 +209,8 @@ fn triangular_without_index_visits_the_triangle_in_order() {
 						w.sort_by(f64::total_cmp);
 					}
 					assert_eq!(
-						got, w,
+						got,
+						w,
 						"{m}x{n} {l:?} upper={upper} diag={}",
 						matches!(diag, Diag::Include),
 					);
@@ -204,12 +223,22 @@ fn triangular_without_index_visits_the_triangle_in_order() {
 /// a wide `2 x 3` view with reversed rows has five upper-triangle elements, not three
 #[test]
 fn reverse_rows_wide_upper_visits_all_five() {
-	let l = Layout { transpose: false, rev_rows: true, rev_cols: false };
+	let l = Layout {
+		transpose: false,
+		rev_rows: true,
+		rev_cols: false,
+	};
 	let got = visit(2, 3, l, true, Diag::Include);
 	// base 2x3 col-major: value = i + 2 j; logical row i is physical row 1 - i
 	assert_eq!(
 		got,
-		vec![(0, 0, 1.0), (1, 1, 2.0), (0, 1, 3.0), (1, 2, 4.0), (0, 2, 5.0)]
+		vec![
+			(0, 0, 1.0),
+			(1, 1, 2.0),
+			(0, 1, 3.0),
+			(1, 2, 4.0),
+			(0, 2, 5.0)
+		]
 	);
 }
 
@@ -228,7 +257,12 @@ fn transposed_reversed_zip_with_plain_operand() {
 	for j in 0..2usize {
 		for i in 0..4usize {
 			if i <= j {
-				want.push((i, j, ((1 - j) + 2 * i) as f64, 100.0 + (i + 4 * j) as f64));
+				want.push((
+					i,
+					j,
+					((1 - j) + 2 * i) as f64,
+					100.0 + (i + 4 * j) as f64,
+				));
 			}
 		}
 	}
@@ -244,4 +278,25 @@ fn zip_eq_new_panics_on_mismatched_shapes() {
 		ZipEq::new(zip!(&mut a), zip!(&mut b)).for_each(|_| {});
 	});
 	assert!(r.is_err());
+}
+
+/// the report's second reproduction: `new_unchecked` is safe, so it must refuse mismatched shapes
+/// in release too (it was a `debug_assert!`, and iteration then read out of bounds)
+#[test]
+fn zip_eq_new_unchecked_panics_on_mismatched_shapes() {
+	let r = std::panic::catch_unwind(|| {
+		let mut a = Mat::<f64>::zeros(8, 8);
+		let mut b = Mat::<f64>::zeros(1, 1);
+		ZipEq::new_unchecked(zip!(&mut a), zip!(&mut b)).for_each(|_| {});
+	});
+	assert!(r.is_err());
+}
+
+#[test]
+fn zip_eq_new_unchecked_accepts_matching_shapes() {
+	let mut a = Mat::<f64>::from_fn(3, 2, |i, j| (i + 3 * j) as f64);
+	let mut b = Mat::<f64>::zeros(3, 2);
+	let mut n = 0;
+	ZipEq::new_unchecked(zip!(&mut a), zip!(&mut b)).for_each(|_| n += 1);
+	assert_eq!(n, 6);
 }
