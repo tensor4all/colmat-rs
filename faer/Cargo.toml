@@ -52,7 +52,7 @@ colmat-traits = { path = "../faer-traits", version = "0.25.0", default-features 
 # Replace this Git dependency and the matching dev-dependency below with the same released
 # t4a-gemm version after that change lands, before opening the colmat PR. The companion
 # also retains the >= 0.20.4 common-crate allocation fix described in #299.
-gemm = { package = "t4a-gemm", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "0ff0f9189dd95aa85a5261c8e2451d9d96ab2d68", default-features = false }
+gemm = { package = "t4a-gemm", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "5a10f8f72d8790b8136acea59d04389d691b72e8", default-features = false }
 nano-gemm = { version = "0.2.2", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
@@ -140,7 +140,7 @@ npy = [
 # `examples/sme_route.rs` prints the SME size gate's own verdict (`sme_thresholds`) next to its
 # timing (#180). Keep this dev-dependency on the same source and revision as `gemm`, so the probe
 # and library share one gate implementation and the mixed-GEMM draft has no duplicate common crate.
-gemm-common = { package = "t4a-gemm-common", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "0ff0f9189dd95aa85a5261c8e2451d9d96ab2d68", default-features = false }
+gemm-common = { package = "t4a-gemm-common", git = "https://github.com/tensor4all/t4a-gemm.git", rev = "5a10f8f72d8790b8136acea59d04389d691b72e8", default-features = false }
 log = { version = "0.4.29", default-features = false, features = ["std"] }
 aligned-vec = "0.6.4"
 amd = "0.2.2"
