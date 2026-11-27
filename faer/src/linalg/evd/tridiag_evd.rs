@@ -387,6 +387,275 @@ pub(crate) fn qr_algorithm<T: RealField>(
 	}
 	Ok(())
 }
+
+/// Eigenvalues of `[[a, b], [b, c]]` (DLAE2): the one of larger magnitude first.
+fn eig2_values<T: RealField>(a: &T, b: &T, c: &T) -> (T, T) {
+	let sm = &(a + c);
+	let df = &(a - c);
+	let adf = &df.abs();
+	let tb = &(b + b);
+	let ab = &tb.abs();
+	let (acmx, acmn) = if a.abs() > c.abs() { (a, c) } else { (c, a) };
+	let (big, small) = if adf > ab { (adf, ab) } else { (ab, adf) };
+	let rt = &(if *big == zero() {
+		zero::<T>()
+	} else {
+		let q = &(small / big);
+		big * (q * q + one::<T>()).sqrt()
+	});
+	let half = &from_f64::<T>(0.5);
+	if *sm < zero() {
+		let rt1 = (sm - rt) * half;
+		let rt2 = (acmx / &rt1) * acmn - (b / &rt1) * b;
+		(rt1, rt2)
+	} else if *sm > zero() {
+		let rt1 = (sm + rt) * half;
+		let rt2 = (acmx / &rt1) * acmn - (b / &rt1) * b;
+		(rt1, rt2)
+	} else {
+		(rt * half, -(rt * half))
+	}
+}
+/// Eigenvalues only of a symmetric tridiagonal matrix by the Pal-Walker-Kahan variant of the
+/// implicit QL/QR iteration (DSTERF's formulation, `SRC/dsterf.f` of Reference-LAPACK; LAPACK's
+/// copyright notice and license terms are in `faer/COPYING.LAPACK.BSD`, see `NOTICE`).
+///
+/// The iteration runs on the squares of the off-diagonal entries and forms no rotation: a step is
+/// a handful of multiply-adds and divisions with no square root and no `hypot`, which is what
+/// [`qr_algorithm`] pays per rotation (`make_givens`) when it has no vectors to accumulate.
+/// Results are not bit for bit those of [`qr_algorithm`] (the two round differently).
+pub(crate) fn sterf<T: RealField>(
+	diag: ColMut<'_, T, usize, ContiguousFwd>,
+	offdiag: ColMut<'_, T, usize, ContiguousFwd>,
+) -> Result<(), EvdError> {
+	let n = diag.nrows();
+	let mut d = diag;
+	let mut e = offdiag;
+	if n <= 1 {
+		return Ok(());
+	}
+	let eps = &eps::<T>();
+	let eps2 = &(eps * eps);
+	let scale = &normalize_range(&mut d, &mut e);
+	let two = &from_f64::<T>(2.0);
+	let nmaxit = n.saturating_mul(30);
+	let mut jtot = 0usize;
+	let mut l1 = 0usize;
+	let mut failed = false;
+	// `e[i]` joins `d[i]` and `d[i + 1]`; the entries of a block are squared when it is taken up
+	'blocks: while l1 < n {
+		if l1 > 0 {
+			e[l1 - 1] = zero();
+		}
+		let mut m = n - 1;
+		for i in l1..n - 1 {
+			let tst = e[i].abs();
+			if tst <= d[i].abs().sqrt() * d[i + 1].abs().sqrt() * eps {
+				e[i] = zero();
+				m = i;
+				break;
+			}
+		}
+		let (lsv, lendsv) = (l1, m);
+		l1 = m + 1;
+		if lendsv == lsv {
+			continue;
+		}
+		for i in lsv..lendsv {
+			e[i] = &e[i] * &e[i];
+		}
+		// the end with the smaller diagonal entry is chased towards: QL (`l <= lend`) or QR
+		let (mut l, lend) = if d[lendsv].abs() < d[lsv].abs() {
+			(lendsv as isize, lsv as isize)
+		} else {
+			(lsv as isize, lendsv as isize)
+		};
+		if lend >= l {
+			// QL iteration
+			loop {
+				let mut m = lend;
+				if l != lend {
+					for i in l..lend {
+						let iu = i as usize;
+						if e[iu].abs() <= eps2 * d[iu].abs() * d[iu + 1].abs() {
+							m = i;
+							break;
+						}
+					}
+				}
+				if m < lend {
+					e[m as usize] = zero();
+				}
+				let lu = l as usize;
+				let mut p = d[lu].copy();
+				if m == l {
+					d[lu] = p;
+					l += 1;
+					if l <= lend {
+						continue;
+					}
+					break;
+				}
+				if m == l + 1 {
+					let rte = e[lu].sqrt();
+					let (rt1, rt2) = eig2_values(&d[lu], &rte, &d[lu + 1]);
+					d[lu] = rt1;
+					d[lu + 1] = rt2;
+					e[lu] = zero();
+					l += 2;
+					if l <= lend {
+						continue;
+					}
+					break;
+				}
+				if jtot == nmaxit {
+					failed = true;
+					break;
+				}
+				jtot += 1;
+				let mu = m as usize;
+				let rte = &e[lu].sqrt();
+				let sigma0 = (&d[lu + 1] - &p) / (rte * two);
+				let r = sigma0.hypot(one::<T>());
+				let sgn = if sigma0 >= zero() { r } else { -r };
+				let sigma = &(&p - rte / (&sigma0 + sgn));
+				let mut c = one::<T>();
+				let mut s = zero::<T>();
+				let mut gamma = &d[mu] - sigma;
+				p = &gamma * &gamma;
+				for i in (lu..mu).rev() {
+					let bb = e[i].copy();
+					let r = &p + &bb;
+					if i != mu - 1 {
+						e[i + 1] = &s * &r;
+					}
+					let oldc = c.copy();
+					c = &p / &r;
+					s = &bb / &r;
+					let oldgam = gamma.copy();
+					let alpha = d[i].copy();
+					gamma = &c * (&alpha - sigma) - &s * &oldgam;
+					d[i + 1] = &oldgam + (&alpha - &gamma);
+					p = if c != zero() {
+						(&gamma * &gamma) / &c
+					} else {
+						&oldc * &bb
+					};
+				}
+				e[lu] = &s * &p;
+				d[lu] = sigma + &gamma;
+			}
+		} else {
+			// QR iteration
+			loop {
+				let mut m = lend;
+				if l != lend {
+					let mut i = l;
+					while i > lend {
+						let iu = i as usize;
+						if e[iu - 1].abs()
+							<= eps2 * d[iu].abs() * d[iu - 1].abs()
+						{
+							m = i;
+							break;
+						}
+						i -= 1;
+					}
+				}
+				if m > lend {
+					e[m as usize - 1] = zero();
+				}
+				let lu = l as usize;
+				let mut p = d[lu].copy();
+				if m == l {
+					d[lu] = p;
+					l -= 1;
+					if l >= lend {
+						continue;
+					}
+					break;
+				}
+				if m == l - 1 {
+					let rte = e[lu - 1].sqrt();
+					let (rt1, rt2) = eig2_values(&d[lu], &rte, &d[lu - 1]);
+					d[lu] = rt1;
+					d[lu - 1] = rt2;
+					e[lu - 1] = zero();
+					l -= 2;
+					if l >= lend {
+						continue;
+					}
+					break;
+				}
+				if jtot == nmaxit {
+					failed = true;
+					break;
+				}
+				jtot += 1;
+				let mu = m as usize;
+				let rte = &e[lu - 1].sqrt();
+				let sigma0 = (&d[lu - 1] - &p) / (rte * two);
+				let r = sigma0.hypot(one::<T>());
+				let sgn = if sigma0 >= zero() { r } else { -r };
+				let sigma = &(&p - rte / (&sigma0 + sgn));
+				let mut c = one::<T>();
+				let mut s = zero::<T>();
+				let mut gamma = &d[mu] - sigma;
+				p = &gamma * &gamma;
+				for i in mu..lu {
+					let bb = e[i].copy();
+					let r = &p + &bb;
+					if i != mu {
+						e[i - 1] = &s * &r;
+					}
+					let oldc = c.copy();
+					c = &p / &r;
+					s = &bb / &r;
+					let oldgam = gamma.copy();
+					let alpha = d[i + 1].copy();
+					gamma = &c * (&alpha - sigma) - &s * &oldgam;
+					d[i] = &oldgam + (&alpha - &gamma);
+					p = if c != zero() {
+						(&gamma * &gamma) / &c
+					} else {
+						&oldc * &bb
+					};
+				}
+				e[lu - 1] = &s * &p;
+				d[lu] = sigma + &gamma;
+			}
+		}
+		if failed {
+			break 'blocks;
+		}
+	}
+	for x in d.rb_mut().iter_mut() {
+		*x *= scale;
+	}
+	if failed {
+		for x in e.rb_mut().iter_mut() {
+			*x = x.sqrt() * scale;
+		}
+		return Err(EvdError::NoConvergence);
+	}
+	// ascending order (selection sort, as `qr_algorithm`'s)
+	for i in 0..n - 1 {
+		let mut idx = i;
+		let mut min = d[i].copy();
+		for k in i + 1..n {
+			if d[k] < min {
+				idx = k;
+				min = d[k].copy();
+			}
+		}
+		if idx != i {
+			let (a, b) = (d[i].copy(), d[idx].copy());
+			d[i] = b;
+			d[idx] = a;
+		}
+	}
+	Ok(())
+}
 #[allow(clippy::toplevel_ref_arg)] // `ref` parameter keeps the upstream signature; the body wants `&T` without derefing each use
 fn secular_eq<T: RealField>(
 	ref shift: T,
@@ -1142,6 +1411,93 @@ mod evd_qr_tests {
 		];
 		test_qr(&diag, &offdiag);
 		test_dc(&diag, &offdiag);
+	}
+	/// The Pal-Walker-Kahan eigenvalue-only iteration ([`sterf`]) agrees with the QR iteration
+	/// ([`qr_algorithm`]) to a normwise `4 n eps ||T||`, on both of its branches (a chase towards
+	/// the top end and towards the bottom end: graded in each direction), 2x2 blocks, split
+	/// matrices, and spectra at the two ends of the range `normalize_range` rescales. Results are
+	/// compared with that bound, not bit for bit: the two round differently.
+	#[test]
+	fn sterf_matches_qr_algorithm() {
+		type Col<'a> = ColMut<'a, f64, usize, ContiguousFwd>;
+		fn cases() -> Vec<(Vec<f64>, Vec<f64>)> {
+			let mut x = 0x9E37_79B9_u64;
+			let mut rnd = move || {
+				x ^= x << 13;
+				x ^= x >> 7;
+				x ^= x << 17;
+				(x >> 11) as f64 / (1u64 << 53) as f64 - 0.5
+			};
+			let mut out: Vec<(Vec<f64>, Vec<f64>)> = vec![
+				(vec![1.0, 2.0], vec![0.5]),
+				(vec![2.0, 1.0, 3.0], vec![1.0, 1.0]),
+				(vec![0.0; 5], vec![1.0; 4]),
+				(vec![3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0], vec![1.0; 6]),
+				(vec![1.0; 6], vec![0.0; 5]),
+				(vec![-1.0, 4.0, -2.0, 0.5], vec![0.0, 1.0, 0.0]),
+			];
+			for &n in &[3usize, 5, 17, 64, 200] {
+				let d: Vec<f64> = (0..n).map(|_| rnd()).collect();
+				let e: Vec<f64> = (0..n - 1).map(|_| rnd()).collect();
+				out.push((d.clone(), e.clone()));
+				// graded up and down: the two chase directions
+				let up: Vec<f64> = (0..n)
+					.map(|i| 10f64.powf(-6.0 * (i as f64) / n as f64))
+					.collect();
+				let ue: Vec<f64> = (0..n - 1)
+					.map(|i| 0.1 * 10f64.powf(-6.0 * (i as f64) / n as f64))
+					.collect();
+				out.push((up.clone(), ue.clone()));
+				out.push((
+					up.iter().rev().copied().collect(),
+					ue.iter().rev().copied().collect(),
+				));
+				// split in the middle, clustered diagonal
+				let mut e2 = e.clone();
+				e2[n / 2 - 1] = 0.0;
+				out.push((vec![1.0; n], e2));
+				for &sc in &[1e-300, 1e-150, 1e150, 1e300] {
+					out.push((
+						d.iter().map(|x| x * sc).collect(),
+						e.iter().map(|x| x * sc).collect(),
+					));
+				}
+			}
+			out
+		}
+		for (diag, offdiag) in cases() {
+			let n = diag.len();
+			let run = |f: &dyn Fn(Col<'_>, Col<'_>)| {
+				let mut d = diag.clone();
+				let mut e = offdiag.clone();
+				e.push(0.0);
+				f(
+					ColMut::from_slice_mut(&mut d)
+						.try_as_col_major_mut()
+						.unwrap(),
+					ColMut::from_slice_mut(&mut e)
+						.try_as_col_major_mut()
+						.unwrap(),
+				);
+				d
+			};
+			let a = run(&|d, e| sterf(d, e).unwrap());
+			let b = run(&|d, e| qr_algorithm(d, e, None, None).unwrap());
+			let norm = diag
+				.iter()
+				.chain(&offdiag)
+				.fold(0.0f64, |m, x| m.max(x.abs()));
+			for i in 0..n {
+				assert!(a[i].is_finite());
+				assert!(
+					(a[i] - b[i]).abs() <= 4.0 * n as f64 * f64::EPSILON * norm,
+					"n = {n}, i = {i}: {} vs {}",
+					a[i],
+					b[i]
+				);
+			}
+			assert!(a.windows(2).all(|w| w[0] <= w[1]));
+		}
 	}
 	#[test]
 	fn test_gh_82() {
