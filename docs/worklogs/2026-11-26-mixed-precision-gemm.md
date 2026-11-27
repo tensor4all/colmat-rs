@@ -47,6 +47,8 @@ the host has no `pkg-config`; no dependency source or registry cache was edited.
   companion head `bbba8c43f8ac8653f700781b9a18232ee06e7aef` also passes all nine downstream mixed
   integration tests; the full colmat suite ran at the original companion head, and subsequent deltas
   are style, sealing, diagnostics, and coverage-only.
+- Scoped clippy inspection passes after documenting the oracle helper's explicit eight-input
+  context; no branch-introduced warning remains.
 - Non-x86 targets, Apple SME/AMX, wasm, and every SIMD path have not been executed. A feature build
   is not treated as proof that a particular instruction set ran.
 - No benchmark or performance-adoption result is claimed. The temporary Git revision must be

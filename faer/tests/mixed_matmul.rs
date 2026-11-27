@@ -62,6 +62,9 @@ fn reference<Lhs: MixedScalar, Rhs: MixedScalar>(
 	})
 }
 
+// INVARIANT: the independent oracle and scale-aware error report need every original operand,
+// the old destination, both scalars, and the case context; this is not an exported API.
+#[allow(clippy::too_many_arguments)]
 fn assert_close<Lhs: MixedScalar, Rhs: MixedScalar>(
 	got: MatRef<'_, f64>,
 	want: MatRef<'_, fx128>,
