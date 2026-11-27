@@ -425,7 +425,41 @@ impl<T, Rows: Shape, Cols: Shape> Mat<T, Rows, Cols> {
 	where
 		T: ComplexField,
 	{
-		Self::from_fn(nrows, ncols, |_, _| T::zero_impl())
+		// `ComplexField` is a public trait, so the all-zero bit pattern is only
+		// known to be `zero_impl()` for the native scalars (the same flags
+		// `dispatch!` trusts before it transmutes); other scalars keep the
+		// element-wise path
+		if const {
+			T::IS_NATIVE_F32
+				|| T::IS_NATIVE_F64
+				|| T::IS_NATIVE_C32
+				|| T::IS_NATIVE_C64
+		} {
+			unsafe { Self::zeroed(nrows, ncols) }
+		} else {
+			Self::from_fn(nrows, ncols, |_, _| T::zero_impl())
+		}
+	}
+
+	/// returns a new matrix with dimensions `(nrows, ncols)` whose buffer is
+	/// filled with zero bytes in one pass (tensor4all/colmat-rs#258)
+	///
+	/// # safety
+	/// the all-zero bit pattern must be a valid `T`
+	unsafe fn zeroed(nrows: Rows, ncols: Cols) -> Self {
+		let raw =
+			RawMat::<T>::try_with_capacity(nrows.unbound(), ncols.unbound())
+				.unwrap();
+		// one contiguous fill over every column, row padding included, so a
+		// single `memset` covers the buffer instead of one store per element;
+		// `try_with_capacity` checked that `row_capacity * ncols` elements fit
+		// in the allocation
+		core::ptr::write_bytes(
+			raw.ptr.as_ptr(),
+			0u8,
+			raw.row_capacity * ncols.unbound(),
+		);
+		Self(Own { raw, nrows, ncols })
 	}
 
 	/// returns a new matrix with dimensions `(nrows, ncols)`, filled with ones
@@ -1784,6 +1818,62 @@ mod tests {
 		assert_eq!(m.max(), Some(9.0));
 		let empty: Mat<f64> = Mat::new();
 		assert_eq!(empty.max(), None);
+	}
+
+	fn check_zeros<T: crate::traits::ComplexField + Copy>() {
+		// row counts straddle the 64-byte row padding of every native scalar
+		for (m, n) in [(0, 0), (0, 5), (5, 0), (1, 1), (3, 7), (17, 9), (64, 3)]
+		{
+			let mut a = Mat::<T>::zeros(m, n);
+			assert!(a.shape() == (m, n));
+			let zero = T::zero_impl();
+			let zero_bytes = unsafe {
+				core::slice::from_raw_parts(
+					&zero as *const T as *const u8,
+					core::mem::size_of::<T>(),
+				)
+			};
+			for j in 0..n {
+				for i in 0..m {
+					let x = a[(i, j)];
+					let bytes = unsafe {
+						core::slice::from_raw_parts(
+							&x as *const T as *const u8,
+							core::mem::size_of::<T>(),
+						)
+					};
+					// bitwise, so a `-0.0` would not pass
+					assert!(bytes == zero_bytes);
+				}
+			}
+			// the matrix stays a normal owned matrix: growing it keeps the
+			// zeros and initializes only the new elements
+			a.resize_with(m + 2, n + 1, |_, _| T::one_impl());
+			for j in 0..n + 1 {
+				for i in 0..m + 2 {
+					let expected = if i < m && j < n {
+						T::zero_impl()
+					} else {
+						T::one_impl()
+					};
+					assert!(a[(i, j)] == expected);
+				}
+			}
+		}
+	}
+	#[test]
+	fn test_zeros_native_bulk() {
+		// tensor4all/colmat-rs#258: the native scalars take the bulk zero fill
+		check_zeros::<f32>();
+		check_zeros::<f64>();
+		check_zeros::<crate::c32>();
+		check_zeros::<crate::c64>();
+	}
+	#[test]
+	fn test_zeros_non_native() {
+		// scalars without a native flag keep the element-wise path
+		check_zeros::<crate::fx128>();
+		check_zeros::<num_complex::Complex<crate::fx128>>();
 	}
 
 	#[test]
