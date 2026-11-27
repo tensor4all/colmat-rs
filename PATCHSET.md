@@ -20,7 +20,7 @@ upstream `faer`.
   team. Products and sums use `f64`; `alpha` and old output are each applied once. Results are not
   block-size independent. Unsupported types fail at compile time, and the internal dynamic dispatcher
   rejects before output mutation. Correctness/API only, no performance claim. Coordinated companion:
-  `t4a-gemm` `bab935aaefdca110062e12c27d8759987a643554`, to be replaced by a release before the
+  `t4a-gemm` `bbba8c43f8ac8653f700781b9a18232ee06e7aef`, to be replaced by a release before the
   colmat PR. [Design](docs/design/mixed-precision-gemm.md); [decisions and verification](docs/worklogs/2026-11-26-mixed-precision-gemm.md).
 
 - EXPERIMENT: packed QL and RQ factorizations, `linalg::ql::no_pivoting` and

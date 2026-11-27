@@ -9,7 +9,7 @@
   path; every `f32` mixed operand is converted exactly into packed `f64`, and existing `f64`
   microkernels perform every product and partial sum. There is no whole-matrix conversion or
   per-pair microkernel. The colmat dependency is pinned to companion commit
-  `bab935aaefdca110062e12c27d8759987a643554` during coordinated development.
+  `bbba8c43f8ac8653f700781b9a18232ee06e7aef` during coordinated development.
 - `mixed_matmul` bypasses homogeneous nano-GEMM, GEMV, rank-update, and native-x86 routes. `Par::Seq`
   makes one packed call. `Par::Team` reuses the existing cost model and disjoint output tiles, with
   one sequential mixed call per tile and no `K` split or partial-result allocation. Scratch is packed
@@ -44,9 +44,9 @@ the host has no `pkg-config`; no dependency source or registry cache was edited.
   as do all nine mixed tests with `x86-v4`.
 - Full colmat validation passes on the integrated branch: 867 library tests with 162 existing
   ignores, every integration-test target, and 99 doctests, with no failures. The review-corrected
-  companion head `bab935aaefdca110062e12c27d8759987a643554` also passes all nine downstream mixed
+  companion head `bbba8c43f8ac8653f700781b9a18232ee06e7aef` also passes all nine downstream mixed
   integration tests; the full colmat suite ran at the original companion head, and subsequent deltas
-  are style, sealing, and coverage-only.
+  are style, sealing, diagnostics, and coverage-only.
 - Non-x86 targets, Apple SME/AMX, wasm, and every SIMD path have not been executed. A feature build
   is not treated as proof that a particular instruction set ran.
 - No benchmark or performance-adoption result is claimed. The temporary Git revision must be
