@@ -9,14 +9,15 @@
   path; every `f32` mixed operand is converted exactly into packed `f64`, and existing `f64`
   microkernels perform every product and partial sum. There is no whole-matrix conversion or
   per-pair microkernel. The colmat dependency is pinned to companion commit
-  `5a10f8f72d8790b8136acea59d04389d691b72e8` during coordinated development.
+  `bab935aaefdca110062e12c27d8759987a643554` during coordinated development.
 - `mixed_matmul` bypasses homogeneous nano-GEMM, GEMV, rank-update, and native-x86 routes. `Par::Seq`
   makes one packed call. `Par::Team` reuses the existing cost model and disjoint output tiles, with
   one sequential mixed call per tile and no `K` split or partial-result allocation. Scratch is packed
   `f64`; colmat exposes no new public scratch parameter.
 - The sealed public trait rejects unsupported pairs at compile time. The crate-private dynamic
   dispatcher in `t4a-gemm` also returns an error before output access; a dedicated test proves the
-  destination is bitwise unchanged. Shape failures and short caller stacks are atomic as well.
+  destination is bitwise unchanged. Shape failures and short caller stacks for `Parallelism::None`
+  are atomic as well; with Rayon, the supplied stack is ignored.
 - Products are computed after promotion, with `f64` partial sums, one product-`alpha` application,
   and one old-output addition per output. `K` blocking can change summation order, so results are not
   block-size independent and sequential/team bitwise equality is not promised. Tests use naive `f64`
@@ -42,10 +43,10 @@ the host has no `pkg-config`; no dependency source or registry cache was edited.
   no-default-features `std` build and the existing zero-allocation parallel-region control pass,
   as do all nine mixed tests with `x86-v4`.
 - Full colmat validation passes on the integrated branch: 867 library tests with 162 existing
-  ignores, every integration-test target, and 99 doctests, with no failures. The final companion
-  lint-corrected head `5a10f8f72d8790b8136acea59d04389d691b72e8` also passes all nine downstream
-  mixed integration tests; the full-suite run used the previous companion head, whose delta is
-  style-only.
+  ignores, every integration-test target, and 99 doctests, with no failures. The review-corrected
+  companion head `bab935aaefdca110062e12c27d8759987a643554` also passes all nine downstream mixed
+  integration tests; the full colmat suite ran at the original companion head, and subsequent deltas
+  are style, sealing, and coverage-only.
 - Non-x86 targets, Apple SME/AMX, wasm, and every SIMD path have not been executed. A feature build
   is not treated as proof that a particular instruction set ran.
 - No benchmark or performance-adoption result is claimed. The temporary Git revision must be
