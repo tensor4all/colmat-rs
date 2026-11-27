@@ -1490,6 +1490,28 @@ fn matmul_imp<'M, 'N, 'K, T: ComplexField>(
 							} else {
 								None
 							};
+							// The team route returns above. Try the serial full-depth f64 kernel.
+							if matches!(feat, Some(InstrSet::Avx256))
+								&& T::IS_NATIVE_F64
+								&& matches!(beta, $crate::Accum::Replace)
+								&& (511..=513).contains(&M.unbound())
+								&& M.unbound() == N.unbound()
+								&& M.unbound() == K.unbound()
+								&& dst.row_stride() == 1
+								&& lhs.row_stride() == 1
+								&& rhs.row_stride() == 1
+								&& dst.col_stride() == M.unbound() as isize
+								&& lhs.col_stride() == M.unbound() as isize
+								&& rhs.col_stride() == M.unbound() as isize
+								&& alpha == <$ty as ComplexFieldExt>::from_f64(1.0)
+								&& conj_lhs == Conj::No && conj_rhs == Conj::No
+								&& ::gemm::try_gemm_square_f64(
+									M.unbound(), lhs.as_ptr().cast(), rhs.as_ptr().cast(),
+									dst.as_ptr_mut().cast(),
+								)
+							{
+								return;
+							}
 							if let Some(feat) = feat {
 								gemm(
 									DType::$kind,

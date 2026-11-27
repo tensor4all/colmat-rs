@@ -3,6 +3,13 @@
 The ledger of the experiments this fork runs. It records the diff against
 upstream `faer`.
 
+## Compact AVX2 DGEMM experiment
+
+- Single-threaded, compact column-major f64 overwrite products at orders 511, 512
+  and 513 can use an ordered-FMA kernel from [t4a-gemm #27](https://github.com/tensor4all/t4a-gemm/pull/27).
+  The prototype ran about 4.3% faster than MKL at 512 and 513 on one i9-13900HX P-core.
+  [Scope and measurement conditions](docs/worklogs/2026-11-27-compact-avx2-dgemm.md).
+
 ## Pending EVD experiment
 
 - **EXPERIMENT**: independent divide-and-conquer EVD weight and eigenvector

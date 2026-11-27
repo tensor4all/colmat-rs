@@ -47,8 +47,7 @@ colmat-traits = { path = "../faer-traits", version = "0.25.0", default-features 
 # behind the `apple-sme` feature, which is a no-op outside
 # `target_arch = "aarch64"` + `target_vendor = "apple"` and is additionally gated
 # at run time on macOS >= 26 + FEAT_SME (+ FEAT_SME_F64F64 / FEAT_SME_F32F32).
-# Pinned to the crates.io release of the fork (`t4a-gemm` 0.20.1) so a plain
-# `cargo build` needs no git access.
+# Draft dependency for the compact AVX2 square kernel. Switch to its crates.io release before publication.
 #
 # `t4a-gemm-common` must resolve to >= 0.20.4. In 0.20.1 the RHS packing flags were
 # `alloc::vec![false; mc / MR]` (gemm-common/src/gemm.rs:490, and :654 on the threaded
@@ -58,7 +57,7 @@ colmat-traits = { path = "../faer-traits", version = "0.25.0", default-features 
 # to catch. 0.20.4 took those buffers off the heap; the facade crate still says 0.20.1,
 # so the floor lives in `Cargo.lock`. If that entry is ever downgraded, the allocation
 # test fails again on aarch64 (see #299).
-gemm = { package = "t4a-gemm", version = "0.20.1", default-features = false }
+gemm = { package = "t4a-gemm", version = "0.20.1", git = "https://github.com/tensor4all/t4a-gemm", rev = "f26d7fd841616ac3cb1a929d0e0944384d71388c", default-features = false }
 nano-gemm = { version = "0.2.2", default-features = false }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
@@ -147,7 +146,7 @@ npy = [
 # timing (#180). It is the kernels' gate only while `Cargo.lock` holds one copy of the crate, which
 # `scripts/sme-route-probe.sh` checks; bump this with `gemm` when that moves to another range.
 # The floor stays at the facade's 0.20.1; the 0.20.4 floor of the library lives in `Cargo.lock`.
-gemm-common = { package = "t4a-gemm-common", version = "0.20.1", default-features = false }
+gemm-common = { package = "t4a-gemm-common", version = "0.20.1", git = "https://github.com/tensor4all/t4a-gemm", rev = "f26d7fd841616ac3cb1a929d0e0944384d71388c", default-features = false }
 log = { version = "0.4.29", default-features = false, features = ["std"] }
 aligned-vec = "0.6.4"
 amd = "0.2.2"
