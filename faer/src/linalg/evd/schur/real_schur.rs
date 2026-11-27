@@ -2680,6 +2680,39 @@ pub fn multishift_qr<T: RealField>(
 	}
 	(info, count_aed, count_sweep)
 }
+/// Applies the 3-element reflector `(1, v2, v3)` with coefficient `t1` to the three columns of
+/// `m`: for every row, `sum = m0 + v2*m1 + v3*m2; m0 -= sum*t1; m1 -= sum*t2; m2 -= sum*t3`.
+/// Same operation order as the scalar loop it replaces, so results are bit-identical; the zipped
+/// traversal drops the per-element bounds checks.
+#[inline(always)]
+fn apply_reflector3_to_cols<T: RealField>(
+	m: MatMut<'_, T>,
+	coeffs: (&T, &T, &T, &T, &T),
+) {
+	let (v2, v3, t1, t2, t3) = coeffs;
+	let (c0, rest) = m.split_at_col_mut(1);
+	let (c1, c2) = rest.split_at_col_mut(1);
+	z!(c0, c1, c2).for_each(|unzip!(x0, x1, x2)| {
+		let sum = &(&*x0 + v2 * &*x1 + v3 * &*x2);
+		*x0 -= sum * t1;
+		*x1 -= sum * t2;
+		*x2 -= sum * t3;
+	});
+}
+/// Two-column variant of [`apply_reflector3_to_cols`].
+#[inline(always)]
+fn apply_reflector2_to_cols<T: RealField>(
+	m: MatMut<'_, T>,
+	coeffs: (&T, &T, &T),
+) {
+	let (v2, t1, t2) = coeffs;
+	let (c0, c1) = m.split_at_col_mut(1);
+	z!(c0, c1).for_each(|unzip!(x0, x1)| {
+		let sum = &(&*x0 + v2 * &*x1);
+		*x0 -= sum * t1;
+		*x1 -= sum * t2;
+	});
+}
 pub fn lahqr<T: RealField>(
 	want_t: bool,
 	a: MatMut<'_, T>,
@@ -2937,49 +2970,30 @@ pub fn lahqr<T: RealField>(
 			if nr == 3 {
 				let v3 = &v[2];
 				let t3 = &(t1 * v3);
-				for j in i..istop_m {
-					let sum = &(&a[(i, j)]
-						+ v2 * &a[(i + 1, j)]
-						+ v3 * &a[(i + 2, j)]);
-					a[(i, j)] -= sum * t1;
-					a[(i + 1, j)] -= sum * t2;
-					a[(i + 2, j)] -= sum * t3;
-				}
-				for j in istart_m..Ord::min(i + 4, istop) {
-					let sum = &(&a[(j, i)]
-						+ v2 * &a[(j, i + 1)]
-						+ v3 * &a[(j, i + 2)]);
-					a[(j, i)] -= sum * t1;
-					a[(j, i + 1)] -= sum * t2;
-					a[(j, i + 2)] -= sum * t3;
-				}
-				if let Some(mut z) = z.rb_mut() {
-					for j in 0..n {
-						let sum = &(&z[(j, i)]
-							+ v2 * &z[(j, i + 1)] + v3
-							* &z[(j, i + 2)]);
-						z[(j, i)] -= sum * t1;
-						z[(j, i + 1)] -= sum * t2;
-						z[(j, i + 2)] -= sum * t3;
-					}
+				let c = (v2, v3, t1, t2, t3);
+				apply_reflector3_to_cols(
+					a.rb_mut().get_mut(i..i + 3, i..istop_m).transpose_mut(),
+					c,
+				);
+				apply_reflector3_to_cols(
+					a.rb_mut().get_mut(istart_m..Ord::min(i + 4, istop), i..i + 3),
+					c,
+				);
+				if let Some(z) = z.rb_mut() {
+					apply_reflector3_to_cols(z.get_mut(.., i..i + 3), c);
 				}
 			} else {
-				for j in i..istop_m {
-					let sum = &(&a[(i, j)] + v2 * &a[(i + 1, j)]);
-					a[(i, j)] -= sum * t1;
-					a[(i + 1, j)] -= sum * t2;
-				}
-				for j in istart_m..Ord::min(i + 3, istop) {
-					let sum = &(&a[(j, i)] + v2 * &a[(j, i + 1)]);
-					a[(j, i)] -= sum * t1;
-					a[(j, i + 1)] -= sum * t2;
-				}
-				if let Some(mut z) = z.rb_mut() {
-					for j in 0..n {
-						let sum = &(&z[(j, i)] + v2 * &z[(j, i + 1)]);
-						z[(j, i)] -= sum * t1;
-						z[(j, i + 1)] -= sum * t2;
-					}
+				let c = (v2, t1, t2);
+				apply_reflector2_to_cols(
+					a.rb_mut().get_mut(i..i + 2, i..istop_m).transpose_mut(),
+					c,
+				);
+				apply_reflector2_to_cols(
+					a.rb_mut().get_mut(istart_m..Ord::min(i + 3, istop), i..i + 2),
+					c,
+				);
+				if let Some(z) = z.rb_mut() {
+					apply_reflector2_to_cols(z.get_mut(.., i..i + 2), c);
 				}
 			}
 		}
