@@ -3152,6 +3152,39 @@ mod tests {
 			}
 		}
 	}
+	/// The three reflector applications of the sweep (rows, columns, `Z`), for the window
+	/// bounds of both `want_t` modes: the Schur factors must reproduce `H`, `Z` must be
+	/// orthogonal, and the values-only run (`istart_m = istart`) must give the very same
+	/// eigenvalues as the full run (`istart_m = 0`), bit for bit, since both do the same
+	/// arithmetic on the active window.
+	#[test]
+	fn lahqr_sweep_updates_and_values_only_mode() {
+		use rand::prelude::*;
+		let rng = &mut StdRng::seed_from_u64(285);
+		for n in [3, 4, 7, 16, 33, 64, 75] {
+			let h = Mat::from_fn(n, n, |i, j| {
+				if i <= j + 1 { rng.random::<f64>() - 0.5 } else { 0.0 }
+			});
+			let mut q = Mat::<f64>::identity(n, n);
+			let mut t = h.clone();
+			let mut re = Col::<f64>::zeros(n);
+			let mut im = Col::<f64>::zeros(n);
+			assert!(lahqr(true, t.as_mut(), Some(q.as_mut()), re.as_mut(), im.as_mut(), 0, n) == 0);
+			let approx_eq = CwiseMat(ApproxEq::<f64>::eps());
+			let h_reconstructed = &q * &t * q.transpose();
+			assert!(h ~ h_reconstructed);
+			let qtq = q.transpose() * &q;
+			assert!(qtq ~ Mat::<f64>::identity(n, n));
+			let mut v = h.clone();
+			let mut re_v = Col::<f64>::zeros(n);
+			let mut im_v = Col::<f64>::zeros(n);
+			assert!(lahqr(false, v.as_mut(), None, re_v.as_mut(), im_v.as_mut(), 0, n) == 0);
+			for k in 0..n {
+				assert!(re_v[k].to_bits() == re[k].to_bits());
+				assert!(im_v[k].to_bits() == im[k].to_bits());
+			}
+		}
+	}
 	mod lapack_ports {
 		use super::super::*;
 		use crate::{Mat, assert};
