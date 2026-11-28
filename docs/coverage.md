@@ -34,8 +34,8 @@ stated in the PR, and changing the toolchain pin in the job means re-measuring i
 rustup component add llvm-tools-preview --toolchain 1.96.0   # required by cargo-llvm-cov
 cargo install cargo-llvm-cov --version 0.9.1 --locked
 cargo install cargo-nextest --version 0.9.151 --locked      # `cargo llvm-cov nextest` calls it
-RUSTUP_TOOLCHAIN=1.96.0 cargo llvm-cov nextest --workspace --all-targets --locked \
-    --fail-under-lines 82.694
+RUSTUP_TOOLCHAIN=1.96.0 cargo llvm-cov nextest --cargo-profile ci --workspace --all-targets --locked \
+    --test-threads 1 --fail-under-lines 82.694
 ```
 
 The text report lists every file with its `Lines` / `Missed Lines` and a `TOTAL` row; the exit status

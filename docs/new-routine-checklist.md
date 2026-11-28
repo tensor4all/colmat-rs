@@ -139,7 +139,7 @@ the same change. Never add an entry without an issue.
 ## 8. Verification commands
 
 ```sh
-cargo test -p colmat --lib                         # unit tests
+cargo test -p colmat --lib -- --test-threads=2         # unit tests (heavy LU tests: keep it low)
 cargo test -p colmat --test <integration-name>     # new integration test
 cargo test -p colmat                               # lib + integration + doc tests
 cargo build -p colmat --no-default-features --features std
@@ -147,7 +147,7 @@ cargo build -p colmat --no-default-features --features std
 cargo test --doc --workspace -j8 -- --test-threads=4
 python3 scripts/check-migration-examples.py          # if a migration example changed
 cargo package -p colmat --no-verify --list         # packaging still works
-cargo llvm-cov nextest --workspace --all-targets --locked --fail-under-lines 82.694  # coverage gate
+cargo llvm-cov nextest --cargo-profile ci --workspace --all-targets --locked --test-threads 1 --fail-under-lines 82.694  # coverage gate (nightly in CI)
 python3 scripts/test-lapack-validation.py            # runner selection logic
 scripts/run-lapack-validation.sh                     # new/changed numerical family
 ```
