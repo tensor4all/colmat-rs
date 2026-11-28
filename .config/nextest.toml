@@ -1,0 +1,11 @@
+# The multi-GiB LU team tests (#313): `parallel_path_is_bit_identical*` is multi-GiB per test (one
+# c64 test alone measured ~3.3 GB RSS; the cause is not established), and nextest ran four such tests
+# at once on a 16 GB runner, which the OOM killer ended with SIGKILL -- uninstrumented, on the PR's
+# own `testing` job. Plain `cargo test --lib` is not capped by this: pass `-- --test-threads=2`. Run them one at a
+# time; everything else keeps nextest's default parallelism.
+[test-groups]
+heavy-lu = { max-threads = 1 }
+
+[[profile.default.overrides]]
+filter = 'test(parallel_path_is_bit_identical) | test(lookahead_does_not_change_the_factorization) | test(llt_team_matches_sequential_bits)'
+test-group = 'heavy-lu'

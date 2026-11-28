@@ -105,20 +105,25 @@ fn parallel_path_is_bit_identical_to_sequential() {
 		9usize, 10, 11, 12, 13, 15, 16, 17, 23, 24, 25, 31, 32, 33, 35, 40, 41,
 		47, 48, 49, 64, 72, 100, 129, 256, 1024,
 	];
-	for &n in &shapes {
-		let a = lookahead_fixture(n);
-		let (bits_ref, p_ref) = lookahead_factor(a.clone(), Par::Seq, true);
-		for width in [1usize, 2, 4, 8] {
-			crate::team::with_team(width, |par| {
-				let (bits, p) = lookahead_factor(a.clone(), par, false);
-				core::assert_eq!(p, p_ref, "n={n} width={width}: permutation");
+	// The sequential references are computed once; the team of each width is built once and reused
+	// for every shape (#313: constructing one per (shape, width) pair was ~104 team spawns).
+	let refs: alloc::vec::Vec<_> = shapes
+		.iter()
+		.map(|&n| lookahead_factor(lookahead_fixture(n), Par::Seq, true))
+		.collect();
+	for width in [1usize, 2, 4, 8] {
+		crate::team::with_team(width, |mut par| {
+			for (&n, (bits_ref, p_ref)) in shapes.iter().zip(&refs) {
+				let (bits, p) =
+					lookahead_factor(lookahead_fixture(n), par.reborrow(), false);
+				core::assert_eq!(&p, p_ref, "n={n} width={width}: permutation");
 				core::assert_eq!(
-					bits,
+					&bits,
 					bits_ref,
 					"n={n} width={width}: L/U bits"
 				);
-			});
-		}
+			}
+		});
 	}
 }
 
@@ -130,24 +135,27 @@ fn parallel_path_is_bit_identical_to_sequential() {
 #[test]
 fn parallel_path_is_bit_identical_with_one_column_per_member() {
 	use crate::utils::cost::ParThreshold;
-	for &n in &[17usize, 33, 64, 100] {
-		let a = lookahead_fixture(n);
-		let (bits_ref, p_ref) = lookahead_factor(a.clone(), Par::Seq, true);
-		for width in [3usize, 8, 16] {
-			crate::team::with_team(width, |par| {
+	let shapes = [17usize, 33, 64, 100];
+	let refs: alloc::vec::Vec<_> = shapes
+		.iter()
+		.map(|&n| lookahead_factor(lookahead_fixture(n), Par::Seq, true))
+		.collect();
+	for width in [3usize, 8, 16] {
+		crate::team::with_team(width, |mut par| {
+			for (&n, (bits_ref, p_ref)) in shapes.iter().zip(&refs) {
 				let (bits, p) = lookahead_factor_with(
-					a.clone(),
-					par,
+					lookahead_fixture(n),
+					par.reborrow(),
 					ParThreshold::Fixed(0),
 				);
-				core::assert_eq!(p, p_ref, "n={n} width={width}: permutation");
+				core::assert_eq!(&p, p_ref, "n={n} width={width}: permutation");
 				core::assert_eq!(
-					bits,
+					&bits,
 					bits_ref,
 					"n={n} width={width}: L/U bits"
 				);
-			});
-		}
+			}
+		});
 	}
 }
 

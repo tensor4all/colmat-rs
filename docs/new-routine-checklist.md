@@ -139,7 +139,7 @@ the same change. Never add an entry without an issue.
 ## 8. Verification commands
 
 ```sh
-cargo test -p colmat --lib                         # unit tests
+cargo test -p colmat --lib -- --test-threads=2         # unit tests (heavy LU tests: keep it low)
 cargo test -p colmat --test <integration-name>     # new integration test
 cargo test -p colmat                               # lib + integration + doc tests
 cargo build -p colmat --no-default-features --features std
@@ -147,14 +147,14 @@ cargo build -p colmat --no-default-features --features std
 cargo test --doc --workspace -j8 -- --test-threads=4
 python3 scripts/check-migration-examples.py          # if a migration example changed
 cargo package -p colmat --no-verify --list         # packaging still works
-cargo llvm-cov nextest --workspace --all-targets --locked --fail-under-lines 82.694  # coverage gate
+cargo llvm-cov nextest --cargo-profile ci --workspace --all-targets --locked --test-threads 1 --fail-under-lines 82.694  # coverage gate (nightly in CI)
 python3 scripts/test-lapack-validation.py            # runner selection logic
 scripts/run-lapack-validation.sh                     # new/changed numerical family
 ```
 
-CI runs the build, the traits, the doc tests, the migration examples, the packaging check and the
-workspace coverage gate, plus the inherited upstream jobs (MSRV 1.89, no_std, codecov upload,
-clippy/fmt as non-blocking). The coverage number and how to move its floor are in
+CI runs the build, the traits, the doc tests, the migration examples and the packaging check, plus
+the inherited upstream jobs (MSRV 1.89, no_std, uninstrumented faer tests, clippy/fmt as
+non-blocking). The workspace coverage gate runs nightly (`coverage.yml`), not on PRs. The coverage number and how to move its floor are in
 [coverage.md](coverage.md). The LAPACK validation runs nightly on x86_64 and weekly on aarch64. None
 of that replaces a local run of the focused test.
 

@@ -1,9 +1,13 @@
 # Coverage gate
 
-`.github/workflows/ci.yml` runs one coverage job (`coverage`) that measures the whole workspace and
-fails below a checked-in floor. It is the only coverage *gate* in CI; the inherited upstream codecov
-upload in `run-tests.yml` is non-gating and covers `faer` alone (retiring it is an open follow-up, see
-`docs/worklogs/2026-11-14-coverage-gate.md`).
+`.github/workflows/coverage.yml` runs one coverage job (`coverage`) **nightly** (cron plus manual
+dispatch, no push or pull-request trigger) that measures the whole workspace and fails below a
+checked-in floor. It is the only coverage run in CI: `run-tests.yml` no longer instruments or uploads
+to codecov, and the push/PR jobs run plain `cargo nextest`/`cargo test` (#313). The job runs with
+`--test-threads 1` so the instrumented memory peak is one test's. Because it does not run on PRs it
+is not a status to require on `main`. `ci.yml` keeps a no-op job named `coverage` only so the
+currently required check still reports; the checks to require instead are `build` (`ci.yml`) **and**
+`testing-stable-ubuntu-latest` (`run-tests.yml`, the `colmat` lib unit suite that `build` does not run).
 
 ## The number
 
@@ -30,8 +34,8 @@ stated in the PR, and changing the toolchain pin in the job means re-measuring i
 rustup component add llvm-tools-preview --toolchain 1.96.0   # required by cargo-llvm-cov
 cargo install cargo-llvm-cov --version 0.9.1 --locked
 cargo install cargo-nextest --version 0.9.151 --locked      # `cargo llvm-cov nextest` calls it
-RUSTUP_TOOLCHAIN=1.96.0 cargo llvm-cov nextest --workspace --all-targets --locked \
-    --fail-under-lines 82.694
+RUSTUP_TOOLCHAIN=1.96.0 cargo llvm-cov nextest --cargo-profile ci --workspace --all-targets --locked \
+    --test-threads 1 --fail-under-lines 82.694
 ```
 
 The text report lists every file with its `Lines` / `Missed Lines` and a `TOTAL` row; the exit status

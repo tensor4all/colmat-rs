@@ -111,19 +111,14 @@ jobs:
       - name: Install latest nextest
         uses: taiki-e/install-action@nextest
 
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-
       - name: Install OpenBLAS by apt
         run: |
           sudo apt update
           sudo apt install -y libopenblas-dev liblapack-dev
         if: ${{ matrix.os == 'ubuntu-latest' }}
 
-      - name: Collect coverage data
-        run: cd faer && cargo llvm-cov nextest --features=unstable --lcov --output-path ../lcov.info
-
-      - name: Upload coverage data to codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: lcov.info
+      # Plain, uninstrumented run (#313). Coverage is measured once, by the nightly
+      # `coverage` workflow (coverage.yml), not here: an instrumented run on every push and PR
+      # ran out of memory in tests that have nothing to do with the diff.
+      - name: Test
+        run: cd faer && cargo nextest run --features=unstable
