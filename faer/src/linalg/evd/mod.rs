@@ -283,12 +283,7 @@ pub fn tridiagonal_self_adjoint_evd<T: ComplexField>(
 	let mut u = match u {
 		Some(u) => u,
 		None => {
-			tridiag_evd::qr_algorithm(
-				real_diag.rb_mut(),
-				real_offdiag.rb_mut(),
-				None,
-				None,
-			)?;
+			tridiag_evd::sterf(real_diag.rb_mut(), real_offdiag.rb_mut())?;
 			for i in 0..n {
 				s[i] = real_diag[i].to_cplx();
 			}
@@ -502,12 +497,7 @@ pub fn self_adjoint_evd<T: ComplexField>(
 	let mut caller_u = match u {
 		Some(u) => u,
 		None => {
-			tridiag_evd::qr_algorithm(
-				diag.rb_mut(),
-				offdiag.rb_mut(),
-				None,
-				None,
-			)?;
+			tridiag_evd::sterf(diag.rb_mut(), offdiag.rb_mut())?;
 			for i in 0..n {
 				s[i] = (&diag[i] * unscale).to_cplx();
 			}

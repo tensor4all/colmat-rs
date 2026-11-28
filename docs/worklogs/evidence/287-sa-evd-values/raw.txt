@@ -1,0 +1,54 @@
+## round 1 base
+n=32 values_us=46.58 tridiag_us=14.47 vectors_us=58.07
+n=64 values_us=168.63 tridiag_us=50.15 vectors_us=234.50
+n=128 values_us=648.34 tridiag_us=205.25 vectors_us=1092.14
+n=256 values_us=2841.64 tridiag_us=1153.25 vectors_us=4912.82
+n=512 values_us=13937.45 tridiag_us=7505.07 vectors_us=25018.22
+## round 1 cand
+n=32 values_us=33.66 tridiag_us=14.61 vectors_us=58.27
+n=64 values_us=116.13 tridiag_us=49.85 vectors_us=233.47
+n=128 values_us=457.18 tridiag_us=208.35 vectors_us=1094.38
+n=256 values_us=2078.35 tridiag_us=1146.21 vectors_us=4939.31
+n=512 values_us=11273.70 tridiag_us=7709.69 vectors_us=25125.71
+## round 1 ref
+n=32 values_us=32.97 dsytrd_us=12.49 dsterf_us=17.92 vectors_us=79.42
+n=64 values_us=123.63 dsytrd_us=48.46 dsterf_us=63.57 vectors_us=308.46
+n=128 values_us=468.36 dsytrd_us=202.59 dsterf_us=234.26 vectors_us=1320.48
+n=256 values_us=2003.14 dsytrd_us=999.59 dsterf_us=885.49 vectors_us=5676.16
+n=512 values_us=9904.02 dsytrd_us=6100.34 dsterf_us=3305.40 vectors_us=31099.08
+## round 2 base
+n=32 values_us=46.02 tridiag_us=14.18 vectors_us=57.84
+n=64 values_us=167.50 tridiag_us=49.17 vectors_us=233.42
+n=128 values_us=645.54 tridiag_us=205.21 vectors_us=1091.92
+n=256 values_us=2857.21 tridiag_us=1156.40 vectors_us=4949.22
+n=512 values_us=14325.72 tridiag_us=7681.64 vectors_us=25299.30
+## round 2 cand
+n=32 values_us=33.67 tridiag_us=14.72 vectors_us=58.40
+n=64 values_us=116.71 tridiag_us=49.76 vectors_us=233.98
+n=128 values_us=454.56 tridiag_us=208.20 vectors_us=1095.45
+n=256 values_us=2113.46 tridiag_us=1153.16 vectors_us=4960.09
+n=512 values_us=11051.67 tridiag_us=7298.38 vectors_us=24899.01
+## round 2 ref
+n=32 values_us=32.64 dsytrd_us=12.44 dsterf_us=17.98 vectors_us=79.10
+n=64 values_us=122.56 dsytrd_us=49.00 dsterf_us=63.74 vectors_us=307.16
+n=128 values_us=459.77 dsytrd_us=202.44 dsterf_us=233.49 vectors_us=1315.95
+n=256 values_us=1972.58 dsytrd_us=1000.08 dsterf_us=884.42 vectors_us=5628.08
+n=512 values_us=9858.25 dsytrd_us=6122.02 dsterf_us=3308.30 vectors_us=30948.82
+## round 3 base
+n=32 values_us=46.39 tridiag_us=14.21 vectors_us=58.09
+n=64 values_us=168.19 tridiag_us=49.47 vectors_us=234.41
+n=128 values_us=648.53 tridiag_us=205.16 vectors_us=1093.66
+n=256 values_us=2853.16 tridiag_us=1139.38 vectors_us=4956.58
+n=512 values_us=14148.43 tridiag_us=7590.61 vectors_us=25244.48
+## round 3 cand
+n=32 values_us=33.51 tridiag_us=14.77 vectors_us=58.18
+n=64 values_us=116.34 tridiag_us=50.17 vectors_us=234.31
+n=128 values_us=454.15 tridiag_us=207.15 vectors_us=1096.79
+n=256 values_us=2075.51 tridiag_us=1107.83 vectors_us=4940.35
+n=512 values_us=11129.32 tridiag_us=7448.33 vectors_us=24915.03
+## round 3 ref
+n=32 values_us=33.04 dsytrd_us=12.44 dsterf_us=17.92 vectors_us=79.85
+n=64 values_us=123.65 dsytrd_us=48.65 dsterf_us=63.60 vectors_us=308.95
+n=128 values_us=472.05 dsytrd_us=204.19 dsterf_us=234.88 vectors_us=1333.67
+n=256 values_us=1966.34 dsytrd_us=1006.15 dsterf_us=886.45 vectors_us=5653.58
+n=512 values_us=9686.74 dsytrd_us=6097.25 dsterf_us=3308.08 vectors_us=30822.31

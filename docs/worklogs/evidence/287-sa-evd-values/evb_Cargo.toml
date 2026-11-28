@@ -1,0 +1,10 @@
+[package]
+name="evb"
+version="0.0.0"
+edition="2021"
+[dependencies]
+colmat={path="/home/shinaoka/work/colmat-287/faer",default-features=false,features=["std","rayon","threadteam"]}
+dyn-stack="0.13.2"
+[workspace]
+[profile.release]
+debug=0

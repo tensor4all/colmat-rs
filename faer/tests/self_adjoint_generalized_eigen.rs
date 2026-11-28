@@ -81,7 +81,23 @@ macro_rules! suite {
 						)
 						.unwrap();
 					assert_eq!(eig.values().len(), n);
-					assert_eq!(eig.values(), &values[..]);
+					assert_eq!(values.len(), n);
+					// The values-only path (`sterf`, Pal-Walker-Kahan) and the vector path (QR with
+					// accumulated rotations) round differently, so they agree to the normwise bound
+					// `4 n eps ||T||` of `sterf_matches_qr_algorithm`, not bit for bit. This
+					// assertion used to be `assert_eq!` and relied on the two paths being bitwise
+					// identical (one ulp apart now: -0.3606587258628208 vs ...209). `||T||` is the
+					// largest |eigenvalue| of the reduced problem, which both paths share.
+					let vmax = values
+						.iter()
+						.fold(0.0f64, |m, v| m.max(real(v.clone()).abs()));
+					for (x, y) in eig.values().iter().zip(values.iter()) {
+						let (x, y) = (real(x.clone()), real(y.clone()));
+						assert!(
+							(x - y).abs() <= 4.0 * n as f64 * f64::EPSILON * vmax,
+							"n = {n}: {x:?} vs {y:?}"
+						);
+					}
 					for j in 0..n {
 						assert!(real(eig.values()[j]).is_finite());
 						if j > 0 {
