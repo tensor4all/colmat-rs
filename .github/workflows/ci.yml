@@ -39,7 +39,8 @@ jobs:
           RUSTFLAGS="-C target-cpu=znver5" CARGO_PROFILE_CI_STRIP=none CARGO_TARGET_DIR=target/widened \
             cargo build --profile ci -p colmat --example isa_gate_probe --target x86_64-unknown-linux-gnu
           rc=0
-          scripts/check-isa-gate.sh target/widened/x86_64-unknown-linux-gnu/ci/examples/isa_gate_probe | tee widened.log || rc=$?
+          scripts/check-isa-gate.sh target/widened/x86_64-unknown-linux-gnu/ci/examples/isa_gate_probe > widened.log 2>&1 || rc=$?
+          cat widened.log
           [ "$rc" -ne 0 ] || { echo "gate passed on a widened build: it cannot fail"; exit 1; }
           grep -Eq "^FAIL: [1-9][0-9]* AVX2-tier symbols contain AVX-512 instructions" widened.log \
             || { echo "gate failed, but not on AVX-512 instructions: the detector is not proven"; exit 1; }
