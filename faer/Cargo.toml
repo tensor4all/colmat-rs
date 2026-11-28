@@ -115,6 +115,10 @@ x86-v4 = [
 ]
 # the name the feature had while AVX-512 needed the nightly compiler
 nightly = ["x86-v4"]
+# Without `std` the x86_64 ISA class is the build's target features. A build with avx2/fma/avx512f
+# enabled is refused (`compile_error!` in src/utils/cost.rs) unless this feature says the binary
+# is for the machine it is built on. It changes no code; it only silences that error.
+assume-target-is-the-build-host = []
 linalg = []
 sparse = []
 sparse-linalg = [
