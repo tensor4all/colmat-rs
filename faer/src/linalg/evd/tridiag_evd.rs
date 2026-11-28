@@ -18,9 +18,13 @@ fn normalize_range<T: RealField>(
 ) -> T {
 	let anorm = &diag.rb().norm_max().fmax(offdiag.rb().norm_max());
 	// below `lo` the square of an entry of size `eps * anorm` underflows, above
-	// `hi` an entry squared overflows
+	// `hi` the sweep overflows. `hi` is DSTERF's `SSFMAX = SQRT(SAFMAX) / THREE` (`SRC/dsterf.f`,
+	// the `ANORM .GT. SSFMAX` rescale): the bare `sqrt(max_positive)` only keeps an entry squared
+	// finite, but a sweep forms `gamma^2` with `gamma` up to `2 anorm`, then `p + e^2` (up to
+	// `5 anorm^2`), so the factor 3 is what keeps those finite (colmat-rs#312: `Err` at 5e153,
+	// wrong eigenvalues at 6e153 without it).
 	let lo = &(min_positive::<T>().sqrt() / eps::<T>());
-	let hi = &max_positive::<T>().sqrt();
+	let hi = &(max_positive::<T>().sqrt() / from_f64::<T>(3.0));
 	if *anorm == zero() || (*anorm > *lo && *anorm < *hi) {
 		return one();
 	}
