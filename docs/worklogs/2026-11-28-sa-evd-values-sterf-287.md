@@ -61,7 +61,7 @@ attribution is by timing and operation counts.
 
 `tridiag_evd::sterf`, a values-only PWK iteration (QL and QR branches, 2x2 blocks via the DLAE2
 formula, `normalize_range` for the range, 30 n iteration cap, ascending sort), used where
-`self_adjoint_evd` and `tridiagonal_self_adjoint_evd` have `u = None`. Vector paths unchanged.
+`self_adjoint_evd` and `tridiagonal_self_adjoint_evd` have `u = None`. The vector paths (`qr_algorithm` with `u`, `divide_and_conquer`) are unchanged except for one shared constant: `normalize_range`'s upper threshold is now DSTERF's `SSFMAX = sqrt(SAFMAX)/3` (colmat-rs#312), so they too rescale for `max(|d|,|e|)` in (2.2e153, 6.7e153]; the near-overflow test covers all three routines.
 Source formulation: Reference-LAPACK v3.12.1 `SRC/dsterf.f` (BSD, `faer/COPYING.LAPACK.BSD`),
 as `qr_algorithm` already cites `dsteqr.f`. The reference was timed through its public API
 only; no vendor internals were inspected.
@@ -85,7 +85,9 @@ Raw: `docs/worklogs/evidence/287-sa-evd-values/raw.txt` (drivers beside it).
 eigenvalues move by a few ulps relative to `||T||`. Nothing was widened: the new test
 `sterf_matches_qr_algorithm` bounds the difference by `4 n eps ||T||` on both branches, graded
 spectra, split matrices and the `normalize_range` extremes, and every existing test passes
-unmodified. Whether eigenvalue-only results may change bits (below the D&C threshold the values-only
+unmodified except one: `self_adjoint_generalized_eigen::matches_qz_and_is_b_orthonormal` compared the values-only and
+vector eigenvalues with `assert_eq!` (bitwise, which held while both ran `qr_algorithm`; one ulp apart now,
+-0.3606587258628208 vs ...209) and now uses `4 n eps ||T||`, the same bound. Whether eigenvalue-only results may change bits (below the D&C threshold the values-only
 eigenvalues were bitwise the `u = Some` ones, since both ran `qr_algorithm`; they no longer are) is the
 maintainer's call; hence a draft. Complex scalars share the path (c64 did not show the gap in
 the issue; not re-measured here), and f32 was not measured.

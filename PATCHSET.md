@@ -5,7 +5,7 @@ upstream `faer`.
 
 ## Pending EVD experiment
 
-- **EXPERIMENT (draft)**: values-only `self_adjoint_evd` / `tridiagonal_self_adjoint_evd` use a DSTERF-style Pal-Walker-Kahan iteration (`tridiag_evd::sterf`) in place of `qr_algorithm` with no vectors ([#287](https://github.com/tensor4all/colmat-rs/issues/287)). Eigenvalues change in the last bits (bounded by `4 n eps ||T||` in a test); vector paths unchanged. f64 1T Zen 5: 0.69-0.79 of main, 0.94-1.13 of OpenBLAS `dsyevr('N')`. [Attribution, numbers, decision](docs/worklogs/2026-11-28-sa-evd-values-sterf-287.md).
+- **EXPERIMENT (draft)**: values-only `self_adjoint_evd` / `tridiagonal_self_adjoint_evd` use a DSTERF-style Pal-Walker-Kahan iteration (`tridiag_evd::sterf`) in place of `qr_algorithm` with no vectors ([#287](https://github.com/tensor4all/colmat-rs/issues/287)). Eigenvalues change in the last bits (bounded by `4 n eps ||T||` in a test); vector paths unchanged apart from the shared `normalize_range` threshold now being DSTERF's `sqrt(SAFMAX)/3` (#312). f64 1T Zen 5: 0.69-0.79 of main, 0.94-1.13 of OpenBLAS `dsyevr('N')`. [Attribution, numbers, decision](docs/worklogs/2026-11-28-sa-evd-values-sterf-287.md).
 
 - **EXPERIMENT**: independent divide-and-conquer EVD weight and eigenvector
   column repairs run on the caller-owned team ([#84](https://github.com/tensor4all/colmat-rs/issues/84)).

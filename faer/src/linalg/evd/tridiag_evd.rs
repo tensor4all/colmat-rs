@@ -1518,33 +1518,59 @@ mod evd_qr_tests {
 			1.801937735804838,
 		];
 		let mut failures = Vec::new();
-		for &s in &[1e150_f64, 3e153, 5e153, 6e153, 1e154, 1e155, 1e160, 1e300] {
-			let mut d = [0.0, 0.0, s];
-			let mut e = [s, s, 0.0];
-			let r = sterf(
-				ColMut::from_slice_mut(&mut d)
-					.try_as_col_major_mut()
-					.unwrap(),
-				ColMut::from_slice_mut(&mut e)
-					.try_as_col_major_mut()
-					.unwrap(),
-			);
-			if r.is_err() {
-				failures.push(format!("s = {s:e}: sterf returned {r:?}"));
-				continue;
-			}
-			if let Some(x) = d.iter().find(|x| !x.is_finite()) {
-				failures.push(format!("s = {s:e}: non-finite eigenvalue {x}, d = {d:?}"));
-				continue;
-			}
-			for i in 0..3 {
-				let err = (d[i] / s - roots[i]).abs();
-				if err > 4.0 * 3.0 * f64::EPSILON * 2.0 {
+		// `normalize_range` is shared: the vector QR and divide-and-conquer paths take the same
+		// rescale, so all three routines are driven through the same magnitudes
+		for routine in ["sterf", "qr_algorithm", "divide_and_conquer"] {
+			for &s in &[1e150_f64, 3e153, 5e153, 6e153, 1e154, 1e155, 1e160, 1e300] {
+				let mut d = [0.0, 0.0, s];
+				let mut e = [s, s, 0.0];
+				let mut u = Mat::<f64>::zeros(3, 3);
+				let (dm, em) = (
+					ColMut::from_slice_mut(&mut d)
+						.try_as_col_major_mut()
+						.unwrap(),
+					ColMut::from_slice_mut(&mut e)
+						.try_as_col_major_mut()
+						.unwrap(),
+				);
+				let r = match routine {
+					"sterf" => sterf(dm, em),
+					"qr_algorithm" => qr_algorithm(dm, em, Some(u.as_mut()), None),
+					_ => divide_and_conquer(
+						dm,
+						em,
+						u.as_mut(),
+						Par::Seq,
+						MemStack::new(&mut MemBuffer::new(
+							divide_and_conquer_scratch::<f64>(3, ParShape::Seq),
+						)),
+						4,
+					),
+				};
+				if r.is_err() {
+					failures.push(format!("{routine}, s = {s:e}: returned {r:?}"));
+					continue;
+				}
+				if let Some(x) = d.iter().find(|x| !x.is_finite()) {
 					failures.push(format!(
-						"s = {s:e}, i = {i}: {} vs {}",
-						d[i] / s,
-						roots[i]
+						"{routine}, s = {s:e}: non-finite eigenvalue {x}, d = {d:?}"
 					));
+					continue;
+				}
+				if routine != "sterf" && !u.as_ref().norm_max().is_finite() {
+					failures.push(format!("{routine}, s = {s:e}: non-finite eigenvectors"));
+				}
+				// the vector paths do not promise ascending order, `sterf` does
+				d.sort_by(|a, b| a.partial_cmp(b).unwrap());
+				for i in 0..3 {
+					let err = (d[i] / s - roots[i]).abs();
+					if err > 4.0 * 3.0 * f64::EPSILON * 2.0 {
+						failures.push(format!(
+							"{routine}, s = {s:e}, i = {i}: {} vs {}",
+							d[i] / s,
+							roots[i]
+						));
+					}
 				}
 			}
 		}
