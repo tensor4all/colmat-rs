@@ -2,6 +2,14 @@
 
 Numbers are tensor4all/colmat-rs issues or PRs.
 
+## Build
+
+- Without `std`, an `x86_64` build with `avx2`, `fma` or `avx512f` enabled at compile time is
+  refused (`compile_error!`) unless the feature `assume-target-is-the-build-host` is on: the
+  host class is the build's target features there, so such a binary is only valid on the machine
+  that built it (#320). CI gains `nostd-isa-refusal` and `isa-gate` (no AVX-512 instruction in
+  the AVX2-tier kernels at the baseline target). No change to any kernel.
+
 ## Performance
 
 - Small QR factorizations take a level-2 path: below `128 x 128` elements (a quarter of that for a

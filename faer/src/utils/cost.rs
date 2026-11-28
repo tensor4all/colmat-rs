@@ -68,7 +68,9 @@ pub fn pays_at(
 ///
 /// The build therefore refuses `not(feature = "std")` on `x86_64` when `avx2`, `fma` or `avx512f`
 /// is enabled at compile time, unless the feature `assume-target-is-the-build-host` says that the
-/// binary is for the machine it is built for (an embedded board, say).
+/// binary is for the machine it is built for (an embedded board, say). A `std` build is not
+/// refused for `-C target-cpu`: its dispatch is at run time, and the kernels' own code is checked
+/// by the ISA gate (`scripts/check-isa-gate.sh`), not by this guard.
 ///
 /// Rates and dispatch costs of one row must come from the same machine in the same clock state:
 /// switching the boost on moves both by about 1.66 times with a stable ratio (within a few

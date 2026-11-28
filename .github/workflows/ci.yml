@@ -32,14 +32,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: scripts/check-isa-gate.sh
       # The gate must be able to fail: the same probe built with AVX-512 enabled crate-wide (the
-      # #26 defect) has to be rejected.
+      # #26 defect) has to be rejected BECAUSE it finds AVX-512 in AVX2-tier symbols, not for any
+      # other reason. `--target` keeps the flags off build scripts (the runner has no AVX-512).
       - name: gate rejects a widened build
         run: |
           RUSTFLAGS="-C target-cpu=znver5" CARGO_PROFILE_CI_STRIP=none CARGO_TARGET_DIR=target/widened \
-            cargo build --profile ci -p colmat --example isa_gate_probe
-          if scripts/check-isa-gate.sh target/widened/ci/examples/isa_gate_probe; then
-            echo "gate passed on a widened build: it cannot fail"; exit 1
-          fi
+            cargo build --profile ci -p colmat --example isa_gate_probe --target x86_64-unknown-linux-gnu
+          rc=0
+          scripts/check-isa-gate.sh target/widened/x86_64-unknown-linux-gnu/ci/examples/isa_gate_probe | tee widened.log || rc=$?
+          [ "$rc" -ne 0 ] || { echo "gate passed on a widened build: it cannot fail"; exit 1; }
+          grep -Eq "^FAIL: [1-9][0-9]* AVX2-tier symbols contain AVX-512 instructions" widened.log \
+            || { echo "gate failed, but not on AVX-512 instructions: the detector is not proven"; exit 1; }
 
   build:
     runs-on: ubuntu-latest

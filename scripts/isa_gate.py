@@ -24,7 +24,7 @@ import re, subprocess, sys
 
 FAMILIES = {
     "gemm-simd256/128": (re.compile(r"^t4a_gemm_v0_.*_simd(256|128)"), 100),
-    "pulp-V3":          (re.compile(r"^(pulp::x86::v3::V3::|gemm_common::simd::x86::V3::)"), 20),
+    "pulp-V3":          (re.compile(r"^(pulp::x86::v3::V3::|gemm_common::simd::x86::V3::)"), 10),
     "packed-avx2":      (re.compile(r"^private_gemm_x86::packed_avx2"), 3),
     "nano-avx":         (re.compile(r"^nano_gemm_\w+::x86::\w+::avx::"), 10),
 }
