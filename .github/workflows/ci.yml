@@ -110,6 +110,11 @@ jobs:
   # would wait forever for a check that never reports (R-ci-pr-02: skipped lanes finish as no-ops
   # under the unchanged check name). It measures nothing. Drop it when the required set is changed to
   # `build` + `testing-stable-ubuntu-latest`.
+  #
+  # `coverage` is a **required status check** on `main` (branch protection). A change that moves,
+  # renames or drops this job must swap the required check to the new job name **in the same step**:
+  # GitHub keeps waiting for a check that no longer reports, so every later PR stays permanently
+  # unmergeable.
   coverage:
     name: coverage
     runs-on: ubuntu-latest
