@@ -8,6 +8,24 @@
 //! two when `threadteam` is there.
 
 use crate::ParShape;
+
+// Without `std` the host class is the build's target features (see `HostClass`), so a build
+// above the x86_64 baseline is only valid on the machine that built it. Refuse it unless the
+// user says so knowingly.
+#[cfg(all(
+	target_arch = "x86_64",
+	not(feature = "std"),
+	not(feature = "assume-target-is-the-build-host"),
+	any(target_feature = "avx2", target_feature = "fma", target_feature = "avx512f")
+))]
+compile_error!(
+	"colmat without the `std` feature decides the ISA at BUILD time (no run time detection), \
+	 and this build enables avx2/fma/avx512f (RUSTFLAGS / -C target-cpu / -C target-feature). \
+	 The resulting binary only runs on CPUs with those features and is not a supported way to \
+	 ship a binary. Either enable the `std` feature (run time detection), build at the baseline \
+	 target, or, if this binary is for the machine it is built for, enable the feature \
+	 `assume-target-is-the-build-host` to silence this error."
+);
 use core::num::NonZeroUsize;
 use core::time::Duration;
 
@@ -39,6 +57,20 @@ pub fn pays_at(
 /// The serial rate table has one row per class. The enum and the detection are kept in sync by
 /// hand with `threadteam::HostClass`; a test compares the two when the parallel route is
 /// compiled.
+///
+/// # Without `std` the class is decided at build time
+///
+/// With `std`, `x86_64` is classified by run time feature detection. Without it there is no
+/// detection: the target features the crate was compiled with decide, so `-C target-cpu=znver5`
+/// reports [`X86_64Avx512`](Self::X86_64Avx512) on any host and enters the wide paths
+/// unconditionally. Such a binary is only valid on the machine it was built for, and shipping it
+/// is not supported (an unsupported CPU gets `SIGILL`, with nothing in the message).
+///
+/// The build therefore refuses `not(feature = "std")` on `x86_64` when `avx2`, `fma` or `avx512f`
+/// is enabled at compile time, unless the feature `assume-target-is-the-build-host` says that the
+/// binary is for the machine it is built for (an embedded board, say). A `std` build is not
+/// refused for `-C target-cpu`: its dispatch is at run time, and the kernels' own code is checked
+/// by the ISA gate (`scripts/check-isa-gate.sh`), not by this guard.
 ///
 /// Rates and dispatch costs of one row must come from the same machine in the same clock state:
 /// switching the boost on moves both by about 1.66 times with a stable ratio (within a few
