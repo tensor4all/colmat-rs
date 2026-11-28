@@ -1,9 +1,11 @@
 # Coverage gate
 
-`.github/workflows/ci.yml` runs one coverage job (`coverage`) that measures the whole workspace and
-fails below a checked-in floor. It is the only coverage *gate* in CI; the inherited upstream codecov
-upload in `run-tests.yml` is non-gating and covers `faer` alone (retiring it is an open follow-up, see
-`docs/worklogs/2026-11-14-coverage-gate.md`).
+`.github/workflows/coverage.yml` runs one coverage job (`coverage`) **nightly** (cron plus manual
+dispatch, no push or pull-request trigger) that measures the whole workspace and fails below a
+checked-in floor. It is the only coverage run in CI: `run-tests.yml` no longer instruments or uploads
+to codecov, and the push/PR jobs run plain `cargo nextest`/`cargo test` (#313). The job runs with
+`--test-threads 1` so the instrumented memory peak is one test's. Because it does not run on PRs it
+is not a status to require on `main`; require `ci`'s jobs (`build`) instead.
 
 ## The number
 
