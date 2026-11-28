@@ -1499,6 +1499,53 @@ mod evd_qr_tests {
 			assert!(a.windows(2).all(|w| w[0] <= w[1]));
 		}
 	}
+	/// tensor4all/colmat-rs#312: `[[0, s, 0], [s, 0, s], [0, s, s]]` is `s` times a matrix whose
+	/// spectrum is the roots of `x^3 - x^2 - 2x + 1`, so every eigenvalue is finite for `s` up to
+	/// about `DBL_MAX / 2`. The iteration squares entries and adds them, so near `sqrt(DBL_MAX)`
+	/// it overflows unless `normalize_range` has rescaled the problem first. Each magnitude must
+	/// return `Ok` with finite eigenvalues equal to `s * roots`; the bound is the normwise
+	/// `4 n eps ||T||` of `sterf_matches_qr_algorithm`, with `||T|| < 2 s` here, which is the
+	/// right bound for a backward-stable iteration and not widened for this case.
+	#[test]
+	fn sterf_finite_spectrum_near_sqrt_dbl_max() {
+		let roots = [
+			-1.246979603717467_f64,
+			0.445041867912629,
+			1.801937735804838,
+		];
+		let mut failures = Vec::new();
+		for &s in &[1e150_f64, 3e153, 5e153, 6e153, 1e154, 1e155, 1e160, 1e300] {
+			let mut d = [0.0, 0.0, s];
+			let mut e = [s, s, 0.0];
+			let r = sterf(
+				ColMut::from_slice_mut(&mut d)
+					.try_as_col_major_mut()
+					.unwrap(),
+				ColMut::from_slice_mut(&mut e)
+					.try_as_col_major_mut()
+					.unwrap(),
+			);
+			if r.is_err() {
+				failures.push(format!("s = {s:e}: sterf returned {r:?}"));
+				continue;
+			}
+			if let Some(x) = d.iter().find(|x| !x.is_finite()) {
+				failures.push(format!("s = {s:e}: non-finite eigenvalue {x}, d = {d:?}"));
+				continue;
+			}
+			for i in 0..3 {
+				let err = (d[i] / s - roots[i]).abs();
+				if err > 4.0 * 3.0 * f64::EPSILON * 2.0 {
+					failures.push(format!(
+						"s = {s:e}, i = {i}: {} vs {}",
+						d[i] / s,
+						roots[i]
+					));
+				}
+			}
+		}
+		assert!(failures.is_empty(), "{failures:#?}");
+	}
 	#[test]
 	fn test_gh_82() {
 		let diag = [
