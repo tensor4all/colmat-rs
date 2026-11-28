@@ -13,6 +13,34 @@ concurrency:
 # no debug info, which is what keeps `faer_ffi` from compiling for over an hour and from
 # growing to tens of GiB. Refs tensor4all-agent-rules, rules/common/repository.md, "Build Profiles".
 jobs:
+  # #320: without `std` the x86_64 ISA is decided at build time. The build refuses an
+  # above-baseline target unless `assume-target-is-the-build-host` is on; this job asserts that the
+  # refusal fires (and names the opt-in), and that the opt-in silences it.
+  nostd-isa-refusal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: scripts/check-nostd-isa-refusal.sh
+
+  # #320: the AVX2-tier kernels (chosen by symbol, see scripts/isa_gate.py) must contain no
+  # zmm / EVEX at the baseline target. Not a whole-binary grep: the AVX-512 tier is meant to exist.
+  isa-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: scripts/check-isa-gate.sh
+      # The gate must be able to fail: the same probe built with AVX-512 enabled crate-wide (the
+      # #26 defect) has to be rejected.
+      - name: gate rejects a widened build
+        run: |
+          RUSTFLAGS="-C target-cpu=znver5" CARGO_PROFILE_CI_STRIP=none CARGO_TARGET_DIR=target/widened \
+            cargo build --profile ci -p colmat --example isa_gate_probe
+          if scripts/check-isa-gate.sh target/widened/ci/examples/isa_gate_probe; then
+            echo "gate passed on a widened build: it cannot fail"; exit 1
+          fi
+
   build:
     runs-on: ubuntu-latest
     steps:
