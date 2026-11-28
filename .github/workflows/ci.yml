@@ -104,5 +104,14 @@ jobs:
           C
           cc -std=c11 -Wall -Wextra -Werror -Ifaer-ffi -c "$RUNNER_TEMP/faer_ffi_smoke.c" -o "$RUNNER_TEMP/faer_ffi_smoke.o"
 
-  # The coverage floor (#184) is not a push/PR job any more (#313): it runs nightly from
-  # `coverage.yml`, so a red `coverage` check can only mean a coverage reason.
+  # The coverage floor (#184) is not measured on push/PR any more (#313): it runs nightly from
+  # `coverage.yml`, so a red result there can only mean a coverage reason. This job exists only
+  # because `main`'s branch protection still requires a status named `coverage`; without it every PR
+  # would wait forever for a check that never reports (R-ci-pr-02: skipped lanes finish as no-ops
+  # under the unchanged check name). It measures nothing. Drop it when the required set is changed to
+  # `build` + `testing-stable-ubuntu-latest`.
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "coverage floor runs nightly in coverage.yml (#313); nothing is measured on push/PR"

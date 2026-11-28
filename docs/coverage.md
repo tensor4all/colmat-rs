@@ -5,7 +5,9 @@ dispatch, no push or pull-request trigger) that measures the whole workspace and
 checked-in floor. It is the only coverage run in CI: `run-tests.yml` no longer instruments or uploads
 to codecov, and the push/PR jobs run plain `cargo nextest`/`cargo test` (#313). The job runs with
 `--test-threads 1` so the instrumented memory peak is one test's. Because it does not run on PRs it
-is not a status to require on `main`; require `ci`'s jobs (`build`) instead.
+is not a status to require on `main`. `ci.yml` keeps a no-op job named `coverage` only so the
+currently required check still reports; the checks to require instead are `build` (`ci.yml`) **and**
+`testing-stable-ubuntu-latest` (`run-tests.yml`, the `colmat` lib unit suite that `build` does not run).
 
 ## The number
 
