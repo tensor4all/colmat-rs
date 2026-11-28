@@ -15,6 +15,16 @@ upstream `faer`.
 
 ## Pending public API extension
 
+- EXPERIMENT: `linalg::matmul::mixed_matmul` adds the real mixed-precision first slice
+  (`f32 × f32 → f64` and `f32 × f64 → f64`, `Dst = Acc = f64`) with a sealed supported-pair
+  contract. `t4a-gemm` converts `f32` exactly during packed-panel formation and reuses its `f64`
+  kernels; colmat bypasses homogeneous early/native routes and partitions only output tiles on a
+  team. Products and sums use `f64`; `alpha` and old output are each applied once. Results are not
+  block-size independent. Unsupported types fail at compile time, and the internal dynamic dispatcher
+  rejects before output mutation. Correctness/API only, no performance claim. Coordinated companion:
+  `t4a-gemm` `bbba8c43f8ac8653f700781b9a18232ee06e7aef`, to be replaced by a release before the
+  colmat PR. [Design](docs/design/mixed-precision-gemm.md); [decisions and verification](docs/worklogs/2026-11-26-mixed-precision-gemm.md).
+
 - EXPERIMENT: packed QL and RQ factorizations, `linalg::ql::no_pivoting` and
   `linalg::rq::no_pivoting` (`_in_place` kernel, the QR/LQ scratch query for the
   same shape, `Par`,
